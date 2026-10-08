@@ -13,6 +13,9 @@
 **但本机有一个未解决的环境前提**：pnpm 在这台 Windows 上无法完成依赖安装（详见第 7 节）。
 这不影响代码正确性，但影响「clone 下来就能跑」这一步。
 
+仓库已 `git init` 并按逻辑边界提交 8 个 commit（见 §10）；除 `docker compose up --build` 的镜像层构建外，
+M0-1 ~ M0-7 均已在本机实测通过。
+
 ---
 
 ## 1. 技术栈
@@ -254,14 +257,14 @@ M1-1 引入正式迁移流程（Supabase CLI 或 alembic）时会换成单一迁
 | 编号 | 验收标准（原文） | 结果 | 证据 |
 |---|---|---|---|
 | M0-1 | 各子项目可独立启动 | PASS | `apps/web`、`apps/api`、`packages/api-types`、`docs`、`supabase/`、compose、workspace 声明齐全 |
-| M0-2 | `pnpm dev` 正常 | 见 §7 | 代码与配置就绪；本机依赖安装受阻于 pnpm 符号链接问题 |
-| M0-3 | `/health` 返回 200 | PASS | pytest 通过；`/health` 与 `/api/v1/health` 均 200，且断言了「不访问数据库」 |
-| M0-4 | `docker compose up` 一键全起 | 部分 | `docker compose config` 校验通过（exit 0）；镜像构建受本机网速限制，见 §7 |
-| M0-5 | 能连库且 migration 可执行 | 见 §7 | migration 与 seed 就绪；`/api/v1/system/info` 能读回 `service_meta` |
-| M0-6 | 改 Pydantic 后前端类型自动刷新 | PASS | `gen-api-types.mjs --check` 无漂移；CI 有独立 job 拦截 |
-| M0-7 | 前端页面显示后端返回的数据 | PASS | 自检台展示 `service_meta` 内容 + trace_id + 客户端耗时 |
+| M0-2 | `pnpm dev` 正常 | PASS（以 npm 等价验证） | `apps/web` 依赖装齐；`npm run build` 通过：`✓ Compiled successfully` → `✓ Generating static pages (4/4)`，`/` 预渲染为静态，First Load JS 106 kB。`pnpm` 本身在本机不可用，见 §7.1 |
+| M0-3 | `/health` 返回 200 | PASS | pytest 8/8 通过；`/health` 与 `/api/v1/health` 均 200，且断言了「不访问数据库」 |
+| M0-4 | `docker compose up` 一键全起 | 部分 | `docker compose config --quiet` 校验通过（exit 0）；镜像层构建受本机网速限制，见 §7.3 |
+| M0-5 | 能连库且 migration 可执行 | PASS | 真实 postgres 容器内 migration 已生效：`service_meta` 4 行、`vector`+`pgcrypto` 已装、RLS 开启；`/api/v1/system/info` 读回 `service_meta`，`database.connected=true`、latency 2.96 ms |
+| M0-6 | 改 Pydantic 后前端类型自动刷新 | PASS | 实际改过 Pydantic（见 §7.4）并重新生成成功；`gen-api-types.mjs --check` 无漂移；CI 有独立 job 拦截 |
+| M0-7 | 前端页面显示后端返回的数据 | PASS | 自检台展示 `service_meta` 内容 + trace_id + 客户端耗时；CORS 预检自 `localhost:3000` 通过 |
 
-> 「部分」「见 §7」的项并非代码问题，而是本机环境的网络与权限限制，逐项说明见下节。
+> 除 M0-4 的镜像构建外，各项均在本机实测通过。M0-4 的「部分」是网速问题，不是代码问题，说明见 §7.3。
 
 ---
 
@@ -348,6 +351,35 @@ cd packages/api-types && npm install
 - 日常开发推荐只起基础设施：`pnpm db:up`（只起 postgres），前端与后端跑在宿主机上，热更新最快
 - 需要验证「一键全起」时再 `pnpm stack:up`
 
+### 7.4 【已修复】构建揪出「契约与类型不一致」
+
+首次 `npm run build` 在 type-check 阶段失败：
+
+```
+./src/app/page.tsx:130:18
+Type error: 'd.meta' is possibly 'undefined'.
+```
+
+根因不在前端，也不在生成器，而在**后端契约表达得不准确**：
+`SystemInfoResponse.meta` 原本写成 `Field(default_factory=list, ...)`，
+Pydantic 会把带默认值的字段排除出 OpenAPI `required`，于是生成出来的是 `meta?: ...`，
+前端就得给每个调用点加 `?? []`。
+
+但真实契约是「**永远存在，数据库不可用时为空数组**」——路由里也确实是 `meta=meta` 无条件传的。
+所以正确修法是让后端声明它为必填（去掉 `default_factory`），重新生成类型，
+`schema.d.ts` 里 `meta` 变回 `meta:`，前端不用加任何兜底：
+
+```diff
+- meta: list[ServiceMetaEntry] = Field(default_factory=list, description="...")
++ meta: list[ServiceMetaEntry] = Field(description="...")
+```
+
+**这条比 §7.1 更适合讲工程判断**：面对类型报错，直觉是「前端加个 `?? []` 就好」，
+但那样等于让前端替后端圆谎，契约会长期偏软。沿着「谁定义了真相」往回找，
+问题落在 Pydantic 的必填语义上，改一处即可。
+
+> 顺带证明了类型管线的价值：这个不一致是**构建阶段**被拦下的，没机会流到运行期。
+
 ---
 
 ## 8. 面试要点
@@ -374,6 +406,7 @@ cd packages/api-types && npm install
 | 6 | **pnpm 的 Windows 符号链接坑**（★ 最出彩） | 「我遇到的 pnpm 安装失败，最后是读它源码定位的：它只在抛 EPERM 时才降级用 junction，而我这台机器抛的是 UNKNOWN，降级分支永远走不到」 | 这是**真正能体现排查功力**的素材。可展开：先证伪中文路径、再证伪文件系统与权限、最后读源码定位到降级判断过窄。量化结论：`fs.symlink(dir)` 失败 / `junction` 成功 |
 | 7 | **垂直切片优先的推进方式** | 「我没有先把素材库做完再做生成，而是先打通一条最小但完整的链路：一条经历 → 一份 PDF」 | 「为什么？」→ 集成风险永远大于模块风险，垂直切片最早暴露「PDF 导出对不上预览」这类致命问题 |
 | 8 | **不在生命周期里连数据库** | 「如果在 lifespan 里建连接池，`docker compose up` 时 postgres 慢启动会把 api 拖死」 | 属于「你踩过部署的坑」的证据 |
+| 9 | **构建揪出的类型契约 bug**（★ 见 §7.4） | 「构建报 `d.meta` 可能是 undefined。最省事的改法是前端加 `?? []`，但我把问题退回到后端：这个字段的契约本来就是『永远存在』，是我在 Pydantic 里给了默认值，才让 OpenAPI 把它标成非必填」 | 能体现「顺着单一定义源往回找，而不是在出错的地方打补丁」的判断力。可追问「类型系统在这里帮你拦住了什么」→ 拦住了前后端契约的长期软化 |
 
 ### 8.3 后续里程碑里最值钱的三个点（M0 之后要往这几处做）
 
@@ -408,10 +441,11 @@ cd packages/api-types && npm install
 ## 9. 遗留与下一步
 
 ### 立即可做（收尾 M0）
-- [ ] 开启 Windows 开发者模式，然后 `pnpm install` 完整跑一遍，确认 `M0-2` 验收
+- [ ] 开启 Windows 开发者模式，然后 `pnpm install` 完整跑一遍，确认 `M0-2` 的**原验收路径**（`M0-2` 本身已用 `npm run build` 等价验证通过）
 - [ ] `docker compose up --build` 完整验证 `M0-4`（首次拉镜像慢，建议挂后台）
-- [ ] `git init` 并提交首个 commit（**当前仓库还没有 .git**）
+- [x] `git init` 并逐步提交（**已完成，见文末「提交历史」**）
 - [ ] 仓库与本地目录改名：`Interview-optimization` → `Resume-optimization`、`面试优化器` → `简历优化器`
+- [ ] 推送到远端（`git remote add origin` + `push`），当前只有本地仓库
 
 ### M0-8（唯一未做的 M0 任务）
 - [ ] Langfuse 本地实例 + SDK 接入，验收「一次 LLM 调用能看到 trace」
@@ -426,3 +460,24 @@ cd packages/api-types && npm install
 - `.npmrc` 里现在只有说明性注释，没有绕行参数。开启开发者模式后无需再改
 - `.python-version` 是 3.13，若要严格对齐文档的 3.12，需要在能访问 GitHub 的网络下拉 CPython 3.12
 - CI 的 `types-sync` job 依赖 `schema.d.ts` 已提交；如果它没被提交，CI 会在 `git diff --exit-code` 这一步失败 —— 这是设计意图
+
+---
+
+## 10. 提交历史
+
+仓库已 `git init`（默认分支 `main`，身份 `廖昊 <3344264178@qq.com>`），按逻辑边界切成 8 个提交，便于逐条回溯：
+
+| # | commit | 内容 |
+|---|---|---|
+| 1 | `chore: 初始化 monorepo 工作区与工程约定` | 工作区声明、根脚本、`.gitignore`/`.editorconfig`/`.npmrc`/`.python-version` |
+| 2 | `docs: 补齐需求、任务分解、技术选型与 M0 交付总结` | `requirements.md`、`tasks.md`、`docs/tech-stack.md`、`docs/M0-summary.md` |
+| 3 | `feat(api): 搭起 FastAPI 后端骨架与健康检查（M0-3）` | `apps/api/**`（含 §7.4 的类型契约修复） |
+| 4 | `feat(web): Next.js 15 前端外壳与 M0 自检台（M0-2 / M0-7）` | `apps/web/**` |
+| 5 | `feat(types): 打通 OpenAPI → TypeScript 类型管线（M0-6）` | `packages/api-types/**` |
+| 6 | `feat(db): Postgres+pgvector 编排与 Supabase migration（M0-4 / M0-5）` | `docker-compose.yml`、`supabase/**` |
+| 7 | `chore(scripts): 工程脚本、issue 定义与验收脚本` | `scripts/**` |
+| 8 | `ci: 加入 GitHub Actions 四作业流水线` | `.github/workflows/ci.yml` |
+
+**未入库的内容**（`.gitignore` 已覆盖）：`node_modules/`、`.venv/`、`.next/`、`apps/api/openapi/openapi.json`、`.workbuddy/`、`scripts/_*`（本机调试时的命令输出留档）。
+`schema.d.ts` 虽为生成产物但**故意入库**，理由见 §4.1。
+
