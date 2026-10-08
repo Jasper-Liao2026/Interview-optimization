@@ -1,0 +1,106 @@
+# 本地一键拉起 web + api + postgres（M0-4 验收）
+#
+# 日常开发建议：只起基础设施 —— `docker compose up -d postgres api`，
+#   然后把前端跑在宿主机（`pnpm web`），这样前端热更新最快。
+# 需要验证「一键全起」时再 `docker compose up --build`。
+
+name: resume-optimizer
+
+services:
+  # ------------------------------------------------------------ postgres
+  postgres:
+    # 选 pgvector 镜像而不是官方 postgres：M3-4 要存经历向量，
+    # 提前用同一个镜像可以避免「开发用 pg16、上线换成 pgvector」的环境漂移
+    image: pgvector/pgvector:pg16
+    container_name: resume-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: resume_optimizer
+      # 中文排序与大小写行为显式固定，避免不同机器 initdb 结果不一致
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      # 54322 与 Supabase 本地实例默认端口一致：
+      # `docker compose` 与 `supabase start` 两种跑法共用同一份 DATABASE_URL
+      - "54322:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # docker-entrypoint-initdb.d 只在数据目录为空时执行，
+      # 且**不会递归子目录**，所以必须逐个文件挂载。
+      # 改了 SQL 想重放：`pnpm db:reset`（= docker compose down -v postgres）
+      - ./supabase/migrations/20261008000000_init.sql:/docker-entrypoint-initdb.d/10-init.sql:ro
+      - ./supabase/seed.sql:/docker-entrypoint-initdb.d/20-seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d resume_optimizer"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  # ----------------------------------------------------------------- api
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: resume-api
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: docker
+      MILESTONE: M0
+      LOG_LEVEL: INFO
+      # 容器内走服务名，不走宿主机的 54322
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/resume_optimizer
+      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+    ports:
+      - "8000:8000"
+    volumes:
+      # 开发热重载：只挂 app 目录，不覆盖已装好的依赖
+      - ./apps/api/app:/app/app
+    command:
+      - python
+      - -m
+      - uvicorn
+      - app.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --reload
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # 用 python 自带 urllib，镜像里不必再装 curl
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).status==200 else 1)"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+  # ----------------------------------------------------------------- web
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # NEXT_PUBLIC_* 是**构建期**常量，会被内联进客户端 bundle，
+        # 只能在 build 阶段传，运行时再给环境变量是无效的
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    container_name: resume-web
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:
