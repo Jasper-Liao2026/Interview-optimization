@@ -1,0 +1,21 @@
+{
+  "name": "@resume/api-types",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OpenAPI → TypeScript 类型生成产物。前端接口类型的唯一来源，禁止手写。",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts"
+    }
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "gen": "openapi-typescript ../../apps/api/openapi/openapi.json -o src/schema.d.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.9.1",
+    "typescript": "^5.8.3"
+  }
+}
