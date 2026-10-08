@@ -37,8 +37,11 @@ htmlcov/
 supabase/.branches/
 supabase/.temp/
 
-# ---- 本会话临时调试产物（PowerShell stdout 不回流，命令输出先落文件再读回）----
+# ---- 本会话临时调试产物 ----
+# 本机 PowerShell stdout 不回流，命令输出一律先落文件再读回；这些留档不入库。
+# （注意：某些受限环境下无法删除项目目录内的文件，故用忽略规则收口而不是清理）
 scripts/_*
+scripts/*.txt
 
 # ---- 工具本地状态（WorkBuddy 的项目记忆等，不入库）----
 .workbuddy/
