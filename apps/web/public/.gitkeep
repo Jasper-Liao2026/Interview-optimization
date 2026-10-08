@@ -1,0 +1,2 @@
+# Next.js 的 public/ 目录：存放静态资源。standalone 产物会把它一起打包进镜像。
+# 暂时留空。
