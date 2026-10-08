@@ -24,15 +24,19 @@ export function venvPython(venvRoot) {
 
 /**
  * 运行命令。默认继承 stdio（让输出实时可见）；capture=true 时收集输出。
+ *
+ * `shell` 默认 false（避免 shell 差异与中文路径的编码问题）；
+ * 但 Windows 上的 `.cmd`/`.bat` 包装脚本（npm.cmd、pnpm.cmd）在 Node 22 下
+ * 必须开 shell 才能被 spawn，调用方按需传入 shell: true。
  * @returns {{status:number, stdout:string, stderr:string}}
  */
-export function run(cmd, args, { cwd, capture = false, allowFailure = false, env } = {}) {
+export function run(cmd, args, { cwd, capture = false, allowFailure = false, env, shell = false } = {}) {
   const result = spawnSync(cmd, args, {
     cwd,
     env: env ? { ...process.env, ...env } : process.env,
     stdio: capture ? ["ignore", "pipe", "pipe"] : "inherit",
     encoding: "utf8",
-    shell: false,
+    shell,
   });
 
   if (result.error) {
@@ -63,4 +67,20 @@ export function has(cmd, args = ["--version"]) {
  */
 export function runPnpm(args, opts = {}) {
   return run(isWindows ? "pnpm.cmd" : "pnpm", args, { ...opts, shell: isWindows });
+}
+
+/**
+ * 运行 npm。用途只有一个：本机 pnpm 不可用时的降级路径
+ * （pnpm 在 Windows 上需要开发者模式才能建符号链接，见 docs/M0-summary.md §7.1）。
+ */
+export function runNpm(args, opts = {}) {
+  return run(isWindows ? "npm.cmd" : "npm", args, { ...opts, shell: isWindows });
+}
+
+/** 优先 pnpm，缺失时退回 npm。返回实际使用的包管理器名。 */
+export function runPreferredPkgManager(args, opts = {}) {
+  if (has(isWindows ? "pnpm.cmd" : "pnpm")) {
+    return { pm: "pnpm", result: runPnpm(args, opts) };
+  }
+  return { pm: "npm", result: runNpm(args, opts) };
 }

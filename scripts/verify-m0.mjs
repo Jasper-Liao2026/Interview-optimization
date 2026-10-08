@@ -9,7 +9,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
-import { run, runPnpm, venvPython } from "./lib/proc.mjs";
+import { run, runNpm, runPnpm, venvPython } from "./lib/proc.mjs";
 import { paths } from "./lib/paths.mjs";
 
 const API_BASE = process.env.API_BASE_URL ?? "http://localhost:8000";
@@ -57,16 +57,43 @@ console.log("\n=== M0 验收 ===\n");
 
 /* -------------------------------------------- M0-2 前端可编译（类型层） */
 {
-  const r = run("pnpm", ["--filter", "@resume/web", "typecheck"], {
-    cwd: paths.repoRoot,
-    capture: true,
-    allowFailure: true,
-  });
+  // 三级降级，目的是让验收脚本在本机也说得清结论，而不是因为「pnpm 不在」
+  // 就报一个与代码无关的 FAIL（见 docs/M0-summary.md §7.1）。
+  const webDir = join(paths.repoRoot, "apps", "web");
+  const localTsc = join(webDir, "node_modules", "typescript", "bin", "tsc");
+
+  let r;
+  let how;
+  if (existsSync(localTsc)) {
+    // 首选：直接跑 apps/web 自带的 tsc，完全不依赖包管理器
+    r = run(process.execPath, [localTsc, "--noEmit"], {
+      cwd: webDir,
+      capture: true,
+      allowFailure: true,
+    });
+    how = "tsc --noEmit（本地二进制）";
+  } else if (runPnpm(["--version"], { capture: true, allowFailure: true }).status === 0) {
+    r = runPnpm(["--filter", "@resume/web", "typecheck"], {
+      cwd: paths.repoRoot,
+      capture: true,
+      allowFailure: true,
+    });
+    how = "pnpm --filter @resume/web typecheck";
+  } else if (runNpm(["--version"], { capture: true, allowFailure: true }).status === 0) {
+    r = runNpm(["run", "typecheck"], { cwd: webDir, capture: true, allowFailure: true });
+    how = "npm run typecheck";
+  } else {
+    r = { status: -1, stdout: "", stderr: "本地无 tsc，且 pnpm / npm 均不可用" };
+    how = "无可用的类型检查器";
+  }
+
   record(
     "M0-2",
     "Next.js 工程可用",
     r.status === 0 ? "PASS" : "FAIL",
-    r.status === 0 ? "tsc --noEmit 通过" : `tsc 失败：${r.stderr.trim().split("\n").slice(-3).join(" | ")}`,
+    r.status === 0
+      ? `${how} 通过`
+      : `${how} 失败：${r.stderr.trim().split("\n").slice(-3).join(" | ")}`,
   );
 }
 
