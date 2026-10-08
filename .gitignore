@@ -1,0 +1,51 @@
+# ---- node ----
+node_modules/
+.pnpm-store/
+.next/
+out/
+.turbo/
+next-env.d.ts
+*.tsbuildinfo
+
+# ---- python ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# ---- env ----
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# ---- 生成产物 ----
+# openapi.json 是中间产物，不入库
+/apps/api/openapi/openapi.json
+# schema.d.ts 虽然由管线生成，但**故意入库**：
+#   1) 前端可在没有 Python 环境的机器上直接 pnpm install && build
+#   2) Vercel 构建不必安装 uv / Python
+#   3) 同步性由 CI 校验（重新生成后 git diff --exit-code）
+# 详见 docs/M0-summary.md「类型管线」一节
+
+# ---- supabase 本地状态 ----
+supabase/.branches/
+supabase/.temp/
+
+# ---- 本会话临时调试产物（PowerShell stdout 不回流，命令输出先落文件再读回）----
+scripts/_*
+
+# ---- 工具本地状态（WorkBuddy 的项目记忆等，不入库）----
+.workbuddy/
+
+# ---- editor / os ----
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db

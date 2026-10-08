@@ -1,0 +1,34 @@
+{
+  "name": "resume-optimizer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "简历优化器 — 批量生产岗位适配版简历",
+  "packageManager": "pnpm@11.5.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "setup": "pnpm install && node scripts/api-setup.mjs",
+    "dev": "node scripts/run-api.mjs dev",
+    "web": "pnpm --filter @resume/web dev",
+    "build": "pnpm --filter @resume/web build",
+    "lint": "node scripts/run-api.mjs ruff-check && pnpm --filter @resume/web lint",
+    "format": "node scripts/run-api.mjs ruff-format",
+    "typecheck": "pnpm -r typecheck",
+    "test": "node scripts/run-api.mjs pytest",
+    "api:setup": "node scripts/api-setup.mjs",
+    "api:dev": "node scripts/run-api.mjs dev",
+    "api:test": "node scripts/run-api.mjs pytest",
+    "api:lint": "node scripts/run-api.mjs ruff-check",
+    "api:fmt": "node scripts/run-api.mjs ruff-format",
+    "gen:openapi": "node scripts/gen-api-types.mjs --only-openapi",
+    "gen:types": "node scripts/gen-api-types.mjs",
+    "gen:types:check": "node scripts/gen-api-types.mjs --check",
+    "verify:m0": "node scripts/verify-m0.mjs",
+    "db:up": "docker compose up -d postgres",
+    "db:reset": "docker compose down -v postgres",
+    "stack:up": "docker compose up -d --build",
+    "stack:down": "docker compose down",
+    "stack:logs": "docker compose logs -f api web"
+  }
+}
