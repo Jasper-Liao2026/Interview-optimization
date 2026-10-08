@@ -1,0 +1,100 @@
+name: CI
+
+# M0 只保证「地基不塌」：后端能测、类型不漂移、前端能构建。
+# 部署与预览环境不在本阶段范围内。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: 后端 · ruff + pytest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync
+      - name: ruff
+        run: uv run ruff check .
+      - name: ruff format --check
+        run: uv run ruff format --check .
+      - name: pytest
+        run: uv run pytest
+
+  types-sync:
+    name: 类型管线 · 与后端 schema 同步
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # TODO(pnpm-lock.yaml 就绪后): 改回 `pnpm install --frozen-lockfile`
+      # 现状：锁文件尚未生成（本机 pnpm 受 Windows 符号链接限制，见 .npmrc 与 docs/M0-summary.md §7.1）。
+      # 指定 --frozen-lockfile 而锁文件不存在会直接失败，所以先不加该参数。
+      - run: pnpm install
+        env:
+          npm_config_node_linker: isolated
+      - run: uv sync --project apps/api
+
+      # 关键一步：如果有人改了 Pydantic model 却没提交刷新后的 schema.d.ts，这里直接失败
+      - name: 校验前端类型与 Pydantic model 一致
+        run: pnpm gen:types --check
+
+      - name: 重新生成后工作区必须无改动
+        run: git diff --exit-code packages/api-types/src/schema.d.ts
+
+  web:
+    name: 前端 · typecheck + build
+    runs-on: ubuntu-latest
+    # 仓库根的 .npmrc 里记录了 Windows 的 pnpm 符号链接限制。
+    # CI 是 Linux，没有这个限制，这里强制用严格隔离的链接器，
+    # 让「幻影依赖」在 CI 被拦下（本地可能因 workaround 漏掉）。
+    env:
+      npm_config_node_linker: isolated
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install
+      - run: pnpm --filter @resume/api-types typecheck
+      - run: pnpm --filter @resume/web typecheck
+      - run: pnpm --filter @resume/web lint
+      - run: pnpm --filter @resume/web build
+        env:
+          npm_config_node_linker: isolated
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+
+  compose:
+    name: 编排 · docker compose 配置校验
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose config --quiet
