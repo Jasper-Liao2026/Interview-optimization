@@ -16,6 +16,15 @@ export type SystemInfoResponse = components["schemas"]["SystemInfoResponse"];
 export type ServiceMetaEntry = components["schemas"]["ServiceMetaEntry"];
 export type DatabaseStatus = components["schemas"]["DatabaseStatus"];
 
+// --- M1 垂直切片 ---
+export type ExperienceRead = components["schemas"]["ExperienceRead"];
+export type ExperienceListResponse = components["schemas"]["ExperienceListResponse"];
+export type GenerateRequest = components["schemas"]["GenerateRequest"];
+export type GenerateResponse = components["schemas"]["GenerateResponse"];
+export type JobProfile = components["schemas"]["JobProfile"];
+export type ResumeRead = components["schemas"]["ResumeRead"];
+export type ResumeSection = components["schemas"]["ResumeSection"];
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -46,6 +55,13 @@ export function newRequestId(): string {
   return `web-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
 }
 
+async function handle<T>(response: Response, path: string): Promise<T> {
+  if (!response.ok) {
+    throw new ApiError(response.status, path, await response.text().catch(() => ""));
+  }
+  return (await response.json()) as T;
+}
+
 export async function apiGet<T>({ path, requestId, signal }: RequestOptions): Promise<T> {
   const response = await fetch(`${env.apiBaseUrl}${path}`, {
     method: "GET",
@@ -57,11 +73,38 @@ export async function apiGet<T>({ path, requestId, signal }: RequestOptions): Pr
     cache: "no-store",
     signal,
   });
+  return handle<T>(response, path);
+}
 
+export async function apiPost<T>(
+  { path, requestId, signal }: RequestOptions,
+  body: unknown,
+): Promise<T> {
+  const response = await fetch(`${env.apiBaseUrl}${path}`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...(requestId ? { "X-Request-Id": requestId } : {}),
+    },
+    body: JSON.stringify(body),
+    cache: "no-store",
+    signal,
+  });
+  return handle<T>(response, path);
+}
+
+/** 取回服务端渲染的简历 HTML 文本（用于浏览器打印：srcdoc + window.print）。 */
+export async function fetchResumeHtml(resumeId: string, signal?: AbortSignal): Promise<string> {
+  const response = await fetch(`${env.apiBaseUrl}${api.resumeHtmlPath(resumeId)}`, {
+    headers: { Accept: "text/html" },
+    cache: "no-store",
+    signal,
+  });
   if (!response.ok) {
-    throw new ApiError(response.status, path, await response.text().catch(() => ""));
+    throw new ApiError(response.status, api.resumeHtmlPath(resumeId), await response.text());
   }
-  return (await response.json()) as T;
+  return response.text();
 }
 
 export const api = {
@@ -69,4 +112,22 @@ export const api = {
     apiGet<HealthResponse>({ path: `${env.apiPrefix}/health`, ...opts }),
   systemInfo: (opts?: Omit<RequestOptions, "path">) =>
     apiGet<SystemInfoResponse>({ path: `${env.apiPrefix}/system/info`, ...opts }),
+
+  // --- M1 ---
+  listExperiences: (opts?: Omit<RequestOptions, "path">) =>
+    apiGet<ExperienceListResponse>({ path: `${env.apiPrefix}/experiences`, ...opts }),
+  generateResume: (body: GenerateRequest, opts?: Omit<RequestOptions, "path">) =>
+    apiPost<GenerateResponse>({ path: `${env.apiPrefix}/resumes/generate`, ...opts }, body),
+
+  /**
+   * 后端返回的 preview_path / pdf_path 是**相对 API 前缀**的路径，
+   * 前端统一拼上 apiBaseUrl。之所以不让后端返回绝对 URL：
+   * 同一份后端在本地、容器、生产里域名都不同，绝对 URL 只会写死一个环境。
+   */
+  resumeHtmlPath: (resumeId: string) => `${env.apiPrefix}/resumes/${resumeId}/html`,
+  resumePdfPath: (resumeId: string, download = false) =>
+    `${env.apiPrefix}/resumes/${resumeId}/pdf${download ? "?download=1" : ""}`,
+  resumeHtmlUrl: (resumeId: string) => `${env.apiBaseUrl}${api.resumeHtmlPath(resumeId)}`,
+  resumePdfUrl: (resumeId: string, download = false) =>
+    `${env.apiBaseUrl}${api.resumePdfPath(resumeId, download)}`,
 };

@@ -10,6 +10,7 @@ import {
   type SystemInfoResponse,
 } from "@/lib/api-client";
 import { env } from "@/lib/env";
+import { TopNav } from "@/components/top-nav";
 
 type LoadState<T> =
   | { kind: "loading" }
@@ -79,6 +80,8 @@ export default function Page() {
 
   return (
     <main className="mx-auto w-full max-w-5xl px-6 py-10">
+      <TopNav />
+
       <Header
         overall={overall}
         lastChecked={lastChecked}

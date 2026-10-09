@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "简历优化器 · 系统自检台",
-  description: "M0 脚手架联通验证页：前端 → FastAPI → Postgres 全链路自检",
+  title: "简历优化器",
+  description: "批量生产岗位适配版简历：素材库 · JD 解析 · 并行改写 · 精调导出",
 };
 
 export default function RootLayout({
