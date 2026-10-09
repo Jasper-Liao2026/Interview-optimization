@@ -102,5 +102,168 @@ services:
       api:
         condition: service_healthy
 
+  # ======================================================= 观测栈（M0-8）
+  #
+  # 用 profile 隔离：默认 `docker compose up` **不会**起这一坨（6 个容器太重），
+  # 需要时显式指定 —— `docker compose --profile observability up -d`。
+  #
+  # 端口刻意错开宿主常用端口，避免和本项目的 web(3000) / postgres(54322) 打架：
+  #   langfuse-web → 宿主 3300（容器内仍是 3000，Langfuse 自身依赖这个值）
+  #   clickhouse / redis / minio / langfuse-postgres 一律不暴露到宿主，
+  #   只走 compose 内部网络 —— 本地调试用不到它们。
+  #
+  # LANGFUSE_INIT_* 会在首次启动时自动建好组织/项目/用户并固定 API key，
+  # 免去在 UI 里手动注册，也让 .env 里的 key 是确定值、可提交。
+  # 生产环境务必换成随机值（`openssl rand -hex 32`）。
+
+  langfuse-postgres:
+    image: postgres:17-alpine
+    container_name: resume-langfuse-postgres
+    profiles: [observability]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      TZ: UTC
+      PGTZ: UTC
+    volumes:
+      - langfuse_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  langfuse-clickhouse:
+    image: clickhouse/clickhouse-server:24.12
+    container_name: resume-langfuse-clickhouse
+    profiles: [observability]
+    restart: unless-stopped
+    user: "101:101"
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: clickhouse
+    volumes:
+      - langfuse_clickhouse_data:/var/lib/clickhouse
+      - langfuse_clickhouse_logs:/var/log/clickhouse-server
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  langfuse-redis:
+    image: redis:7-alpine
+    container_name: resume-langfuse-redis
+    profiles: [observability]
+    restart: unless-stopped
+    # 必须带密码：不带的话 redis-cli ping 会因 NOAUTH 失败，健康检查永远不过
+    command: ["redis-server", "--requirepass", "myredissecret", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - langfuse_redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a myredissecret --no-auth-warning ping | grep -q PONG"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+
+  langfuse-minio:
+    image: minio/minio:RELEASE.2024-05-28T17-19-04Z
+    container_name: resume-langfuse-minio
+    profiles: [observability]
+    restart: unless-stopped
+    entrypoint: sh
+    # 先建好 langfuse bucket 再启动，省掉一次手工操作
+    command: -c 'mkdir -p /data/langfuse && minio server --address ":9000" --console-address ":9001" /data'
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: miniosecret
+    volumes:
+      - langfuse_minio_data:/data
+    # 刻意不写 healthcheck：minio 镜像里 curl/mc 是否可用随版本变化，
+    # 一个永不通过的 healthcheck 会把整条依赖链卡死。langfuse 只等服务启动。
+
+  langfuse-worker:
+    image: langfuse/langfuse-worker:3
+    container_name: resume-langfuse-worker
+    profiles: [observability]
+    restart: unless-stopped
+    depends_on:
+      langfuse-postgres:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+      langfuse-redis:
+        condition: service_healthy
+      langfuse-minio:
+        condition: service_started
+    environment: &langfuse-env
+      DATABASE_URL: postgresql://postgres:postgres@langfuse-postgres:5432/postgres
+      SALT: resume-optimizer-local-salt
+      ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      TELEMETRY_ENABLED: "false"
+      CLICKHOUSE_MIGRATION_URL: clickhouse://langfuse-clickhouse:9000
+      CLICKHOUSE_URL: http://langfuse-clickhouse:8123
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: clickhouse
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
+      REDIS_HOST: langfuse-redis
+      REDIS_PORT: "6379"
+      REDIS_AUTH: myredissecret
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: minio
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: miniosecret
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://langfuse-minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
+      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: minio
+      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: miniosecret
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://langfuse-minio:9000
+      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
+
+  langfuse-web:
+    image: langfuse/langfuse:3
+    container_name: resume-langfuse-web
+    profiles: [observability]
+    restart: unless-stopped
+    depends_on:
+      langfuse-postgres:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+      langfuse-redis:
+        condition: service_healthy
+      langfuse-minio:
+        condition: service_started
+    ports:
+      - "3300:3000"
+    environment:
+      <<: *langfuse-env
+      NEXTAUTH_URL: http://localhost:3300
+      NEXTAUTH_SECRET: resume-optimizer-local-nextauth
+      # 首次启动自动建组织 / 项目 / 用户，并固定 API key
+      LANGFUSE_INIT_ORG_ID: resume-optimizer
+      LANGFUSE_INIT_ORG_NAME: Resume Optimizer
+      LANGFUSE_INIT_PROJECT_ID: resume-optimizer
+      LANGFUSE_INIT_PROJECT_NAME: resume-optimizer
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: pk-lf-local-dev
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: sk-lf-local-dev
+      LANGFUSE_INIT_USER_EMAIL: dev@resume-optimizer.local
+      LANGFUSE_INIT_USER_NAME: dev
+      LANGFUSE_INIT_USER_PASSWORD: devpassword
+
 volumes:
   pgdata:
+  langfuse_pgdata:
+  langfuse_clickhouse_data:
+  langfuse_clickhouse_logs:
+  langfuse_redis_data:
+  langfuse_minio_data:
+
