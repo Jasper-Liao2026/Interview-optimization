@@ -31,7 +31,7 @@ M0-1 ~ M0-8 均已在本机实测通过。
 | 依赖管理 | uv | 0.12.23 | 后端依赖 | `pyproject.toml` + `uv.lock` |
 | 后端质量 | ruff / pytest | 0.7+ / 8.3+ | lint + 测试 | 9 条测试，含降级分支 |
 | 数据库 | Postgres + pgvector | 16 | 业务数据、向量检索 | `service_meta` 表 + RLS |
-| 数据库（托管） | Supabase | — | Auth / RLS / pgvector | `config.toml` 已就绪，未启用 |
+| ~~数据库（托管）~~ | ~~Supabase~~ **未采用** | — | — | 2026-10-09：定位为本地自托管工具，数据层统一为纯本地 Postgres |
 | 编排 | docker compose | — | 本地三层一键起 | web + api + postgres |
 | Agent 编排 | LangGraph | — | StateGraph / Checkpointer | **M4 才接入**，M0 只留目录 |
 | 观测 | Langfuse | v3（server） / 3.15（SDK） | trace / 评测 | ★ **M0-8**：自建实例 + SDK 接入，一次 LLM 调用可查 trace |
@@ -126,8 +126,7 @@ M0-1 ~ M0-8 均已在本机实测通过。
 │           ├── index.ts            #   纯转发，不放任何手写类型
 │           └── schema.d.ts         #   **生成产物但入库**（理由见 §4.1）
 │
-├── supabase/                       # ★ M0-5：数据库结构变更的唯一来源
-│   ├── config.toml                 #   本地实例配置（端口与 compose 对齐）
+├── supabase/                       # ★ M0-5：数据库结构变更的唯一来源（纯 SQL，无需 Supabase）
 │   ├── migrations/
 │   │   └── 20261008000000_init.sql #   扩展 + service_meta + RLS
 │   └── seed.sql                    #   幂等种子数据
@@ -187,8 +186,8 @@ M0-1 ~ M0-8 均已在本机实测通过。
 - 浏览器直连后端，而不是让 Next.js 代理转发。这是 `tech-stack.md` 代价二的缓解措施：
   流式端点若经 Next.js 转发，必须关掉响应缓冲，否则逐字输出会退化成整段吐出。
   自检页上那句「客户端耗时 … ms · 浏览器直连后端」就是在展示这条路径真的生效。
-- 端口 54322 与 Supabase 本地实例的默认端口一致，
-  这样 `docker compose` 与 `supabase start` 两种跑法共用同一份 `DATABASE_URL`，切换零成本。
+- 端口选 54322 而不是 5432：避开本机可能已有的 Postgres 实例，也让「这个库属于本项目」一眼可辨。
+  （2026-10-09 注：当时选这个值还有「与 Supabase 本地实例对齐」的考虑，该考虑已随定位变更作废。）
 
 ---
 
@@ -245,17 +244,19 @@ apps/api/app/schemas/*.py  ──FastAPI──►  openapi.json  ──openapi-t
 
 ### 4.5 supabase/migrations 是结构变更的唯一来源（含一处已知取舍）
 
-- `supabase/migrations/20261008000000_init.sql` 是权威定义，`supabase db reset` 会重放它
+> 2026-10-09 注：目录名沿用 `supabase/`，但它现在只是「Supabase 兼容布局的纯 SQL 目录」——
+> 运行时不依赖 Supabase，也不需要它的 CLI（原本唯一的 Supabase CLI 配置 `config.toml` 已删除）。
+
+- `supabase/migrations/20261008000000_init.sql` 是权威定义，`pnpm db:reset` 会重放它
 - 为了让 `docker compose up` 也能一键得到正确的库，compose 把该文件与 `seed.sql`
   **逐个文件**挂进 `docker-entrypoint-initdb.d`
 
 **取舍要说清楚**：`docker-entrypoint-initdb.d` 只在数据目录为空时执行，且**不递归子目录**，
 所以每新增一个 migration 都要在 compose 里加一行挂载。这是有意接受的短期成本 ——
-M1-1 引入正式迁移流程（Supabase CLI 或 alembic）时会换成单一迁移执行器。
-两个入口指向同一批 SQL 文件，不存在两份 schema 定义。
+将来若要引入单一迁移执行器（alembic 等），只需把它指向同一批 SQL 文件，不存在两份 schema 定义。
 
-另外 migration 里刻意**没有**写 `to anon, authenticated`：那些角色只存在于 Supabase 实例，
-原生 postgres 镜像没有，写上会让 migration 在 compose 里跑不起来。用默认的 PUBLIC 兜底，M2-2 再接 Supabase 角色。
+另外 migration 里刻意**没有**写 `to anon, authenticated`：本项目的库是原生 postgres / pgvector 镜像，
+这两个角色并不存在，写上会让 migration 在 compose 里跑不起来。用默认的 PUBLIC 兜底。
 
 ### 4.6 `NEXT_PUBLIC_*` 是构建期常量
 
@@ -588,14 +589,16 @@ f"{langfuse_host}/project/{langfuse_project_id}/traces/{trace_id}"
 
 ### 8.4 面试时必须坦白的地方（不要说满）
 
+> 下表写于 M0 交付时。2026-10-09 晚已按现状补注（M1 已完成、Supabase 未采用、平台形态已定）。
+
 | 事实 | 怎么讲 |
 |---|---|
-| **M1 起（垂直切片、素材库、RAG、评分循环）都还没写** | M0 只做到「骨架 + 一条被 trace 的 LLM 调用」。不要含糊成「已完成端到端」。**可以说的是**：M0-8 的 trace 是真在自建 Langfuse 里查到过的，不是只调了 SDK 的 API |
+| **M2 起（素材库、RAG、评分循环）尚未开始** | M0 只做到「骨架 + 一条被 trace 的 LLM 调用」（M1 的垂直切片已于 2026-10-09 完成）。不要含糊成「已完成端到端」。**可以说的是**：M0-8 的 trace 是真在自建 Langfuse 里查到过的，不是只调了 SDK 的 API |
 | **M0-8 用的 LLM 是 `stub`（假实现）** | 明确说清楚：stub 会标记 `is_stub=True`、输出带 `【stub】` 前缀、不发网络请求。它验证的是观测链路，**不是**模型能力。真实调用走 `openai-compatible` provider，已实现但本机未配 key |
 | **本机 pnpm 不可用** | 这是**加分项**而不是减分项：说明你知道自己环境的边界，并且定位到了上游源码。但要能说清「在正常环境上是可用的」 |
 | **`docker compose up` 未完整跑通** | 受本机网速限制，只校验了配置。不要声称「一键全起已验证」（Langfuse 那套六容器是**实测起齐**的，可以讲） |
-| **Supabase 未真正启用** | 目前用的是 compose 里的原生 postgres + pgvector；`supabase start` 路径已配好但未跑。RLS 政策目前是 PUBLIC 兜底，用户级隔离是 M2-2 的事 |
-| **平台形态未定** | 见 `../requirements.md` §6：手机端全流程 / 电脑端精修 / 两者都要。这是个会影响模板与交互的**关键未决项**，面试时可以主动说「这是我下一步要先拍板的」 |
+| **数据层曾考虑 Supabase，最终未采用** | 2026-10-09 定位改为本地自托管开源工具后，Supabase（Auth / RLS / 云库）整体移除，统一为纯本地 Postgres。这本身是个可讲的**决策收敛**过程：先按最坏情况留了演化口子，确定用不上后干净砍掉，不留半吊子依赖 |
+| **平台形态已定：电脑端本机** | 2026-10-09 随「不上线」一并拍板 —— 本地自托管工具只能在电脑上跑，移动端适配放弃（见 `../requirements.md` §5.1） |
 
 ### 8.5 一个容易被追问的产品问题
 

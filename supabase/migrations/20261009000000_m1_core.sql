@@ -31,8 +31,7 @@ end;
 $$;
 
 -- ------------------------------------------------------------- profiles
--- 用户。M1 阶段只有一个「本地开发用户」（seed 里硬编码，见 M1-2 的「用户先硬编码」）。
--- M2-7 接 Supabase Auth 后，id 直接复用 auth.users.id，不再自造主键。
+-- 用户。本项目是本地自托管的单机工具，固定一个「本机用户」（见 seed.sql）。
 create table if not exists public.profiles (
   id           uuid        primary key default gen_random_uuid(),
   display_name text        not null default '本地开发用户',
@@ -42,7 +41,7 @@ create table if not exists public.profiles (
 );
 
 comment on table public.profiles is
-  '用户档案。M1 仅一个硬编码开发用户；M2-7 起 id 对齐 auth.users.id。';
+  '用户档案。本地单机工具固定一个本机用户，不做账号体系。';
 
 drop trigger if exists trg_profiles_updated_at on public.profiles;
 create trigger trg_profiles_updated_at
@@ -148,12 +147,12 @@ create trigger trg_resumes_updated_at
   for each row execute function public.set_updated_at();
 
 -- ------------------------------------------------------------------ RLS
--- 全部开启，但 M1 阶段**只加读策略**：
+-- 全部开启，但**只加读策略**：
 --   - 后端以 postgres（表 owner + 超级用户）连接，默认绕过 RLS，因此写路径不受影响；
---   - 真正的用户级隔离（insert/update/delete 策略 + auth.uid()）是 M2-2 的活，
---     这里先把 RLS 打开，避免「表已经裸跑一段时间」的历史包袱。
--- 策略不写 `to anon, authenticated`：那些角色只在 Supabase 实例里存在，
--- 原生 pgvector 镜像没有，写了会让本 migration 在 docker compose 上执行失败。
+--   - 单机单用户场景用不上隔离，但打开它零成本，将来真要支持多用户时
+--     只需追加 insert/update/delete 策略，不必回头补历史包袱。
+-- 策略不写 `to anon, authenticated`：本项目的库是原生 pgvector 镜像，
+-- 那两个角色并不存在，写了会让 migration 执行失败。
 do $$
 declare
   t text;

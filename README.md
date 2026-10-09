@@ -6,6 +6,8 @@
 > M1 是第一条端到端垂直切片 —— 「一条经历 + 一个 JD → 生成 → 预览 → 导出 PDF」。
 > 验收：`node scripts/verify-m1.mjs` → 13 通过 / 0 失败 / 0 跳过。
 > 任务全貌见 [`tasks.md`](tasks.md)，选型依据见 [`docs/tech-stack.md`](docs/tech-stack.md)。
+>
+> **定位**：本地自托管的开源工具 —— 不提供线上服务，**不上线**；单机单用户，数据只存在你自己机器上。
 
 ---
 
@@ -13,10 +15,10 @@
 
 | 层 | 选型 | 职责 |
 |---|---|---|
-| 前端 | Next.js 15 App Router + TypeScript + Tailwind v4 | UI 渲染、认证、消费流式响应 |
+| 前端 | Next.js 15 App Router + TypeScript + Tailwind v4 | UI 渲染、消费流式响应 |
 | 后端 | FastAPI + Python 3.12（uv 管依赖） | **全部业务逻辑** |
 | Agent 编排 | LangGraph（M4 起） | StateGraph、Checkpointer、interrupt |
-| 数据 | Postgres + pgvector → Supabase | 业务数据、向量检索、Auth |
+| 数据 | 本地 Postgres 16 + pgvector（Docker，无外部依赖） | 业务数据、向量检索 |
 | 观测 | Langfuse（M0-8 起） | trace、dataset、LLM-as-judge |
 | 本地编排 | docker compose | web + api + postgres |
 
@@ -101,8 +103,7 @@ resume-optimizer/
 │       └── tests/
 ├── packages/
 │   └── api-types/               # ★ OpenAPI → TS 生成产物
-├── supabase/
-│   ├── config.toml              # Supabase 本地实例配置
+├── supabase/                    # 纯 SQL 目录（Supabase 兼容布局，运行时不需要 Supabase）
 │   ├── migrations/              # 表结构变更的唯一来源
 │   └── seed.sql
 ├── scripts/                     # 根级工程脚本（Node，跨平台）
@@ -118,7 +119,7 @@ resume-optimizer/
 
 1. **Pydantic model 是接口类型的单一定义源** —— 前端类型一律由 `pnpm gen:types` 生成，禁止手写
 2. **流式端点由浏览器直连 FastAPI** —— 不让 Next.js 转发 SSE（转发必须关闭响应缓冲，否则逐字输出会退化成整段吐出）
-3. **前后端共用同一份 Supabase JWT** —— FastAPI 只校验签名，不自己签发 token
+3. **预览与 PDF 用同一份模板 HTML** —— `/html` 与 `/pdf` 同源渲染，「所见即所得」是结构保证，不靠人工比对维持
 
 细节与代价分析见 [`docs/tech-stack.md`](docs/tech-stack.md)。
 

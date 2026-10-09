@@ -48,9 +48,8 @@ class Settings(BaseSettings):
     )
 
     # --- 数据库 ---
-    # 端口刻意选 54322：与 Supabase 本地实例默认端口一致，
-    # 这样「docker compose 的 postgres」和「supabase start 的 postgres」
-    # 可以共用同一份 DATABASE_URL，不必切换配置。
+    # 端口刻意选 54322 而不是 5432：避开本机可能已有的 Postgres 实例。
+    # 数据层就是本机 Postgres 16 + pgvector，不依赖任何云服务或 CLI。
     database_url: str = "postgresql://postgres:postgres@localhost:54322/resume_optimizer"
     db_pool_min_size: int = 1
     db_pool_max_size: int = 10
@@ -86,11 +85,12 @@ class Settings(BaseSettings):
     llm_max_tokens: int = 2048
 
     # --- 业务（M1）---
-    # M1 阶段没有登录体系（M2-7 才接 Supabase Auth），所有写操作都挂在这个硬编码用户上。
+    # 项目定位是**本地自托管的开源工具**：单实例单用户，不做账号体系，
+    # 所有写操作都挂在这个固定的本机用户上。
     # 与 supabase/seed.sql 里的固定 UUID 一致，改这里必须同步改 seed。
     dev_user_id: str = Field(
         default="00000000-0000-4000-8000-000000000001",
-        description="M1 的临时单用户；M2-7 接入 Auth 后由 JWT 提供",
+        description="固定的本机用户；本项目单机单用户，不由登录态提供",
     )
     dev_user_name: str = Field(default="本地开发用户", description="M1 简历抬头用的姓名")
     dev_user_headline: str | None = Field(

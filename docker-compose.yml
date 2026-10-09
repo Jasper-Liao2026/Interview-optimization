@@ -21,8 +21,8 @@ services:
       # 中文排序与大小写行为显式固定，避免不同机器 initdb 结果不一致
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
     ports:
-      # 54322 与 Supabase 本地实例默认端口一致：
-      # `docker compose` 与 `supabase start` 两种跑法共用同一份 DATABASE_URL
+      # 宿主端口刻意选 54322 而不是 5432：避开本机可能已有的 Postgres，
+      # 也让「这个库属于本项目」一眼可辨（重建卷 = down -v 后重放下面的 SQL）
       - "54322:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data

@@ -97,11 +97,12 @@ GenerationServiceDep = Annotated[ResumeGenerationService, Depends(get_generation
 def get_current_user_id(settings: SettingsDep) -> UUID:
     """当前用户 ID。
 
-    **M1 的临时实现**：没有登录体系（M2-7 才接 Supabase Auth），
-    所有请求都归属同一个硬编码开发用户。
+    **本项目定位是本地自托管的开源工具，单实例单用户**：不做账号体系，
+    所有请求都归属同一个固定的本机用户。
 
-    之所以做成依赖而不是到处读 settings：M2-7 只需把这里换成
-    「解析 `Authorization: Bearer <JWT>` 取 sub」，所有路由一行都不用改。
+    之所以做成依赖而不是到处读 settings：将来真要支持多用户时，
+    只需把这里换成「解析 `Authorization: Bearer <JWT>` 取 sub」，
+    所有路由一行都不用改。
     """
     return UUID(settings.dev_user_id)
 

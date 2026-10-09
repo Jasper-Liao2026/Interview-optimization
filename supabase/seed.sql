@@ -2,7 +2,7 @@
 -- 本地开发种子数据
 -- ============================================================
 -- 幂等：可重复执行（on conflict 时更新）。
--- `supabase db reset` 会自动应用 migrations + seed.sql；
+-- `pnpm db:reset` 会重建卷并按挂载编号重放 migrations + seed.sql；
 -- docker compose 首次初始化时也会执行本文件。
 --
 -- 执行顺序（见 docker-compose.yml 的挂载编号）：
@@ -15,14 +15,13 @@ values
   ('service_name',   'resume-optimizer-api'),
   ('milestone',      'M1'),
   ('schema_version', 'm1_0001'),
-  ('stack',          'Next.js 15 + FastAPI + LangGraph + Supabase')
+  ('stack',          'Next.js 15 + FastAPI + LangGraph + Postgres')
 on conflict (key) do update
   set value      = excluded.value,
       updated_at = now();
 
--- ------------------------------------------------------------ 开发用户
--- M1-2 的「用户先硬编码」就落在这里：固定 UUID，方便脚本与接口反复引用。
--- M2-7 接入 Supabase Auth 后，此处改为与 auth.users 对齐。
+-- ------------------------------------------------------------ 本机用户
+-- 项目是本地自托管的单机工具，不做账号体系：这个固定 UUID 就是最终形态。
 insert into public.profiles (id, display_name, headline)
 values (
   '00000000-0000-4000-8000-000000000001',

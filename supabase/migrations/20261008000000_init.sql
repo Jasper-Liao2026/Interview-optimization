@@ -30,14 +30,13 @@ comment on table public.service_meta is
   'M0 脚手架自检用的键值元数据。非业务表，M1-1 起可保留用于记录 schema 版本。';
 
 -- ---------- RLS ----------
--- 从第一天就打开 RLS：M2-2 要做用户级隔离时，只需追加策略，
--- 不必回头处理「表已经裸奔了一段时间」的历史包袱。
+-- 打开 RLS 零成本（后端以表 owner 连接，默认绕过 RLS），
+-- 留着它，将来真要支持多用户时不必回头处理「表已经裸跑了一段时间」的历史包袱。
 alter table public.service_meta enable row level security;
 
--- 这里不写 `to anon, authenticated`：
--- 那些角色只在 Supabase 实例里存在，原生 postgres 镜像没有，
--- 写上会让本 migration 无法在 docker compose 的 postgres 上执行。
--- 用默认的 PUBLIC 兜底，M2-2 再接 Supabase 角色。
+-- 这里不写 `to anon, authenticated`：本项目的库是原生 postgres 镜像，
+-- 这两个角色并不存在，写上会让 migration 直接执行失败。
+-- 用默认的 PUBLIC 兜底。
 drop policy if exists service_meta_read_all on public.service_meta;
 create policy service_meta_read_all
   on public.service_meta

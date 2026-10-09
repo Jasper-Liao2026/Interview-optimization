@@ -8,13 +8,18 @@
 
 | 层 | 选型 | 职责 |
 |---|---|---|
-| 前端 | Next.js 15 App Router + TypeScript | UI 渲染、认证、消费流式响应 |
+| 前端 | Next.js 15 App Router + TypeScript | UI 渲染、消费流式响应 |
 | 流式 | Vercel AI SDK | 前端侧 SSE 消费与 React 集成 |
 | 后端 | **FastAPI + Python 3.12** | 全部业务逻辑 |
 | Agent 编排 | **LangGraph** | StateGraph、Checkpointer、interrupt |
-| 数据 | Supabase（Postgres + pgvector + Auth） | 业务数据、向量检索、鉴权 |
-| 观测与评测 | Langfuse | trace、dataset、LLM-as-judge |
-| 部署 | 前端 Vercel / 后端 Fly.io 或 Railway | — |
+| 数据 | **本地 Postgres 16 + pgvector**（Docker） | 业务数据、向量检索 |
+| 观测与评测 | Langfuse（本地实例，可降级） | trace、dataset、LLM-as-judge |
+| 运行方式 | **本地自托管**：docker compose 一键起 | 不提供线上服务（**不上线**） |
+
+> **定位更新（2026-10-09）**：本项目定位为**本地自托管的开源工具**，不做线上服务、单机单用户。
+> 因此原方案里的 Supabase（含 Auth / RLS）与云部署（Vercel / Fly / Railway）均已移除 ——
+> 数据层统一为**纯本地 Postgres**。`supabase/` 目录名保留，但它现在只是「Supabase 兼容布局的 SQL 目录」，
+> 运行时不依赖 Supabase，也不需要安装它的 CLI。
 
 ---
 
@@ -52,11 +57,13 @@
 - 若必须经 Next.js 转发，务必关闭响应缓冲，否则逐字输出会退化成整段吐出
 - 附带收益：用户关闭页面时，FastAPI 能直接感知客户端断开并取消上游调用
 
-### 代价三：跨服务鉴权
+### 代价三：跨服务鉴权 —— **已随定位变化取消（2026-10-09）**
 
-**缓解**：前后端信任同一份 **Supabase JWT**。FastAPI 侧用 Supabase 的公钥校验签名，不自己签发 token。
+定位为本地单机工具后不再有账号体系：没有登录、没有多用户、没有跨服务会话，
+所有写操作归属同一个固定的本机用户。
 
-- 收益：省掉自建认证与双份会话管理
+- 演化口子仍在：`apps/api/app/deps.py` 的 `get_current_user_id` 是唯一读取用户的地方，
+  将来真要支持多用户，只需把这一处换成「解析 JWT 取 sub」，所有路由一行都不用改
 
 ### 代价四：跨进程调试
 
@@ -64,11 +71,12 @@
 - **契约先行**：先定 OpenAPI，前后端各自并行开发
 - **trace_id 贯穿**：Next.js 生成请求 ID 并透传给 FastAPI，两边日志用同一 ID，Langfuse trace 也带上
 
-### 代价五：双份部署
+### 代价五：两个进程要一起起
 
-**缓解**：本地用 `docker compose` 一键拉起三层（web / api / postgres），开发阶段零部署成本。
+**缓解**：`docker compose up` 一键拉起三层（web / api / postgres），本地开发零部署成本。
 
-- 上线时：前端 Vercel，后端 Fly.io / Railway，各自的 CI 独立
+- 不再有云部署这件事（**不上线**）：开源用户 clone → 配 `.env` → 一条命令起全部
+- 待办：镜像化（见 `[OSS] Dockerfile` issue），让跑起来不依赖本机已装 Python / Node
 
 ---
 
@@ -97,7 +105,7 @@
 ```
 resume-optimizer/
 ├── apps/
-│   ├── web/                      # Next.js 15：UI、认证、流式消费
+│   ├── web/                      # Next.js 15：UI、流式消费
 │   │   ├── src/app/              # App Router
 │   │   └── src/lib/              # env 与类型化 API 客户端
 │   └── api/                      # FastAPI：业务逻辑、LangGraph 编排
@@ -113,8 +121,7 @@ resume-optimizer/
 │       └── tests/
 ├── packages/
 │   └── api-types/                # openapi-typescript 生成产物
-├── supabase/
-│   ├── config.toml               # Supabase 本地实例
+├── supabase/                     # 纯 SQL 目录（Supabase 兼容布局，运行时不依赖它）
 │   ├── migrations/               # 结构变更的唯一来源
 │   └── seed.sql
 ├── scripts/                      # 根级工程脚本（Node，跨平台）
@@ -133,6 +140,6 @@ resume-optimizer/
 
 1. **Pydantic model 是接口的单一定义源** —— 前端类型一律生成，不手写
 2. **流式端点由浏览器直连后端** —— 不让 Next.js 参与数据转发
-3. **前后端共用 Supabase JWT** —— 不重复造认证
+3. **预览与 PDF 用同一份模板 HTML** —— 所见即所得是结构保证，不靠人工比对维持
 
 这三条只要有一条破了，方案 A 的摩擦就会立刻回到「双语言项目最痛」的状态。
