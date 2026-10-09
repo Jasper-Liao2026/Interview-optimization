@@ -15,13 +15,18 @@ from __future__ import annotations
 
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import TypeVar
 
 import httpx
+from pydantic import BaseModel, ValidationError
 
 from app.config import Settings, get_settings
+from app.llm.structured import extract_json, fixture_payload, json_instructions
 
 logger = logging.getLogger("app.llm")
+
+ModelT = TypeVar("ModelT", bound=BaseModel)
 
 STUB_PROVIDER = "stub"
 OPENAI_COMPATIBLE_PROVIDER = "openai-compatible"
@@ -30,6 +35,15 @@ KNOWN_PROVIDERS = (STUB_PROVIDER, OPENAI_COMPATIBLE_PROVIDER)
 
 class LlmError(RuntimeError):
     """LLM 调用失败。观测层会把它记成 ERROR 级别的 generation，而不是静默吞掉。"""
+
+
+@dataclass(frozen=True)
+class StructuredResult[T: BaseModel]:
+    """一次结构化调用的结果。`warnings` 记录降级与重试，向上透传到接口响应里。"""
+
+    value: T
+    llm: LlmResult
+    warnings: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,12 +85,89 @@ class LlmClient:
     def is_stub(self) -> bool:
         return self.provider == STUB_PROVIDER
 
-    async def complete(self, prompt: str, *, system: str | None = None) -> LlmResult:
+    async def complete(
+        self, prompt: str, *, system: str | None = None, json_mode: bool = False
+    ) -> LlmResult:
+        """单次补全。
+
+        `json_mode=True` 时向 OpenAI 兼容端点声明 `response_format={"type": "json_object"}`，
+        由**服务端**保证返回的是合法 JSON。这只解决「不是合法 JSON」，
+        不解决「字段缺失/类型不对」—— 后者仍靠 `complete_json` 的 schema 校验 + 重试。
+        两道防线各管一件事，不要用其中一个替代另一个。
+        """
         if self.provider == STUB_PROVIDER:
             return self._stub_complete(prompt, system=system)
         if self.provider == OPENAI_COMPATIBLE_PROVIDER:
-            return await self._openai_compatible_complete(prompt, system=system)
+            return await self._openai_compatible_complete(
+                prompt, system=system, json_mode=json_mode
+            )
         raise LlmError(f"未知的 LLM_PROVIDER={self.provider!r}，可选：{', '.join(KNOWN_PROVIDERS)}")
+
+    # ------------------------------------------------------- 结构化输出
+    async def complete_json(
+        self,
+        prompt: str,
+        schema: type[ModelT],
+        *,
+        system: str | None = None,
+        max_retries: int = 2,
+    ) -> StructuredResult[ModelT]:
+        """要求模型返回 JSON，按 `schema` 校验；失败则带错误反馈重试。
+
+        为什么需要重试而不是「一次不行就报错」：真实模型偶发返回带 markdown 围栏、
+        或漏一个字段的输出，这类失败**重试一次基本就好**，属于可恢复抖动。
+        把可恢复抖动和真正的失败分开处理，是让整条链路可用的关键。
+        """
+        warnings: list[str] = []
+
+        if self.is_stub:
+            # 无 key 环境：返回确定性桩，形状合法但内容显然是假的，用于打通工程链路
+            stub_result = self._stub_complete(prompt, system=system)
+            warnings.append(
+                "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。"
+                "要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。"
+            )
+            return StructuredResult(
+                value=schema.model_validate(fixture_payload(schema)),
+                llm=stub_result,
+                warnings=warnings,
+            )
+
+        instruction = json_instructions(schema)
+        merged_system = f"{system}\n\n{instruction}" if system else instruction
+
+        last_error = "未知错误"
+        last_result: LlmResult | None = None
+
+        for attempt in range(max_retries + 1):
+            current_prompt = (
+                prompt
+                if attempt == 0
+                else (
+                    f"{prompt}\n\n---\n上一次的输出无法通过校验：{last_error}\n"
+                    "请只重新输出一个符合 Schema 的 JSON 对象，不要解释。"
+                )
+            )
+            last_result = await self.complete(current_prompt, system=merged_system)
+            try:
+                parsed = schema.model_validate(extract_json(last_result.text))
+            except (ValueError, ValidationError) as exc:
+                last_error = str(exc)[:400]
+                logger.warning(
+                    "structured output 第 %d 次校验失败 model=%s: %s",
+                    attempt + 1,
+                    schema.__name__,
+                    last_error,
+                )
+                warnings.append(f"第 {attempt + 1} 次结构化输出校验失败，已重试")
+                continue
+            if attempt > 0:
+                warnings.append(f"第 {attempt + 1} 次重试成功")
+            return StructuredResult(value=parsed, llm=last_result, warnings=warnings)
+
+        raise LlmError(
+            f"结构化输出连续 {max_retries + 1} 次校验失败（{schema.__name__}）：{last_error}"
+        )
 
     # ------------------------------------------------------------- stub
     def _stub_complete(self, prompt: str, *, system: str | None = None) -> LlmResult:
@@ -102,7 +193,9 @@ class LlmClient:
         )
 
     # -------------------------------------------------- openai compatible
-    async def _openai_compatible_complete(self, prompt: str, *, system: str | None) -> LlmResult:
+    async def _openai_compatible_complete(
+        self, prompt: str, *, system: str | None, json_mode: bool = False
+    ) -> LlmResult:
         settings = self.settings
         if not settings.llm_api_key:
             raise LlmError("LLM_PROVIDER=openai-compatible 时必须提供 LLM_API_KEY")
@@ -119,6 +212,10 @@ class LlmClient:
             "max_tokens": settings.llm_max_tokens,
             "temperature": 0,
         }
+        if json_mode:
+            # DeepSeek / OpenAI / Moonshot 等均支持；要求 prompt 里出现 "json" 字样，
+            # 我们的 system 提示里已包含，因此两边是配合的。
+            payload["response_format"] = {"type": "json_object"}
         headers = {
             "Authorization": f"Bearer {settings.llm_api_key}",
             "Content-Type": "application/json",
