@@ -2,7 +2,9 @@
 
 批量生产**岗位适配版简历**的工具。解决 BOSS 直聘海投时「一份简历打天下、逐份手改不可行」的问题。
 
-> 当前进度：**M0 脚手架已完成**（M0-1 ~ M0-7）。M0-8（Langfuse）与 M1（垂直切片）未开始。
+> 当前进度：**M0 与 M1 均已完成**。M0 是脚手架（含 M0-8 Langfuse 观测），
+> M1 是第一条端到端垂直切片 —— 「一条经历 + 一个 JD → 生成 → 预览 → 导出 PDF」。
+> 验收：`node scripts/verify-m1.mjs` → 13 通过 / 0 失败 / 0 跳过。
 > 任务全貌见 [`tasks.md`](tasks.md)，选型依据见 [`docs/tech-stack.md`](docs/tech-stack.md)。
 
 ---
@@ -47,6 +49,7 @@ pnpm web              # 前端 http://localhost:3000（热重载）
 ```
 
 打开 <http://localhost:3000> 应看到 **M0 自检台**：三段链路（Next.js → FastAPI → Postgres）状态，以及 `service_meta` 表里的数据。
+自检台右上角可进 **`/generate`** —— M1 的生成页：粘 JD、勾经历、生成、iframe 预览、导出 PDF。
 
 ### 一键全起（M0-4 验收）
 
@@ -66,6 +69,7 @@ pnpm stack:down
 | `pnpm typecheck` | 全仓 TS 类型检查 |
 | `pnpm gen:types` | 刷新前端接口类型（**改完 Pydantic 必跑**） |
 | `pnpm db:reset` | 重建 postgres 卷并重放 migration |
+| `pnpm verify:m0` / `pnpm verify:m1` | 一键复现对应里程碑的验收结论 |
 
 ---
 
@@ -80,7 +84,12 @@ resume-optimizer/
 │   │       └── lib/             # env / 类型化 API 客户端
 │   └── api/                     # FastAPI：业务逻辑 + agent 编排
 │       ├── app/
-│       │   ├── agents/          # LangGraph graph 定义（M4 起）
+│       │   ├── agents/          # JD 解析 / 改写 / 组装（M4 搬进 LangGraph）
+│       │   ├── llm/             # LLM 调用层（stub + OpenAI 兼容）
+│       │   ├── observability/   # Langfuse 接入（可降级）
+│       │   ├── pdf/             # 无头 Chromium 导出（M1-6）
+│       │   ├── render/          # 简历 HTML 模板（★ 预览与 PDF 的同一份来源）
+│       │   ├── repositories/    # 仓储层（asyncpg）
 │       │   ├── routers/         # HTTP 路由
 │       │   ├── schemas/         # ★ Pydantic model = 接口类型单一定义源
 │       │   ├── services/        # 业务服务（M1 起）
@@ -97,7 +106,7 @@ resume-optimizer/
 │   ├── migrations/              # 表结构变更的唯一来源
 │   └── seed.sql
 ├── scripts/                     # 根级工程脚本（Node，跨平台）
-├── docs/                        # requirements / tech-stack / tasks
+├── docs/                        # tech-stack / M0-summary / M1-summary / PDF 方案对比
 └── docker-compose.yml
 ```
 
@@ -123,3 +132,5 @@ resume-optimizer/
 | [`tasks.md`](tasks.md) | 9 个里程碑、57 个任务、推进节奏 |
 | [`docs/tech-stack.md`](docs/tech-stack.md) | 技术选型定案、五项代价与缓解措施 |
 | [`docs/M0-summary.md`](docs/M0-summary.md) | **M0 交付总结**：架构概览、验收结果、遗留问题、面试要点 |
+| [`docs/M1-summary.md`](docs/M1-summary.md) | **M1 交付总结**：垂直切片、验收数据、踩坑记录、面试要点 |
+| [`docs/M1-pdf-export-comparison.md`](docs/M1-pdf-export-comparison.md) | PDF 导出三方案对比：四维矩阵 + 量化证据 + 复现命令 |
