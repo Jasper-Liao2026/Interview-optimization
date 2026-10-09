@@ -24,6 +24,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/observability/smoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 观测自检：一次被完整 trace 的 LLM 调用
+         * @description 发起一次 LLM 调用并按 trace → generation 两级结构上报 Langfuse。
+         *
+         *     **失败也算通过**：调用异常时 trace 照常落库，只是 observation 标记为 ERROR —— 观测的价值恰恰在于失败可查。
+         */
+        post: operations["observability_smoke_api_v1_observability_smoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/observability/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 观测配置现状
+         * @description 回答「trace 为什么没出现」：key 是否配齐、实例是否可达、LLM 是不是 stub。
+         */
+        get: operations["observability_status_api_v1_observability_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/system/info": {
         parameters: {
             query?: never;
@@ -91,6 +133,11 @@ export interface components {
              */
             server_version?: string | null;
         };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
         /**
          * HealthResponse
          * @description 进程级健康检查结果。不依赖数据库，永远能返回。
@@ -144,6 +191,50 @@ export interface components {
             version: string;
         };
         /**
+         * ObservabilityStatusResponse
+         * @description 观测配置现状。用来回答「trace 为什么没出现」这类问题。
+         * @example {
+         *       "langfuse_configured": true,
+         *       "langfuse_host": "http://localhost:3000",
+         *       "langfuse_reachable": true,
+         *       "llm_is_stub": true,
+         *       "llm_model": "deepseek-chat",
+         *       "llm_provider": "stub"
+         *     }
+         */
+        ObservabilityStatusResponse: {
+            /**
+             * Langfuse Configured
+             * @description 是否配齐了 public / secret key
+             */
+            langfuse_configured: boolean;
+            /**
+             * Langfuse Host
+             * @description Langfuse 实例地址
+             */
+            langfuse_host: string;
+            /**
+             * Langfuse Reachable
+             * @description auth_check 结果；未配置时为 null（而不是 false，二者含义不同）
+             */
+            langfuse_reachable?: boolean | null;
+            /**
+             * Llm Is Stub
+             * @description true 表示不会发起真实网络调用
+             */
+            llm_is_stub: boolean;
+            /**
+             * Llm Model
+             * @description 当前使用的模型名
+             */
+            llm_model: string;
+            /**
+             * Llm Provider
+             * @description stub | openai-compatible
+             */
+            llm_provider: string;
+        };
+        /**
          * ServiceMetaEntry
          * @description `service_meta` 表的一行。
          */
@@ -154,6 +245,72 @@ export interface components {
             updated_at?: string | null;
             /** Value */
             value: string;
+        };
+        /**
+         * SmokeRequest
+         * @description 一次观测自检的入参。
+         * @example {
+         *       "prompt": "用一句话说明「岗位适配版简历」是什么意思。"
+         *     }
+         */
+        SmokeRequest: {
+            /**
+             * Prompt
+             * @default 用一句话说明「岗位适配版简历」是什么意思。
+             */
+            prompt: string;
+            /**
+             * System
+             * @description 可选的 system 提示
+             */
+            system?: string | null;
+        };
+        /**
+         * SmokeResponse
+         * @description 一次被观测的 LLM 调用结果。
+         *
+         *     `trace_id` 是**规范化之后**给 Langfuse 用的 ID；`request_trace_id` 是前端下发的原始
+         *     `X-Request-Id`。两者通常互为「去横线」关系，一并返回是为了便于人工核对。
+         */
+        SmokeResponse: {
+            /**
+             * Error
+             * @description 失败原因
+             */
+            error?: string | null;
+            /** Input Tokens */
+            input_tokens?: number | null;
+            /** Is Stub */
+            is_stub: boolean;
+            /** Langfuse Enabled */
+            langfuse_enabled: boolean;
+            /**
+             * Langfuse Trace Url
+             * @description 未启用或无 URL 时为 null
+             */
+            langfuse_trace_url?: string | null;
+            /** Latency Ms */
+            latency_ms?: number | null;
+            /** Model */
+            model: string;
+            /**
+             * Ok
+             * @description 调用是否成功；失败时 trace 里同样留有记录
+             */
+            ok: boolean;
+            /**
+             * Output
+             * @description 失败时为 null
+             */
+            output?: string | null;
+            /** Output Tokens */
+            output_tokens?: number | null;
+            /** Provider */
+            provider: string;
+            /** Request Trace Id */
+            request_trace_id: string;
+            /** Trace Id */
+            trace_id: string;
         };
         /**
          * SystemInfoResponse
@@ -183,6 +340,19 @@ export interface components {
             /** Version */
             version: string;
         };
+        /** ValidationError */
+        ValidationError: {
+            /** Context */
+            ctx?: Record<string, never>;
+            /** Input */
+            input?: unknown;
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -208,6 +378,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    observability_smoke_api_v1_observability_smoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmokeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmokeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    observability_status_api_v1_observability_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObservabilityStatusResponse"];
                 };
             };
         };
