@@ -1,0 +1,9 @@
+{
+  "name": "resume-pdf-proto",
+  "private": true,
+  "type": "module",
+  "description": "M1-6 方案 A 的一次性实验环境（@react-pdf/renderer）。**与产品依赖隔离**：该方案最终未被采用，若把它装进 apps/web 会让产品多背一个包。本目录位于 .gitignore 的 scripts/_* 规则下，不入库。",
+  "dependencies": {
+    "@react-pdf/renderer": "^4.1.6"
+  }
+}

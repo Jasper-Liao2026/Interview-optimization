@@ -25,6 +25,7 @@
     "gen:types": "node scripts/gen-api-types.mjs",
     "gen:types:check": "node scripts/gen-api-types.mjs --check",
     "verify:m0": "node scripts/verify-m0.mjs",
+    "verify:m1": "node scripts/verify-m1.mjs",
     "db:up": "docker compose up -d postgres",
     "db:reset": "docker compose down -v postgres",
     "stack:up": "docker compose up -d --build",
