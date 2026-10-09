@@ -137,6 +137,29 @@ async def test_generate_without_persist_has_no_preview_path(
     assert any("persist=false" in warning for warning in body["warnings"])
 
 
+async def test_generate_with_dashed_uuid_trace_id_does_not_500(
+    client, api_wiring: dict[str, Any]
+) -> None:
+    """回归锁：浏览器 `crypto.randomUUID()` 下发的 X-Request-Id 带横线。
+
+    Langfuse SDK 会拿 trace_id 做 `int(id, 16)`，带横线直接 ValueError → 500。
+    修复后路由层必须把 trace_id 规范化成 32 位 hex（Langfuse 真实开启时才会炸，
+    测试里观测是 no-op，所以这里锁的是**响应里的 trace_id 形状**这一可见契约）。
+    """
+    dashed = "afbfcb6b-b1a0-4dbe-89e0-8c7fbc9e38a1"
+    response = await client.post(
+        f"{API}/resumes/generate",
+        json={"jd_text": "招聘后端开发工程师，要求熟悉 Python 与 FastAPI。"},
+        headers={"X-Request-Id": dashed},
+    )
+
+    assert response.status_code == 200
+    trace_id = response.json()["trace_id"]
+    # 与 Langfuse 里落的 trace 一致：去横线后的 32 位小写 hex，而不是原始 UUID
+    assert trace_id == dashed.replace("-", "")
+    assert len(trace_id) == 32
+
+
 # --------------------------------------------------------------------- resumes
 async def test_get_resume(client, api_wiring: dict[str, Any]) -> None:
     response = await client.get(f"{API}/resumes/{RESUME_ID}")

@@ -141,7 +141,10 @@ class Observability:
             yield None
             return
 
-        trace_context = {"trace_id": trace_id} if trace_id else None
+        # 兜底规范化：Langfuse SDK 拿 trace_id 做 int(id, 16)，带横线的 UUID / 任意字符串
+        # 会直接 ValueError（且 SDK 先 warn「非法」再照用，自己不防）。
+        # 这里统一转成 32 位 hex，调用方忘了 normalize 也不会把请求打成 500。
+        trace_context = {"trace_id": normalize_trace_id(trace_id)} if trace_id else None
         with self._client.start_as_current_observation(
             name=name,
             as_type="span",

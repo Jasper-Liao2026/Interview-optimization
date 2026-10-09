@@ -25,6 +25,7 @@ from app.deps import (
     SettingsDep,
 )
 from app.llm import LlmError
+from app.observability import normalize_trace_id
 from app.pdf import PdfExportError, pdf_page_count
 from app.render import UnknownTemplateError, render_resume_html
 from app.schemas import GenerateRequest, GenerateResponse, ResumeRead
@@ -59,7 +60,10 @@ async def generate_resume(
     settings: SettingsDep,
     observability: ObservabilityDep,
 ) -> GenerateResponse:
-    trace_id = current_trace_id()
+    # 必须规范化成 32 位 hex：浏览器 `crypto.randomUUID()` 生成的是带横线的 UUID，
+    # 中间件原样透传，而 Langfuse SDK 会拿它做 int(id, 16)，带横线直接 ValueError → 500。
+    # 与 jd.py / observability.py 的既有做法保持一致（那里早就 normalize 了，这里漏了）。
+    trace_id = normalize_trace_id(current_trace_id())
     try:
         outcome = await service.generate(user_id, payload, trace_id)
     except NoExperiencesError as exc:
