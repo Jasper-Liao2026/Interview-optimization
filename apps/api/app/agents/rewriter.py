@@ -37,6 +37,9 @@ class ExperienceRewriter:
             raw_description=raw_description,
             skill_tags=list(experience.get("skill_tags") or []),
             highlights=list(experience.get("highlights") or []),
+            # M2-1 起量化结果单独送进 prompt：它是「唯一允许出现的数字来源」，
+            # 与定性要点分开，M4-7 的数字校验才有明确的参照集合。
+            metrics=list(experience.get("metrics") or []),
             max_chars=self._max_input_chars,
         )
         return await self._llm.complete_json(

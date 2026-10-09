@@ -9,7 +9,10 @@ from app.schemas.experience import (
     ExperienceCreate,
     ExperienceKind,
     ExperienceListResponse,
+    ExperienceMetric,
     ExperienceRead,
+    ExperienceUpdate,
+    ExperienceVariant,
 )
 from app.schemas.health import (
     DatabaseStatus,
@@ -50,7 +53,10 @@ __all__ = [
     "ExperienceCreate",
     "ExperienceKind",
     "ExperienceListResponse",
+    "ExperienceMetric",
     "ExperienceRead",
+    "ExperienceUpdate",
+    "ExperienceVariant",
     "GenerateRequest",
     "GenerateResponse",
     "HealthResponse",

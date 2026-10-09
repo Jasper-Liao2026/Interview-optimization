@@ -9,10 +9,11 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from app.schemas import JobProfile
 
-PROMPT_VERSION = "m1.0"
+PROMPT_VERSION = "m2.0"
 
 # ============================================================ JD 解析（M1-3）
 JD_PARSE_SYSTEM = (
@@ -40,13 +41,49 @@ REWRITE_SYSTEM = (
     "硬性约束（违反即为失败）：\n"
     "1. **绝不编造事实**。不得新增原文没有的公司、项目、数字、技术栈或成果。\n"
     "   原文说「负责用户增长」，你不能写成「使用户增长 300%」。\n"
-    "2. 每条要点必须能在**原文描述或量化要点**里找到依据，并把依据片段填进 `evidence`。\n"
+    "2. 每条要点必须能在**原文描述、定性要点或量化结果**里找到依据，并把依据片段填进 `evidence`。\n"
     "3. 每条要点以**动词开头**，用「做了什么 + 怎么做的 + 带来什么结果」的结构，\n"
     "   优先量化；但**只在原始素材确实有数字时**才写数字。\n"
-    "4. 措辞向目标岗位的关键词靠拢（在事实不变的前提下换用 JD 里的说法）。\n"
-    "5. 输出 2–5 条要点，按与岗位的相关度从高到低排序；无关的内容直接不写。\n"
-    "6. 全部用中文，不要 markdown 标记，不要编号前缀。\n"
+    "4. **凡写到数字，必须逐字来自「量化结果」区块**。不得换算单位、不得四舍五入、\n"
+    "   不得把「24 → 82 条」写成「增长 240%」。「量化结果」为空时，全文不许出现任何数字成果。\n"
+    "5. 措辞向目标岗位的关键词靠拢（在事实不变的前提下换用 JD 里的说法）。\n"
+    "6. 输出 2–5 条要点，按与岗位的相关度从高到低排序；无关的内容直接不写。\n"
+    "7. 全部用中文，不要 markdown 标记，不要编号前缀。\n"
 )
+
+
+def _bullet_block(items: list[str]) -> str:
+    """把字符串列表渲染成 `\\n  - a\\n  - b`；空列表返回「（无）」。
+
+    单独抽出来是因为「原样保留用户写法」很重要：这里**不做任何规整或截断**，
+    否则「24 → 82 条」这类数字写法会在进 prompt 的路上被改掉，
+    M4-7 的编号校验就失去参照物了。
+    """
+    cleaned = [str(item).strip() for item in items if str(item).strip()]
+    if not cleaned:
+        return "（无）"
+    return "\n  - " + "\n  - ".join(cleaned)
+
+
+def _metric_block(metrics: list[dict[str, Any]]) -> str:
+    """把量化结果渲染成 `指标名：数值（口径：…）`。
+
+    `metrics` 是 jsonb 读回的 dict 列表而不是 `ExperienceMetric` 对象：
+    调用方（rewriter）拿到的就是仓储返回的原始行，不额外做一次模型转换 ——
+    少一层转换就少一处「字段改名后这里悄悄丢数据」的机会。
+    """
+    lines: list[str] = []
+    for item in metrics or []:
+        name = str(item.get("name") or "").strip()
+        value = str(item.get("value") or "").strip()
+        if not (name or value):
+            continue
+        text = f"{name}：{value}" if name and value else (name or value)
+        context = str(item.get("context") or "").strip()
+        if context:
+            text += f"（口径：{context}）"
+        lines.append(text)
+    return _bullet_block(lines)
 
 
 def build_rewrite_prompt(
@@ -58,6 +95,7 @@ def build_rewrite_prompt(
     raw_description: str,
     skill_tags: list[str],
     highlights: list[str],
+    metrics: list[dict[str, Any]] | None = None,
     max_chars: int,
 ) -> str:
     """拼改写 prompt。
@@ -88,7 +126,9 @@ def build_rewrite_prompt(
         f"- 角色：{role}",
         f"- 原始描述：{description}",
         f"- 技能标签：{', '.join(skill_tags) if skill_tags else '（无）'}",
-        "- 量化要点：" + ("\n  - " + "\n  - ".join(highlights) if highlights else "（无）"),
+        "- 定性要点：" + _bullet_block(highlights),
+        # 量化结果单独成块：模型要写数字时只许看这里，校验时也只查这里
+        "- 量化结果（唯一允许出现的数字来源）：" + _metric_block(metrics or []),
         "",
         "## 任务",
         "把这段经历改写成面向上述岗位的简历要点。",
