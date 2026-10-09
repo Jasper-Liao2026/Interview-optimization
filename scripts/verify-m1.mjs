@@ -111,11 +111,16 @@ console.log("\n=== M1 验收 ===\n");
     record("M1-1", "运行态 schema 版本", "SKIP", "数据库未连接");
   } else {
     const version = (info.body.meta ?? []).find((row) => row.key === "schema_version")?.value;
+    // 只要求「已升到 M1 或更高」，不锁死具体版本号。
+    // 锁死的话，M2/M3 每加一次 migration 这条 M1 验收就会报一次假失败 ——
+    // 而 M1 真正要证明的是「migration 流程跑得通」，不是「库永远停在 m1_0001」。
+    const parsed = /^m(\d+)_(\d+)$/.exec(version ?? "");
+    const atLeastM1 = parsed !== null && Number(parsed[1]) >= 1;
     record(
       "M1-1",
       "运行态 schema 版本",
-      version === "m1_0001" ? "PASS" : "FAIL",
-      `service_meta.schema_version=${version ?? "(缺失)"}`,
+      atLeastM1 ? "PASS" : "FAIL",
+      `service_meta.schema_version=${version ?? "(缺失)"}（要求 ≥ m1_0001）`,
     );
   }
 }

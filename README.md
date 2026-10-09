@@ -2,9 +2,11 @@
 
 批量生产**岗位适配版简历**的工具。解决 BOSS 直聘海投时「一份简历打天下、逐份手改不可行」的问题。
 
-> 当前进度：**M0 与 M1 均已完成**。M0 是脚手架（含 M0-8 Langfuse 观测），
-> M1 是第一条端到端垂直切片 —— 「一条经历 + 一个 JD → 生成 → 预览 → 导出 PDF」。
-> 验收：`node scripts/verify-m1.mjs` → 13 通过 / 0 失败 / 0 跳过。
+> 当前进度：**M0 / M1 / M2 均已完成**。M0 是脚手架（含 M0-8 Langfuse 观测），
+> M1 是第一条端到端垂直切片 —— 「一条经历 + 一个 JD → 生成 → 预览 → 导出 PDF」，
+> M2 是**素材库** —— 经历条目的完整录入、编辑、分组浏览，量化结果与多版本表述。
+> 验收：`node scripts/verify-m1.mjs` → 13 通过 / 0 失败 / 0 跳过；
+> `node scripts/verify-m2.mjs` → 16 通过 / 0 失败 / 0 跳过。
 > 任务全貌见 [`tasks.md`](tasks.md)，选型依据见 [`docs/tech-stack.md`](docs/tech-stack.md)。
 >
 > **定位**：本地自托管的开源工具 —— 不提供线上服务，**不上线**；单机单用户，数据只存在你自己机器上。
@@ -51,7 +53,11 @@ pnpm web              # 前端 http://localhost:3000（热重载）
 ```
 
 打开 <http://localhost:3000> 应看到 **M0 自检台**：三段链路（Next.js → FastAPI → Postgres）状态，以及 `service_meta` 表里的数据。
-自检台右上角可进 **`/generate`** —— M1 的生成页：粘 JD、勾经历、生成、iframe 预览、导出 PDF。
+自检台右上角有两个入口：
+
+- **`/library`** —— M2 的素材库：新增 / 编辑 / 删除经历条目，按实习 · 项目 · 校园分组浏览；
+  每条可填「量化结果」（指标名 / 数值 / 口径）与「多版本表述」（同一经历按岗位方向存多份写法）。
+- **`/generate`** —— M1 的生成页：粘 JD、勾经历、生成、iframe 预览、导出 PDF。
 
 ### 一键全起（M0-4 验收）
 
@@ -71,7 +77,7 @@ pnpm stack:down
 | `pnpm typecheck` | 全仓 TS 类型检查 |
 | `pnpm gen:types` | 刷新前端接口类型（**改完 Pydantic 必跑**） |
 | `pnpm db:reset` | 重建 postgres 卷并重放 migration |
-| `pnpm verify:m0` / `pnpm verify:m1` | 一键复现对应里程碑的验收结论 |
+| `pnpm verify:m0` / `pnpm verify:m1` / `pnpm verify:m2` | 一键复现对应里程碑的验收结论 |
 
 ---
 
@@ -107,7 +113,7 @@ resume-optimizer/
 │   ├── migrations/              # 表结构变更的唯一来源
 │   └── seed.sql
 ├── scripts/                     # 根级工程脚本（Node，跨平台）
-├── docs/                        # tech-stack / M0-summary / M1-summary / PDF 方案对比
+├── docs/                        # tech-stack / M0·M1·M2 总结 / PDF 方案对比
 └── docker-compose.yml
 ```
 
@@ -134,4 +140,5 @@ resume-optimizer/
 | [`docs/tech-stack.md`](docs/tech-stack.md) | 技术选型定案、五项代价与缓解措施 |
 | [`docs/M0-summary.md`](docs/M0-summary.md) | **M0 交付总结**：架构概览、验收结果、遗留问题、面试要点 |
 | [`docs/M1-summary.md`](docs/M1-summary.md) | **M1 交付总结**：垂直切片、验收数据、踩坑记录、面试要点 |
+| [`docs/M2-summary.md`](docs/M2-summary.md) | **M2 交付总结**：素材库、量化结果与多版本表述的建模动机、PUT 语义取舍 |
 | [`docs/M1-pdf-export-comparison.md`](docs/M1-pdf-export-comparison.md) | PDF 导出三方案对比：四维矩阵 + 量化证据 + 复现命令 |
