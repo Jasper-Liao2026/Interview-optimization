@@ -17,9 +17,9 @@ from fastapi.responses import JSONResponse
 
 from app import __version__
 from app.config import get_settings
-from app.db import get_database
+from app.db import DatabaseUnavailable, get_database
 from app.observability import get_observability
-from app.routers import health, observability, system
+from app.routers import experiences, health, jd, observability, resume, system
 from app.tracing import TraceIdMiddleware, configure_logging, current_trace_id
 
 logger = logging.getLogger(__name__)
@@ -95,6 +95,29 @@ def create_app() -> FastAPI:
     app.include_router(health.router, prefix=settings.api_prefix)
     app.include_router(system.router, prefix=settings.api_prefix)
     app.include_router(observability.router, prefix=settings.api_prefix)
+    # M1：垂直切片
+    app.include_router(experiences.router, prefix=settings.api_prefix)
+    app.include_router(jd.router, prefix=settings.api_prefix)
+    app.include_router(resume.router, prefix=settings.api_prefix)
+
+    @app.exception_handler(DatabaseUnavailable)
+    async def database_unavailable_handler(
+        request: Request, exc: DatabaseUnavailable
+    ) -> JSONResponse:
+        """数据库拿不到连接 —— 这是「依赖不可用」而不是「代码出错」。
+
+        与 `/system/info` 的降级刻意不同：那个接口只做探活展示，连不上照常返回；
+        而业务读写拿不到数据就必须明确报 503，否则前端会看到一个「查出来是空」的假象。
+        """
+        logger.error("database unavailable path=%s: %s", request.url.path, exc)
+        return JSONResponse(
+            status_code=503,
+            content={
+                "detail": f"数据库不可用：{exc}",
+                "code": "database_unavailable",
+                "trace_id": current_trace_id(),
+            },
+        )
 
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
