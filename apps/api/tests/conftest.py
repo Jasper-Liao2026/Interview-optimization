@@ -22,10 +22,30 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
+from app.agents.jd_parser import JdParser
+from app.agents.rewriter import ExperienceRewriter
 from app.config import Settings, get_settings
 from app.db import DatabaseProbe, get_database
+from app.deps import (
+    get_experience_repository,
+    get_generation_service,
+    get_jd_repository,
+    get_pdf_exporter,
+    get_profile_repository,
+    get_resume_repository,
+)
+from app.llm import LlmClient
 from app.main import create_app
 from app.observability import get_observability
+from app.services.generation import ResumeGenerationService
+from tests.fakes import (
+    FakeExperienceRepository,
+    FakeJobDescriptionRepository,
+    FakePdfExporter,
+    FakeProfileRepository,
+    FakeResumeRepository,
+    resume_row,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -125,3 +145,51 @@ async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://testserver") as async_client:
         yield async_client
+
+
+@pytest.fixture
+def api_wiring(app: FastAPI) -> Iterator[dict[str, Any]]:
+    """把**外部依赖**换成假实现，路由 / 服务 / agent 全部用真的。
+
+    这样安排的原因：本项目的技术风险不在路由转发，而在「JD → 改写 → 组装 →
+    渲染 → 导出」以及「录入 → 编辑 → 分组展示」这些链路本身是否真能串起来。
+    用假仓储把数据库摘掉，链路本身就能在 CI 里被完整验证（CI 不起 postgres）。
+
+    返回 dict 而不是裸对象：测试里经常要直接摆布某一块假实现
+    （例如 `wiring["experiences"].rows = []` 造出「素材库为空」的场景）。
+    """
+    settings = get_settings()
+    experiences = FakeExperienceRepository()
+    jds = FakeJobDescriptionRepository()
+    resumes = FakeResumeRepository(resume_row())
+    profiles = FakeProfileRepository()
+    llm = LlmClient(settings)
+
+    service = ResumeGenerationService(
+        settings=settings,
+        experiences=experiences,  # type: ignore[arg-type]
+        job_descriptions=jds,  # type: ignore[arg-type]
+        resumes=resumes,  # type: ignore[arg-type]
+        profiles=profiles,  # type: ignore[arg-type]
+        parser=JdParser(llm),
+        rewriter=ExperienceRewriter(llm, max_input_chars=settings.rewrite_max_input_chars),
+        llm=llm,
+        observability=get_observability(),
+    )
+
+    app.dependency_overrides[get_experience_repository] = lambda: experiences
+    app.dependency_overrides[get_jd_repository] = lambda: jds
+    app.dependency_overrides[get_resume_repository] = lambda: resumes
+    app.dependency_overrides[get_profile_repository] = lambda: profiles
+    app.dependency_overrides[get_generation_service] = lambda: service
+    app.dependency_overrides[get_pdf_exporter] = lambda: FakePdfExporter()
+
+    yield {
+        "experiences": experiences,
+        "jds": jds,
+        "resumes": resumes,
+        "profiles": profiles,
+        "service": service,
+        "llm": llm,
+    }
+    app.dependency_overrides.clear()
