@@ -81,7 +81,34 @@ class Settings(BaseSettings):
     llm_api_key: str | None = None
     llm_model: str = "deepseek-chat"
     llm_timeout_s: float = 30.0
-    llm_max_tokens: int = 256
+    # 256 是 M0 只为验证观测链路时定的值。M1 起要输出结构化 JD 画像与多条改写要点，
+    # 256 token 会被截断成不完整 JSON（表现为「解析失败 → 重试 → 仍失败」）。
+    llm_max_tokens: int = 2048
+
+    # --- 业务（M1）---
+    # M1 阶段没有登录体系（M2-7 才接 Supabase Auth），所有写操作都挂在这个硬编码用户上。
+    # 与 supabase/seed.sql 里的固定 UUID 一致，改这里必须同步改 seed。
+    dev_user_id: str = Field(
+        default="00000000-0000-4000-8000-000000000001",
+        description="M1 的临时单用户；M2-7 接入 Auth 后由 JWT 提供",
+    )
+    dev_user_name: str = Field(default="本地开发用户", description="M1 简历抬头用的姓名")
+    dev_user_headline: str | None = Field(
+        default="后端 / AI 应用开发", description="M1 简历抬头的一句话定位"
+    )
+    # 改写用的模型上下文上限：素材库条目可能很长，超出会直接截断而不是静默超时
+    rewrite_max_input_chars: int = Field(
+        default=6000, description="单条经历送进改写 prompt 的字符上限"
+    )
+
+    # --- PDF 导出（M1-6 / M1-7）---
+    # 走「无头 Chromium 打印服务端渲染的同一份 HTML」这条路：
+    # 本机装了 Edge/Chrome，无需额外下载 ~150MB 的浏览器内核。
+    chromium_path: str | None = Field(
+        default=None,
+        description="留空则自动探测 Edge / Chrome；显式指定用于固定版本",
+    )
+    pdf_timeout_s: float = Field(default=60.0, description="单次无头打印超时")
 
     @property
     def langfuse_configured(self) -> bool:

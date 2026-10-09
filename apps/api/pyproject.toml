@@ -14,6 +14,9 @@ dependencies = [
     "httpx>=0.27.2",
     # 观测：M0-8 起接入。与服务端同主版本（本地实例跑 langfuse/langfuse:3）
     "langfuse>=3.0.0,<4",
+    # 简历 HTML 渲染（M1-5）。选 Jinja2 而不是 f-string 拼模板：
+    # 它默认支持自动转义，用户输入的经历文本不会被当成 HTML 注入进去。
+    "jinja2>=3.1.4",
 ]
 
 [dependency-groups]

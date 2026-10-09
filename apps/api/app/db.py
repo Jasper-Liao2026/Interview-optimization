@@ -13,8 +13,11 @@ M1-1 引入正式数据模型后，这里会被 SQLAlchemy / 仓储层替换，
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import time
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -24,6 +27,28 @@ import asyncpg
 from app.config import Settings, get_settings
 
 logger = logging.getLogger(__name__)
+
+
+class DatabaseUnavailable(RuntimeError):
+    """数据库不可用。
+
+    与「探活失败」不同：探活失败只降级（`/system/info` 照常返回），
+    而业务写读**必须**拿到连接，拿不到就得明确报错，不能静默返回空数据。
+    """
+
+
+async def _init_connection(conn: asyncpg.Connection) -> None:
+    """连接建立时给 jsonb 装上 Python 侧编解码器。
+
+    这样 SQL 里可以直接传 dict/list，读回来也直接是 dict/list，
+    不必在每个仓储方法里手写 `json.dumps` / `json.loads`。
+    """
+    await conn.set_type_codec(
+        "jsonb",
+        encoder=json.dumps,
+        decoder=json.loads,
+        schema="pg_catalog",
+    )
 
 
 @dataclass(slots=True)
@@ -60,6 +85,9 @@ class Database:
                     max_size=self._settings.db_pool_max_size,
                     timeout=self._settings.db_connect_timeout_s,
                     command_timeout=5.0,
+                    # 统一挂 jsonb 编解码：否则 asyncpg 默认把 jsonb 当字符串返回，
+                    # 每个仓储方法都得自己 json.loads，漏一处就是一个难查的 bug。
+                    init=_init_connection,
                 )
                 self._last_error = None
                 logger.info("database pool created")
@@ -74,6 +102,21 @@ class Database:
             await self._pool.close()
             self._pool = None
             logger.info("database pool closed")
+
+    # ------------------------------------------------- connection（仓储层用）
+    @asynccontextmanager
+    async def connection(self) -> AsyncIterator[asyncpg.Connection]:
+        """借一条连接。
+
+        业务代码一律走这里，而不是自己碰 `_pool`：连接从池里取、用完归还，
+        池没建起来时抛 `DatabaseUnavailable` —— 让调用方拿到一个明确的错误，
+        而不是一个「查出来是空」的假象。
+        """
+        pool = await self._get_pool()
+        if pool is None:
+            raise DatabaseUnavailable(self._last_error or "数据库连接池不可用")
+        async with pool.acquire() as conn:
+            yield conn
 
     # ----------------------------------------------------------- probes
 

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ resume.header.name }} · {{ resume.title }}</title>
+<style>
+  /*
+    这份模板是**预览与 PDF 的唯一来源**：
+    屏幕上看的是它，服务端无头浏览器打印出来的也是它。
+    所以「导出与预览一致」不是靠对齐两套代码，而是结构上就不可能不一致。
+
+    渲染时 Jinja2 开了 autoescape，用户录入的经历文本会作为文本插入，
+    不会被当作 HTML 执行 —— 这也是不用 f-string 拼模板的原因。
+  */
+  :root {
+    --ink: #1a1a1a;
+    --muted: #5a6472;
+    --accent: #1f4e79;
+    --rule: #d8dee6;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    /* 中文简历的字体栈：优先系统自带的中文字体，避免回退到无中文字形而被渲染成方框 */
+    font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC",
+                 "Source Han Sans SC", "Hiragino Sans GB", "SimSun", sans-serif;
+    color: var(--ink);
+    font-size: 10.5pt;
+    line-height: 1.55;
+    background: #eef1f5;
+    /* 打印时保留强调色（默认会被浏览器为了省墨改成黑白） */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* 屏幕上模拟一张 A4 纸；打印时由 @page 接管，纸张外壳全部撤掉 */
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 14mm 16mm;
+    margin: 12mm auto;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, .12), 0 12px 32px rgba(15, 23, 42, .10);
+  }
+
+  header.resume-head {
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 6px;
+  }
+  .name { font-size: 20pt; font-weight: 700; letter-spacing: .5px; margin: 0; }
+  .headline { margin: 3px 0 0; color: var(--muted); font-size: 10pt; }
+
+  section.block { margin-top: 12px; }
+  h2 {
+    font-size: 11.5pt;
+    color: var(--accent);
+    margin: 0 0 6px;
+    padding-left: 7px;
+    border-left: 3px solid var(--accent);
+    /* 分区标题不能孤零零留在页尾 */
+    break-after: avoid-page;
+    page-break-after: avoid;
+  }
+
+  .entry {
+    margin-bottom: 9px;
+    /* 一段经历整体不跨页 —— 这是中文简历分页最主要的观感问题 */
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+  .entry-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .entry-org { font-weight: 600; }
+  .entry-role { color: var(--muted); font-weight: 400; }
+  .entry-period {
+    color: var(--muted);
+    font-size: 9.5pt;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  ul.bullets { margin: 4px 0 0; padding-left: 16px; }
+  ul.bullets li { margin: 2px 0; break-inside: avoid; }
+  ul.bullets li::marker { color: var(--accent); }
+
+  @page { size: A4; margin: 14mm 16mm; }
+
+  @media print {
+    body { background: #fff; }
+    .page {
+      width: auto;
+      min-height: 0;
+      margin: 0;
+      padding: 0;
+      box-shadow: none;
+    }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <header class="resume-head">
+    <h1 class="name">{{ resume.header.name }}</h1>
+    {% if resume.header.headline %}<p class="headline">{{ resume.header.headline }}</p>{% endif %}
+    <p class="headline">目标岗位：{{ resume.title }}</p>
+  </header>
+
+  {% for section in resume.sections %}
+  <section class="block">
+    <h2>{{ section.title }}</h2>
+    {% for entry in section.entries %}
+    <article class="entry">
+      <div class="entry-head">
+        <div>
+          <span class="entry-org">{{ entry.org }}</span>
+          <span class="entry-role">· {{ entry.role }}</span>
+        </div>
+        {% if entry.period %}<span class="entry-period">{{ entry.period }}</span>{% endif %}
+      </div>
+      {% if entry.bullets %}
+      <ul class="bullets">
+        {% for bullet in entry.bullets %}
+        <li>{{ bullet.text }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </section>
+  {% endfor %}
+</main>
+</body>
+</html>
