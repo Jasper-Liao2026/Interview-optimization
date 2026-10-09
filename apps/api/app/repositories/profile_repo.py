@@ -1,4 +1,4 @@
-"""用户档案读写（M1 只读；M2-7 接入 Auth 后补写路径）。"""
+"""用户档案读写（当前只读：本地单机单用户，档案由 seed.sql 固定）。"""
 
 from __future__ import annotations
 

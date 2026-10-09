@@ -205,7 +205,7 @@ apps/api/app/schemas/*.py  ──FastAPI──►  openapi.json  ──openapi-t
 - `openapi.json` 不入库（纯中间产物）
 - `schema.d.ts` **入库**，反常但有理由：
   1. 前端可以脱离 Python 环境构建（clone 下来 `install && build` 即可）
-  2. Vercel 构建不必装 uv 与 Python，少一项构建依赖就少一个失败点
+  2. 纯 Node 的构建环境（前端 CI job、静态托管）不必装 uv 与 Python，少一项依赖就少一个失败点
   3. 前后端可并行开发
 - 同步性由 CI 的 `pnpm gen:types --check` + `git diff --exit-code` 兜住：
   有人改了 Pydantic 却没提交刷新后的类型，CI 直接红。
@@ -565,7 +565,7 @@ f"{langfuse_host}/project/{langfuse_project_id}/traces/{trace_id}"
 | # | 讲什么 | 一句话钩子 | 可能的追问 & 怎么接 |
 |---|---|---|---|
 | 1 | **前端壳 + Python 全包的选型** | 「我没有选全栈 TS，因为 LangGraph 在持久化编排上的成熟度是实打实的收益，不是妥协」 | 「那你付出了什么代价？」→ 答五项代价与缓解措施，尤其类型双写与流式多一跳 |
-| 2 | **类型单一定义源 + 生成产物入库** | 「Pydantic 是唯一真相，前端类型是算出来的。有个反常识的地方：生成产物我故意提交进仓库了」 | 「生成产物为什么入库？」→ 前端脱离 Python 环境可构建、Vercel 少了 Python 依赖、前后端可并行；同步性由 CI 的 diff 校验兜住 |
+| 2 | **类型单一定义源 + 生成产物入库** | 「Pydantic 是唯一真相，前端类型是算出来的。有个反常识的地方：生成产物我故意提交进仓库了」 | 「生成产物为什么入库？」→ 前端脱离 Python 环境可构建、纯前端构建不再依赖 Python、前后端可并行；同步性由 CI 的 diff 校验兜住 |
 | 3 | **数据库惰性连接 + 故障降级** | 「/health 故意不碰数据库 —— 进程活着就该返回 200，把」 | 「那数据库挂了你怎么知道？」→ `/system/info` 降级返回 connected=false 而非 500，自检页能一眼看出断在哪一段 |
 | 4 | **用一个接口证明三件事** | 「`/system/info` 返回的数据来自 migration 写的表，所以能渲染出来就等于同时证明了链路通、读库通、migration 生效」 | 这是「怎么设计可验证性」的好例子，比「接口返回 200」有力 |
 | 5 | **trace_id 从第一天就贯穿** | 「前端生成请求 ID 下发，后端原样回写并写进日志，M8 接 Langfuse 时直接拿它当 trace 标识」 | 「为什么不直接用 Langfuse 的 SDK 自动生成？」→ 跨进程链路需要一个两端都知道的 ID |

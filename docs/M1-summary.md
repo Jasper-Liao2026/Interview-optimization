@@ -241,7 +241,7 @@ docs/M1-pdf-export-comparison.md  （三方案对比 + 四维矩阵 + 复现命�
 | 多模板 | `TEMPLATE_FILES` 现在只有 `classic`，注册表已预留 | M7-1 |
 | 批量直出 | 目前一次一个 JD；批量要并发 + 队列，且**只能走方案 B**（C 需要人工点打印） | M7-5 |
 | 前端素材录入 UI | 现在只能靠 `POST /experiences` 或 seed 脚本 | M2-4 |
-| 用户级隔离 | RLS 已开但只有读策略；`get_current_user_id` 仍硬编码开发用户 | M2-2 / M2-7 |
+| 用户级隔离 | RLS 已开但只加读策略；`get_current_user_id` 固定返回本机用户。**M2-2 / M2-7 已随「本地单机单用户」定位取消**（2026-10-09），这条不再排期 | ~~M2-2 / M2-7~~ 已取消 |
 | 推送远端 | 本地已提交但**未推送**（代理阻塞 `gh auth refresh`，且 token 缺 `workflow` scope） | 见 M0-summary §7 |
 
 ---

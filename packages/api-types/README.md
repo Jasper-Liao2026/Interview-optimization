@@ -32,7 +32,7 @@ type HealthResponse = components["schemas"]["HealthResponse"];
 直觉上生成产物不该入库，但这里是有意为之：
 
 1. **前端可以脱离 Python 环境构建** —— clone 下来 `pnpm install && pnpm build` 就能跑，不必先装 uv 与 Python
-2. **Vercel 构建不需要 Python** —— 少一项构建依赖就少一个失败点
+2. **纯 Node 构建环境不需要 Python** —— 少一项构建依赖就少一个失败点
 3. **前后端可并行开发** —— 后端定义了 schema 并推上来，前端立刻能用
 
 同步性由 CI 保证：拉取代码后重新执行 `pnpm gen:types`，若工作区出现 diff 说明有人改了 Pydantic 却没刷新类型，直接失败。
