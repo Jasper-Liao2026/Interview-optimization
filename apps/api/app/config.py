@@ -6,10 +6,12 @@
 
 from __future__ import annotations
 
+import json
 from functools import lru_cache
+from typing import Annotated
 
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -33,7 +35,12 @@ class Settings(BaseSettings):
 
     # --- CORS ---
     # 开发期前端默认跑在 3000；生产期改为真实域名
-    cors_origins: list[str] = Field(
+    #
+    # `NoDecode` 是必须的：pydantic-settings 会把 list[str] 当成「复杂类型」，
+    # 在**读取 source 阶段**就抢先 json.loads，此时字段校验器还没机会执行，
+    # 于是 `a,b,c` 这种逗号分隔写法会直接抛 SettingsError、服务起不来。
+    # 加上 NoDecode 后原样把字符串交给下面的校验器自己切分。
+    cors_origins: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: [
             "http://localhost:3000",
             "http://127.0.0.1:3000",
@@ -49,12 +56,55 @@ class Settings(BaseSettings):
     db_pool_max_size: int = 10
     db_connect_timeout_s: float = 3.0
 
+    # --- 观测：Langfuse（M0-8）---
+    # 刻意不做「必填校验」：观测是横切能力，缺它也必须能跑起来。
+    # 两个 key 都给齐才算配置完成，否则 SDK 不初始化，trace 落回本地日志。
+    langfuse_public_key: str | None = Field(default=None, description="缺省则关闭 trace 上报")
+    langfuse_secret_key: str | None = Field(default=None, description="缺省则关闭 trace 上报")
+    langfuse_host: str = Field(
+        default="http://localhost:3000",
+        description="本地实例默认端口 3000；Langfuse Cloud 换成 https://cloud.langfuse.com",
+    )
+    langfuse_project_id: str = Field(
+        default="resume-optimizer",
+        description="Langfuse 项目 ID，用于手工拼 trace 详情页 URL（见 langfuse_client.trace_url）",
+    )
+
+    # --- LLM（M0-8 只为验证观测链路，M4 起由 LangGraph 节点调用）---
+    # provider=stub 是**明确标注的假实现**，仅用于在没有 key 的环境里验证
+    # 「一次调用能在 Langfuse 里看到 trace」。真实调用请设成 openai-compatible。
+    llm_provider: str = Field(default="stub", description="stub | openai-compatible")
+    llm_base_url: str = Field(
+        default="https://api.deepseek.com/v1",
+        description="OpenAI 兼容端点；DeepSeek / Moonshot / 通义 / vLLM 均适用",
+    )
+    llm_api_key: str | None = None
+    llm_model: str = "deepseek-chat"
+    llm_timeout_s: float = 30.0
+    llm_max_tokens: int = 256
+
+    @property
+    def langfuse_configured(self) -> bool:
+        """两个 key 都齐才算能用。只给一个通常是复制粘贴漏了，按未配置处理更安全。"""
+        return bool(self.langfuse_public_key and self.langfuse_secret_key)
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _split_origins(cls, value: object) -> object:
-        """支持 `CORS_ORIGINS=a,b,c` 这种逗号分隔写法，免去在 .env 里写 JSON。"""
+        """支持两种写法，避免在 .env 里手写 JSON：
+        - 逗号分隔：`CORS_ORIGINS=http://a,http://b`
+        - JSON 数组：`CORS_ORIGINS=["http://a","http://b"]`
+        """
         if isinstance(value, str):
-            return [item.strip() for item in value.split(",") if item.strip()]
+            raw = value.strip()
+            if raw.startswith("["):
+                try:
+                    parsed = json.loads(raw)
+                except json.JSONDecodeError:
+                    pass
+                else:
+                    return parsed
+            return [item.strip() for item in raw.split(",") if item.strip()]
         return value
 
 

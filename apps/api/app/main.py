@@ -18,7 +18,8 @@ from fastapi.responses import JSONResponse
 from app import __version__
 from app.config import get_settings
 from app.db import get_database
-from app.routers import health, system
+from app.observability import get_observability
+from app.routers import health, observability, system
 from app.tracing import TraceIdMiddleware, configure_logging, current_trace_id
 
 logger = logging.getLogger(__name__)
@@ -28,16 +29,21 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     configure_logging(settings.log_level)
+    observability_client = get_observability()
     logger.info(
-        "startup service=%s version=%s env=%s milestone=%s",
+        "startup service=%s version=%s env=%s milestone=%s langfuse=%s llm_provider=%s",
         settings.service_id,
         __version__,
         settings.environment,
         settings.milestone,
+        "on" if observability_client.enabled else "off",
+        settings.llm_provider,
     )
     # 刻意不在这里连数据库：postgres 慢启动不应阻塞 api 起来。
     # 连接池在第一次真正用到时才建（见 app/db.py）。
     yield
+    # 退出前把缓冲里的 trace 推出去，否则最后一批 span 会丢
+    observability_client.shutdown()
     await get_database().close()
     logger.info("shutdown complete")
 
@@ -58,6 +64,16 @@ def create_app() -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc",
         lifespan=lifespan,
+        # FastAPI 0.142+ 自带原生 OTel：一旦检测到全局 TracerProvider（Langfuse SDK 会设），
+        # 它就会给**每个请求**自动开一条 `fastapi.*` trace，把我们在 Langfuse 里
+        # 精心命名的业务 trace 冲散成一堆噪声。观测由 Langfuse SDK 统一负责，
+        # 因此这里整体关掉 FastAPI 的原生埋点，只保留我们显式写的 span/generation。
+        telemetry={
+            "tracing": False,
+            "metrics": False,
+            "logs": False,
+            "auto_configure": False,
+        },
     )
 
     # --- 中间件 ---
@@ -78,6 +94,7 @@ def create_app() -> FastAPI:
     # 业务接口统一走 /api/v1
     app.include_router(health.router, prefix=settings.api_prefix)
     app.include_router(system.router, prefix=settings.api_prefix)
+    app.include_router(observability.router, prefix=settings.api_prefix)
 
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:

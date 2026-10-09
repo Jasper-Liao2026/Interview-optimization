@@ -11,11 +11,21 @@ from app.schemas.health import (
     SystemInfoResponse,
 )
 from app.schemas.meta import ErrorResponse
+from app.schemas.observability import (
+    DEFAULT_SMOKE_PROMPT,
+    ObservabilityStatusResponse,
+    SmokeRequest,
+    SmokeResponse,
+)
 
 __all__ = [
+    "DEFAULT_SMOKE_PROMPT",
     "DatabaseStatus",
     "ErrorResponse",
     "HealthResponse",
+    "ObservabilityStatusResponse",
     "ServiceMetaEntry",
+    "SmokeRequest",
+    "SmokeResponse",
     "SystemInfoResponse",
 ]
