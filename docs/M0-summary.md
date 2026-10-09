@@ -1,20 +1,21 @@
 # M0 交付总结 · 脚手架
 
-> 2026-10-08｜覆盖 issue **M0-1 ~ M0-7**（M0-8 Langfuse 未做）
+> 2026-10-08 起，2026-10-09 补 M0-8｜覆盖 issue **M0-1 ~ M0-8（全部完成）**
 > 配套文档：`../requirements.md`（需求）、`../tasks.md`（任务分解）、`tech-stack.md`（选型）
 
 ---
 
 ## 0. 一句话结论
 
-三层服务（Next.js / FastAPI / Postgres）的**骨架已经立起来并且可验证**：
-前端能真实调通后端接口、后端能真实读回数据库里由 migration 写入的数据。
+三层服务（Next.js / FastAPI / Postgres）**加上一条真实可查的 LLM 观测链路**，骨架已经立起来并且可验证：
+前端能真实调通后端接口、后端能真实读回数据库里由 migration 写入的数据、
+**一次 LLM 调用能在自建的 Langfuse 实例里查到完整 trace**（trace → generation 两级结构）。
 
 **但本机有一个未解决的环境前提**：pnpm 在这台 Windows 上无法完成依赖安装（详见第 7 节）。
 这不影响代码正确性，但影响「clone 下来就能跑」这一步。
 
-仓库已 `git init` 并按逻辑边界提交 8 个 commit（见 §10）；除 `docker compose up --build` 的镜像层构建外，
-M0-1 ~ M0-7 均已在本机实测通过。
+仓库已 `git init` 并按逻辑边界提交（见 §10）；除 `docker compose up --build` 的镜像层构建外，
+M0-1 ~ M0-8 均已在本机实测通过。
 
 ---
 
@@ -33,7 +34,8 @@ M0-1 ~ M0-7 均已在本机实测通过。
 | 数据库（托管） | Supabase | — | Auth / RLS / pgvector | `config.toml` 已就绪，未启用 |
 | 编排 | docker compose | — | 本地三层一键起 | web + api + postgres |
 | Agent 编排 | LangGraph | — | StateGraph / Checkpointer | **M4 才接入**，M0 只留目录 |
-| 观测 | Langfuse | — | trace / 评测 | **M0-8 未做** |
+| 观测 | Langfuse | v3（server） / 3.15（SDK） | trace / 评测 | ★ **M0-8**：自建实例 + SDK 接入，一次 LLM 调用可查 trace |
+| LLM 调用 | httpx / OpenAI 兼容协议 | 0.27+ | 模型调用 | ★ **M0-8**：`stub` 与 `openai-compatible` 双 provider |
 | 包管理 | pnpm workspace | 11.5.0 | monorepo | workspace + `pnpm-lock.yaml` |
 | CI | GitHub Actions | — | lint / test / 类型同步 | 4 个 job |
 
@@ -59,6 +61,7 @@ M0-1 ~ M0-7 均已在本机实测通过。
 ├── .python-version                 # 3.13
 ├── .gitignore / .editorconfig / .dockerignore
 ├── docker-compose.yml              # ★ M0-4：web + api + postgres 三层编排
+│                                   #   ★ M0-8：+ Langfuse 六容器（observability profile）
 │
 ├── .github/workflows/ci.yml        # 4 个 job：api / types-sync / web / compose
 │
@@ -94,18 +97,26 @@ M0-1 ~ M0-7 均已在本机实测通过。
 │       │   ├── tracing.py          #   ★ trace_id 贯穿（前端 ID 原样回写）
 │       │   ├── runtime.py          #   进程运行时信息（uptime / utcnow）
 │       │   ├── deps.py             #   FastAPI 依赖别名
+│       │   ├── llm/                #   ★ M0-8：LLM 调用抽象
+│       │   │   └── client.py       #     stub / openai-compatible 双 provider
+│       │   ├── observability/      #   ★ M0-8：观测（Langfuse 包装）
+│       │   │   └── langfuse_client.py  #  生命周期、降级策略、trace_id 规范化
 │       │   ├── schemas/            #   ★ 接口类型的**单一定义源**
 │       │   │   ├── health.py       #     HealthResponse / SystemInfoResponse …
-│       │   │   └── meta.py         #     ErrorResponse
+│       │   │   ├── meta.py         #     ErrorResponse
+│       │   │   └── observability.py #    M0-8：status / smoke 的请求响应体
 │       │   ├── routers/
 │       │   │   ├── health.py       #     /health（无前缀，给容器 healthcheck）
-│       │   │   └── system.py       #     /api/v1/system/info（故意读库）
+│       │   │   ├── system.py       #     /api/v1/system/info（故意读库）
+│       │   │   └── observability.py #    M0-8：/observability/status、/smoke
 │       │   ├── services/           #   业务服务（M1 起填充）
 │       │   └── agents/             #   LangGraph graph（M4 起填充）
 │       └── tests/
-│           ├── conftest.py         #   假数据库替身，测试不依赖真库
+│           ├── conftest.py         #   假数据库替身 + 与本机 .env 隔离
 │           ├── test_health.py      #   6 条：200 / 前缀 / 不碰库 / trace_id / schema
-│           └── test_system.py      #   2 条：读库成功 / 数据库不可用时降级
+│           ├── test_system.py      #   2 条：读库成功 / 数据库不可用时降级
+│           ├── test_observability.py  # 11 条：trace_id 规范化 / 降级 / smoke 端到端
+│           └── test_config.py      #   4 条：CORS 逗号写法回归（见 §7.6）
 │
 ├── packages/
 │   └── api-types/                  # ★ M0-6：OpenAPI → TS 类型产物
@@ -158,7 +169,18 @@ M0-1 ~ M0-7 均已在本机实测通过。
    │  Postgres 16 + pgvector    │  :54322（宿主）
    │  service_meta（migration）  │  :5432 （容器内）
    └────────────────────────────┘
+
+                     ┌──────────────────────────────────────┐
+   FastAPI ─────────►│  Langfuse v3   :3300（宿主）          │
+   Langfuse SDK      │  web + worker + clickhouse + redis    │
+   （OTLP 批量上报）  │  + minio + postgres（独立一套）        │
+                     └──────────────────────────────────────┘
 ```
+
+**刻意的一点**：Langfuse 的六个容器挂在 compose 的 `observability` profile 下，
+常规 `docker compose up` **不会**拉起它们 ——
+日常开发只想跑业务链路时不必背上一个 ClickHouse。
+需要看 trace 时按需起：`docker compose --profile observability up -d`。
 
 **刻意的两点**
 
@@ -248,6 +270,41 @@ M1-1 引入正式迁移流程（Supabase CLI 或 alembic）时会换成单一迁
 用 tsconfig 的 `paths` 别名引用即可，少一条依赖就少一处链接与版本对齐的麻烦。
 （这条在本次排障中意外成了关键，见第 7 节。）
 
+### 4.8 观测是横切能力，三条硬约束（M0-8）
+
+`observability/langfuse_client.py` 定下三条，后续里程碑一直受用：
+
+1. **可降级**。观测不该成为可用性的单点。未配置 key 时 SDK 干脆不初始化，
+   `span()` / `generation()` 退化成 no-op（`yield None`），业务链路照常跑完。
+   连 SDK 初始化抛异常都被吞掉 —— 「观测挂了不能把服务带下水」。
+2. **trace_id 复用请求 ID**。`TraceIdMiddleware` 已为每个请求确定 `X-Request-Id`，
+   这里把它规范化成 32 位小写十六进制后当作 Langfuse 的 trace_id。
+   于是「前端日志 → 后端日志 → LLM 调用」共用一个 ID，M8-1 直接按 ID 回放整条链路。
+   规范化规则：带横线的 UUID **去掉横线正好 32 位**（最理想），其余取 md5（确定性，便于反查）。
+3. **不向外暴露 SDK**。业务代码只见 `get_observability()` 与 `span()` / `generation()`，
+   换观测后端只改这一个文件。
+
+**为什么 smoke 接口要真跑一次 LLM 调用（哪怕 provider 是 stub）**：
+只有真调用才能证明 `SDK → 上报 → ClickHouse → UI` 这条链路是通的。
+伪造一条 trace 只能证明「我调用了 SDK 的 API」。
+
+### 4.9 LLM 抽象：`stub` 与 `openai-compatible` 双 provider（M0-8）
+
+M0-8 的验收标准是「一次 LLM 调用能在 Langfuse 里看到 trace」，
+但 CI 与无 key 环境不能去调真实模型，所以把 LLM 也抽象成一层：
+
+- `stub`：**明确标注的假实现**（输出前缀 `【stub】`、`is_stub=True`、不发任何网络请求），
+  但**照样产生真实的 trace 与 token 统计** —— 它验证的是观测链路，不是模型能力
+- `openai-compatible`：`httpx` POST 到 `{base_url}/chat/completions`，
+  DeepSeek / Moonshot / 通义 / vLLM / Ollama 全走同一套协议，换模型只改配置
+
+配套接口（都不是业务接口，只为回答「观测配好了吗」「配好了真有 trace 吗」）：
+- `GET /api/v1/observability/status` —— key 是否配齐、实例是否可达、是不是 stub
+- `POST /api/v1/observability/smoke` —— 跑一次被完整 trace 的调用并返回 trace URL
+
+`langfuse_reachable` 未配置时返回 `null` 而不是 `false`：**null 是「没开」，false 是「开了但连不上」**，
+两者含义不同，混成一个布尔值会让排障时误判。
+
 ---
 
 ## 5. M0 验收结果
@@ -267,8 +324,10 @@ M1-1 引入正式迁移流程（Supabase CLI 或 alembic）时会换成单一迁
 | M0-5 | 能连库且 migration 可执行 | PASS | 真实 postgres 容器内 migration 已生效：`service_meta` 4 行、`vector`+`pgcrypto` 已装、RLS 开启；`/api/v1/system/info` 读回 `service_meta`，`database.connected=true`、latency 2.96 ms |
 | M0-6 | 改 Pydantic 后前端类型自动刷新 | PASS | 实际改过 Pydantic（见 §7.4）并重新生成成功；`gen-api-types.mjs --check` 无漂移；CI 有独立 job 拦截 |
 | M0-7 | 前端页面显示后端返回的数据 | PASS | 自检台展示 `service_meta` 内容 + trace_id + 客户端耗时；CORS 预检自 `localhost:3000` 通过 |
+| M0-8 | Langfuse 本地实例 + SDK 接入；一次 LLM 调用能看到 trace | PASS | Langfuse v3 六容器本地起齐（web/worker/clickhouse/redis/minio/postgres）；`POST /observability/smoke` 落 trace：trace `m0-8-smoke`（`cd12e8b2…`）→ GENERATION `llm.complete`，model `deepseek-chat`，usage `{input:9, output:27}`。接口回传 `langfuse_trace_url` 可直接点开 |
 
 > 除 M0-4 的镜像构建外，各项均在本机实测通过。M0-4 的「部分」是网速问题，不是代码问题，说明见 §7.3。
+> M0-8 的 trace 是**从 Langfuse 公共 API 反查确认**的，不是「接口返回 200 就算过」。
 
 ---
 
@@ -276,11 +335,13 @@ M1-1 引入正式迁移流程（Supabase CLI 或 alembic）时会换成单一迁
 
 | 保障 | 手段 |
 |---|---|
-| 后端 lint / 测试 | `ruff check`（E/F/W/I/UP/B/C4/SIM/ASYNC/RUF）+ 9 条 pytest |
+| 后端 lint / 测试 | `ruff check`（E/F/W/I/UP/B/C4/SIM/ASYNC/RUF）+ 24 条 pytest |
 | 测试不依赖真库 | 依赖覆盖 + 假数据库替身 |
+| 测试不依赖本机 `.env` | `_isolate_settings` 夹具把 `env_file` 摘掉并清 `lru_cache`（见 §7.5） |
 | 前后端类型不漂移 | `gen:types --check` + CI 独立 job |
 | 编排配置正确性 | CI 跑 `docker compose config --quiet` |
 | 前端可独立构建 | `schema.d.ts` 入库，前端不需要 Python |
+| 观测故障不致命 | key 缺失 / SDK 初始化失败 / flush 失败全部降级为 no-op，不抛业务异常 |
 | 依赖隔离 | CI 以 `npm_config_node_linker=isolated` 覆盖本地 workaround，幻影依赖在 CI 被拦下 |
 
 ---
@@ -384,6 +445,106 @@ Pydantic 会把带默认值的字段排除出 OpenAPI `required`，于是生成�
 
 > 顺带证明了类型管线的价值：这个不一致是**构建阶段**被拦下的，没机会流到运行期。
 
+### 7.5 【已修复】测试偷偷依赖了开发者本机的 `.env`
+
+M0-8 之前 `apps/api/.env` **压根不存在**，测试跑的是全部默认值，于是「测试干净」是一种假象。
+一旦为 M0-8 建了 `.env`（填上 langfuse key），两条原本通过的用例立刻变红：
+
+```
+assert payload["langfuse_configured"] is False
+E   assert True is False
+```
+
+根因：`Settings` 的 `env_file=".env"` 是**相对当前工作目录**解析的，
+从 `apps/api` 跑 pytest 就会被读进来。也就是说「同一份代码，我这儿过、CI 不过」。
+
+**修法**（`tests/conftest.py` 的 `_isolate_settings` 自动夹具）：
+把 `Settings.model_config["env_file"]` 置为 `None`（pydantic-settings 是**实例化时**才从
+`cls.model_config` 取这一项，所以运行期改写有效），并清掉 `get_settings` / `get_observability` 的 `lru_cache`
+—— 后者是必须的：`app.main` 在 import 时就 `create_app()` 过一次，已经把「带本机 key 的 settings」缓存住了。
+
+### 7.6 【已修复】`CORS_ORIGINS=a,b` 直接把服务打不起来
+
+同一个 `.env` 又暴露一个更早埋下的坑。`config.py` 里明明写了 `field_validator` 处理逗号分隔，
+但启动直接抛：
+
+```
+pydantic_settings.exceptions.SettingsError: error parsing value for field
+"cors_origins" from source "DotEnvSettingsSource"
+caused by: json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+```
+
+**根因**：pydantic-settings 把 `list[str]` 当成「复杂类型」，
+在**读取 source 阶段**就抢跑 `json.loads`，此时字段校验器**还没有机会执行**。
+于是校验器写得再对也没用 —— 而 `.env.example` 里推荐的正是逗号写法，文档与实现对不上。
+
+**修法**：给字段加 `NoDecode`，让原始字符串原样交给校验器自己切分：
+
+```python
+cors_origins: Annotated[list[str], NoDecode] = Field(default_factory=...)
+```
+
+同时让校验器兼容两种写法（逗号分隔 / JSON 数组），并补 `tests/test_config.py` 四条用例锁住行为。
+
+> 这条比 §7.4 更隐蔽：它不是「写错了」，是「框架的优先级与人的直觉不一致」。
+
+### 7.7 【已修复】FastAPI 0.142 的原生 OTel 把 trace 冲成噪声（★ 值得讲）
+
+M0-8 接上 Langfuse 后，Langfuse 里出现了大量**没人写过**的 trace：
+
+```
+GET /api/v1/health      OPTIONS
+GET /api/v1/system/info GET /api/v1/health ...
+```
+
+看一眼 span 的 `scope.name` 是 `fastapi`，子 span 是 `fastapi.endpoint` / `fastapi.dependencies` /
+`fastapi.serialization` —— 每个请求都会生成一条。
+
+**根因**：FastAPI 0.142 起自带原生 OpenTelemetry 埋点，
+一旦检测到全局 `TracerProvider`（Langfuse SDK 会设置它）就自动给每个请求开 trace。
+我们精心命名的业务 trace 因此被冲散。
+
+**修法**：显式关掉 FastAPI 的原生埋点，观测统一由 Langfuse SDK 负责：
+
+```python
+app = FastAPI(..., telemetry={"tracing": False, "metrics": False,
+                              "logs": False, "auto_configure": False})
+```
+
+**验证方式（关键是这个）**：主动打 12 个请求（含 `Origin` 头以触发 CORS 预检），
+再查 Langfuse 公共 API 的 `totalItems`，**前后 delta = 0** —— 零新增 trace，证明埋点确实关干净了。
+而不是「看日志里没有报错」。
+
+### 7.8 【已修复】SDK 的 `get_trace_url()` 在本地实例上永远返回 404 前的 308
+
+`observability.trace_url()` 一开始直接委托给 SDK 的 `get_trace_url()`，结果始终是 `None`。
+抓到的异常是：
+
+```
+ApiError status_code: 308   # /api/public/projects
+```
+
+SDK 内部会先调 `self.api.projects.get()` 拉项目列表来解析 baseUrl，
+而本地实例对 `/api/public/projects` 返回 308 重定向，SDK 的 httpx 客户端不跟随 → 直接抛错。
+
+**修法**：项目 ID 是启动时由 `LANGFUSE_INIT_PROJECT_ID` 固定下来的，直接手工拼更稳：
+
+```python
+f"{langfuse_host}/project/{langfuse_project_id}/traces/{trace_id}"
+```
+
+修完后 `langfuse_trace_url` 稳定返回可点开的详情页地址。
+
+### 7.9 【已修复】langfuse 3.15 的 `start_as_current_generation` 已废弃
+
+同样是被「有了真 key 才会走到」的代码路径暴露出来的：`start_as_current_generation`
+在 3.15 会发 `DeprecationWarning`，而本项目把告警当错误处理，一调用就炸。
+改用统一入口 `start_as_current_observation(as_type="generation")`；
+`span` 也一并换成同一入口（`as_type="span"`），避免代码里两种风格并存。
+
+> 7.5 ~ 7.9 有个共同点值得说：它们**全部**是「第一次填上真实配置」才浮现的。
+> 之前一路绿灯，是因为所有分支都恰好在走默认值/no-op 路径。
+
 ---
 
 ## 8. 面试要点
@@ -411,6 +572,10 @@ Pydantic 会把带默认值的字段排除出 OpenAPI `required`，于是生成�
 | 7 | **垂直切片优先的推进方式** | 「我没有先把素材库做完再做生成，而是先打通一条最小但完整的链路：一条经历 → 一份 PDF」 | 「为什么？」→ 集成风险永远大于模块风险，垂直切片最早暴露「PDF 导出对不上预览」这类致命问题 |
 | 8 | **不在生命周期里连数据库** | 「如果在 lifespan 里建连接池，`docker compose up` 时 postgres 慢启动会把 api 拖死」 | 属于「你踩过部署的坑」的证据 |
 | 9 | **构建揪出的类型契约 bug**（★ 见 §7.4） | 「构建报 `d.meta` 可能是 undefined。最省事的改法是前端加 `?? []`，但我把问题退回到后端：这个字段的契约本来就是『永远存在』，是我在 Pydantic 里给了默认值，才让 OpenAPI 把它标成非必填」 | 能体现「顺着单一定义源往回找，而不是在出错的地方打补丁」的判断力。可追问「类型系统在这里帮你拦住了什么」→ 拦住了前后端契约的长期软化 |
+| 10 | **观测是横切能力，必须可降级**（★ 见 §4.8） | 「Langfuse 是观测，不该成为可用性的单点。没配 key 时 SDK 根本不初始化，`span()` 退化成 no-op，业务链路照常跑完」 | 「那你怎么知道观测挂了？」→ `/observability/status` 用 `null` / `false` 区分「没开」和「开了但连不上」 |
+| 11 | **trace_id 从第一天就贯穿，现在兑现了**（见 §4.8 / §8.2-5） | 「M0 埋的 `X-Request-Id` 在 M0-8 直接用上了：前端生成的请求 ID 就是 Langfuse 的 trace_id，于是前端日志、后端日志、LLM 调用共用一个 ID，按它就能回放整条链路」 | 「UUID 和 trace_id 格式对不上怎么办？」→ `crypto.randomUUID()` 去掉横线正好 32 位十六进制；不是这个形状的输入退化为 md5（确定性，便于反查） |
+| 12 | **FastAPI 0.142 原生 OTel 把 trace 冲成噪声**（★ 最出彩，见 §7.7） | 「接上 Langfuse 后冒出一堆我没写过的 trace，每个请求一条。根因是 FastAPI 新版自带原生 OTel 埋点，检测到全局 `TracerProvider` 就自动给每个请求开 trace —— 而 Langfuse SDK 恰好会设置它」 | 「你怎么确认真的关掉了？」→ 主动打 12 个请求再查 Langfuse 公共 API 的 `totalItems`，**前后 delta = 0**。这比「日志没报错」有力得多 |
+| 13 | **框架优先级与直觉不一致**（见 §7.6） | 「`.env` 里写 `CORS_ORIGINS=a,b` 直接把服务起不来。校验器我明明写了，但 pydantic-settings 把 `list[str]` 当复杂类型，**在 source 阶段就抢跑 `json.loads`，校验器根本没机会执行**」 | 「怎么发现的？」→ 建真实 `.env` 才暴露；修法是用 `NoDecode` 显式声明「别替我解码」。可延伸：7.5~7.9 五个坑**全部**是「第一次填上真实配置」才浮现的 |
 
 ### 8.3 后续里程碑里最值钱的三个点（M0 之后要往这几处做）
 
@@ -425,11 +590,11 @@ Pydantic 会把带默认值的字段排除出 OpenAPI `required`，于是生成�
 
 | 事实 | 怎么讲 |
 |---|---|
-| **M0-8 与 M1 未做** | 观测与垂直切片尚未开始。不要说成「已完成端到端」 |
+| **M1 起（垂直切片、素材库、RAG、评分循环）都还没写** | M0 只做到「骨架 + 一条被 trace 的 LLM 调用」。不要含糊成「已完成端到端」。**可以说的是**：M0-8 的 trace 是真在自建 Langfuse 里查到过的，不是只调了 SDK 的 API |
+| **M0-8 用的 LLM 是 `stub`（假实现）** | 明确说清楚：stub 会标记 `is_stub=True`、输出带 `【stub】` 前缀、不发网络请求。它验证的是观测链路，**不是**模型能力。真实调用走 `openai-compatible` provider，已实现但本机未配 key |
 | **本机 pnpm 不可用** | 这是**加分项**而不是减分项：说明你知道自己环境的边界，并且定位到了上游源码。但要能说清「在正常环境上是可用的」 |
-| **`docker compose up` 未完整跑通** | 受本机网速限制，只校验了配置。不要声称「一键全起已验证」 |
+| **`docker compose up` 未完整跑通** | 受本机网速限制，只校验了配置。不要声称「一键全起已验证」（Langfuse 那套六容器是**实测起齐**的，可以讲） |
 | **Supabase 未真正启用** | 目前用的是 compose 里的原生 postgres + pgvector；`supabase start` 路径已配好但未跑。RLS 政策目前是 PUBLIC 兜底，用户级隔离是 M2-2 的事 |
-| **素材库/RAG/评分循环都还没有** | 这些是 M2–M5，一行代码都还没写 |
 | **平台形态未定** | 见 `../requirements.md` §6：手机端全流程 / 电脑端精修 / 两者都要。这是个会影响模板与交互的**关键未决项**，面试时可以主动说「这是我下一步要先拍板的」 |
 
 ### 8.5 一个容易被追问的产品问题
@@ -451,9 +616,14 @@ Pydantic 会把带默认值的字段排除出 OpenAPI `required`，于是生成�
 - [ ] 仓库与本地目录改名：`Interview-optimization` → `Resume-optimization`、`面试优化器` → `简历优化器`
 - [ ] 推送到远端（`git remote add origin` + `push`），当前只有本地仓库
 
-### M0-8（唯一未做的 M0 任务）
-- [ ] Langfuse 本地实例 + SDK 接入，验收「一次 LLM 调用能看到 trace」
-- [ ] 接入后把 `tracing.py` 里的 `LoggingConfigurator` 占位换成真实实现
+### M0-8（已完成）
+- [x] Langfuse 本地实例（v3 六容器）+ SDK 接入，验收「一次 LLM 调用能看到 trace」—— **已实测**
+- [x] 观测降级策略：未配 key / SDK 初始化失败 / flush 失败一律 no-op，不影响业务
+- [x] `GET /observability/status` + `POST /observability/smoke` 两个自检接口
+- [x] 修掉四个被「真实配置」暴露的问题：测试依赖本机 `.env`、`CORS_ORIGINS` 解析、
+      FastAPI 原生 OTel 噪声、SDK `get_trace_url` 的 308（见 §7.5~§7.8）
+- [ ] `tracing.py` 里的 `LoggingConfigurator` 占位仍待换成把日志也送进 Langfuse 的实现
+      （M0-8 只做了 trace，没做 log 汇聚；原计划在本任务内，实际留到 M8）
 
 ### M1 起点（垂直切片）
 - [ ] M1-1 数据模型 v0（用户 / 经历条目 / JD / 简历），把 `db.py` 换成正式仓储层
