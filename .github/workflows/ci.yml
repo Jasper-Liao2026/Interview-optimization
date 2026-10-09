@@ -1,7 +1,7 @@
 name: CI
 
-# M0 只保证「地基不塌」：后端能测、类型不漂移、前端能构建。
-# 部署与预览环境不在本阶段范围内。
+# 保证「地基不塌」：后端能测、类型不漂移、前端能构建、compose 配置合法。
+# 本项目是本地自托管工具，没有云部署，故 CI 不含任何发布 / 预览环境步骤。
 
 on:
   push:
@@ -83,7 +83,7 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - run: pnpm install
+      - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @resume/api-types typecheck
       - run: pnpm --filter @resume/web typecheck
       - run: pnpm --filter @resume/web lint

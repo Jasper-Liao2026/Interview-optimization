@@ -115,7 +115,7 @@ services:
   #
   # LANGFUSE_INIT_* 会在首次启动时自动建好组织/项目/用户并固定 API key，
   # 免去在 UI 里手动注册，也让 .env 里的 key 是确定值、可提交。
-  # 生产环境务必换成随机值（`openssl rand -hex 32`）。
+  # 若把这些端口暴露到公网，务必换成随机值（`openssl rand -hex 32`）。
 
   langfuse-postgres:
     image: postgres:17-alpine

@@ -29,13 +29,9 @@ htmlcov/
 /apps/api/openapi/openapi.json
 # schema.d.ts 虽然由管线生成，但**故意入库**：
 #   1) 前端可在没有 Python 环境的机器上直接 pnpm install && build
-#   2) Vercel 构建不必安装 uv / Python
+#   2) 纯 Node 构建环境（CI / Docker）不必安装 uv / Python
 #   3) 同步性由 CI 校验（重新生成后 git diff --exit-code）
 # 详见 docs/M0-summary.md「类型管线」一节
-
-# ---- supabase 本地状态 ----
-supabase/.branches/
-supabase/.temp/
 
 # ---- 本会话临时调试产物 ----
 # 本机 PowerShell stdout 不回流，命令输出一律先落文件再读回；这些留档不入库。

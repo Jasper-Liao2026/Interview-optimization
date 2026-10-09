@@ -8,14 +8,11 @@ WORKDIR /repo
 
 # ---------- 依赖层 ----------
 FROM base AS deps
-# TODO(锁文件就绪后): 改为 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-#                    并跑 pnpm install --frozen-lockfile
-# 现状：pnpm-lock.yaml 尚未生成（本机 pnpm 受 Windows 符号链接限制，见 .npmrc 与 docs/M0-summary.md §7.1）。
-# COPY 一个不存在的文件会让构建直接失败，所以这里先不引用它。
-COPY pnpm-workspace.yaml package.json ./
+# 锁文件已入库，构建按 --frozen-lockfile 走，确保镜像里的依赖版本与 CI / 本地一致
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/web/package.json apps/web/
 COPY packages/api-types/package.json packages/api-types/
-RUN --mount=type=cache,target=/pnpm/store pnpm install
+RUN --mount=type=cache,target=/pnpm/store pnpm install --frozen-lockfile
 
 # ---------- 构建层 ----------
 FROM deps AS builder
