@@ -30,6 +30,7 @@ services:
       # 且**不会递归子目录**，所以必须逐个文件挂载。
       # 改了 SQL 想重放：`pnpm db:reset`（= docker compose down -v postgres）
       - ./supabase/migrations/20261008000000_init.sql:/docker-entrypoint-initdb.d/10-init.sql:ro
+      - ./supabase/migrations/20261009000000_m1_core.sql:/docker-entrypoint-initdb.d/11-m1-core.sql:ro
       - ./supabase/seed.sql:/docker-entrypoint-initdb.d/20-seed.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d resume_optimizer"]
@@ -47,7 +48,7 @@ services:
     restart: unless-stopped
     environment:
       ENVIRONMENT: docker
-      MILESTONE: M0
+      MILESTONE: M1
       LOG_LEVEL: INFO
       # 容器内走服务名，不走宿主机的 54322
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/resume_optimizer
