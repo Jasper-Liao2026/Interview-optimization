@@ -4,6 +4,48 @@
  */
 
 export interface paths {
+    "/api/v1/experiences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 列出经历条目
+         * @description 返回当前用户的全部经历，按分类与 sort_order 排序（前端可直接分组展示）。
+         */
+        get: operations["list_experiences_api_v1_experiences_get"];
+        put?: never;
+        /**
+         * 新增一条经历
+         * @description M1 的最小录入入口，供脚本写入素材。UI 表单是 M2-4。
+         */
+        post: operations["create_experience_api_v1_experiences_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/experiences/{experience_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取一条经历 */
+        get: operations["get_experience_api_v1_experiences__experience_id__get"];
+        put?: never;
+        post?: never;
+        /** 删除一条经历 */
+        delete: operations["delete_experience_api_v1_experiences__experience_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -18,6 +60,28 @@ export interface paths {
         get: operations["health_api_v1_health_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jd/parse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 解析 JD 文本为结构化岗位画像
+         * @description 一次 LLM 调用把 JD 原文拆成必备技能 / 加分项 / 业务域 / 关键词 / 隐性偏好。
+         *
+         *     输出经 Pydantic 校验；**校验失败会自动带错误反馈重试**，重试次数体现在 `warnings` 里。
+         */
+        post: operations["parse_jd_api_v1_jd_parse_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -58,6 +122,88 @@ export interface paths {
          * @description 回答「trace 为什么没出现」：key 是否配齐、实例是否可达、LLM 是不是 stub。
          */
         get: operations["observability_status_api_v1_observability_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 按 JD 生成一份简历
+         * @description M1 垂直切片的入口：解析 JD → 逐条改写经历（**串行**，并行是 M4-3）→ 组装 → 落库。
+         *
+         *     同一批经历的改写共用同一份岗位画像，但每次改写是独立调用 —— 为 M4 的 fan-out 并行留好了接口形状。
+         */
+        post: operations["generate_resume_api_v1_resumes_generate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes/{resume_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取一份简历 */
+        get: operations["get_resume_api_v1_resumes__resume_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes/{resume_id}/html": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 渲染简历 HTML（预览用）
+         * @description 返回完整 HTML 文档，样式已内联。前端用 iframe 直接指向本地址即为所见即所得预览；服务端导出 PDF 时用的也是这份内容。
+         */
+        get: operations["get_resume_html_api_v1_resumes__resume_id__html_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes/{resume_id}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 导出简历 PDF
+         * @description 用无头 Chromium 打印 `/{id}/html` 的同一份内容，默认 A4。
+         *
+         *     `download=1` 时以附件形式下载，否则浏览器内联预览。
+         *     响应头 `X-Resume-Pages` 给出页数，便于自动化校验分页。
+         */
+        get: operations["export_resume_pdf_api_v1_resumes__resume_id__pdf_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -133,6 +279,227 @@ export interface components {
              */
             server_version?: string | null;
         };
+        /**
+         * ExperienceCreate
+         * @description 新增经历的入参。
+         *
+         *     刻意**不含 user_id**：M1 没有登录体系，用户由服务端按配置注入，
+         *     不能让客户端指定（否则就是一个越权写入的洞）。
+         */
+        ExperienceCreate: {
+            /**
+             * End Date
+             * @description 结束时间；进行中留空
+             */
+            end_date?: string | null;
+            /**
+             * Highlights
+             * @description 量化结果 / 要点。改写只允许引用，不允许模型凭空生成
+             */
+            highlights?: string[];
+            /**
+             * Kind
+             * @description 经历类型：项目 / 实习 / 校园
+             * @enum {string}
+             */
+            kind: "project" | "internship" | "campus";
+            /**
+             * Org
+             * @description 组织、公司或项目名
+             */
+            org: string;
+            /**
+             * Raw Description
+             * @description 原始描述。**事实基线** —— 后续改写的内容必须可回溯到这里
+             */
+            raw_description: string;
+            /**
+             * Role
+             * @description 角色或职位
+             */
+            role: string;
+            /**
+             * Skill Tags
+             * @description 技能标签
+             */
+            skill_tags?: string[];
+            /**
+             * Sort Order
+             * @description 同一分类内的展示顺序
+             * @default 0
+             */
+            sort_order: number;
+            /**
+             * Start Date
+             * @description 开始时间
+             */
+            start_date?: string | null;
+        };
+        /** ExperienceListResponse */
+        ExperienceListResponse: {
+            /**
+             * Items
+             * @description 当前用户的经历条目，按分类与 sort_order 排序
+             */
+            items: components["schemas"]["ExperienceRead"][];
+            /**
+             * Total
+             * @description 条目总数
+             */
+            total: number;
+        };
+        /**
+         * ExperienceRead
+         * @description 读出的经历条目。
+         * @example {
+         *       "created_at": "2026-10-09T10:00:00Z",
+         *       "highlights": [
+         *         "把请求 trace_id 复用为 Langfuse trace_id"
+         *       ],
+         *       "id": "00000000-0000-4000-8000-000000000101",
+         *       "kind": "project",
+         *       "org": "简历优化器",
+         *       "raw_description": "独立设计与实现一个批量生成岗位适配版简历的 Web 工具……",
+         *       "role": "独立开发",
+         *       "skill_tags": [
+         *         "Python",
+         *         "FastAPI",
+         *         "LangGraph"
+         *       ],
+         *       "sort_order": 0,
+         *       "start_date": "2026-09-01",
+         *       "updated_at": "2026-10-09T10:00:00Z",
+         *       "user_id": "00000000-0000-4000-8000-000000000001"
+         *     }
+         */
+        ExperienceRead: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * End Date
+             * @description 结束时间；进行中留空
+             */
+            end_date?: string | null;
+            /**
+             * Highlights
+             * @description 量化结果 / 要点。改写只允许引用，不允许模型凭空生成
+             */
+            highlights?: string[];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @description 经历类型：项目 / 实习 / 校园
+             * @enum {string}
+             */
+            kind: "project" | "internship" | "campus";
+            /**
+             * Org
+             * @description 组织、公司或项目名
+             */
+            org: string;
+            /**
+             * Raw Description
+             * @description 原始描述。**事实基线** —— 后续改写的内容必须可回溯到这里
+             */
+            raw_description: string;
+            /**
+             * Role
+             * @description 角色或职位
+             */
+            role: string;
+            /**
+             * Skill Tags
+             * @description 技能标签
+             */
+            skill_tags?: string[];
+            /**
+             * Sort Order
+             * @description 同一分类内的展示顺序
+             * @default 0
+             */
+            sort_order: number;
+            /**
+             * Start Date
+             * @description 开始时间
+             */
+            start_date?: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /**
+         * GenerateRequest
+         * @description 一次「JD → 简历」生成的入参。
+         */
+        GenerateRequest: {
+            /**
+             * Experience Ids
+             * @description 要用哪些经历。留空表示用当前用户的全部经历（走 M1-2 的素材库）
+             */
+            experience_ids?: string[];
+            /**
+             * Jd Text
+             * @description JD 原文
+             */
+            jd_text: string;
+            /**
+             * Persist
+             * @description 是否落库；false 时只生成不保存
+             * @default true
+             */
+            persist: boolean;
+            /**
+             * Title
+             * @description 简历标题；留空则由岗位名推导
+             */
+            title?: string | null;
+        };
+        /**
+         * GenerateResponse
+         * @description 一次生成的结果。
+         */
+        GenerateResponse: {
+            /** Is Stub */
+            is_stub: boolean;
+            /** Model */
+            model: string;
+            /**
+             * Pdf Path
+             * @description PDF 下载地址；persist=false 时为 null
+             */
+            pdf_path?: string | null;
+            /**
+             * Preview Path
+             * @description 服务端渲染的 HTML 预览地址；persist=false 时为 null
+             */
+            preview_path?: string | null;
+            /** @description 本次使用的岗位画像，便于前端展示「为什么这样改写」 */
+            profile: components["schemas"]["JobProfile"];
+            /** Provider */
+            provider: string;
+            resume: components["schemas"]["ResumeRead"];
+            /** Trace Id */
+            trace_id: string;
+            /**
+             * Warnings
+             * @description 生成过程中的降级提示（stub、截断、JSON 重试等）
+             */
+            warnings: string[];
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -190,6 +557,148 @@ export interface components {
              */
             version: string;
         };
+        /** JdParseRequest */
+        JdParseRequest: {
+            /**
+             * Company
+             * @description 可选的公司名补充
+             */
+            company?: string | null;
+            /**
+             * Persist
+             * @description 是否落库；false 时只解析不保存
+             * @default true
+             */
+            persist: boolean;
+            /**
+             * Raw Text
+             * @description JD 原文，直接粘贴即可
+             */
+            raw_text: string;
+            /**
+             * Title
+             * @description 可选的岗位标题补充
+             */
+            title?: string | null;
+        };
+        /**
+         * JdParseResponse
+         * @description 一次 JD 解析的结果。
+         */
+        JdParseResponse: {
+            /**
+             * Is Stub
+             * @description true 表示未发起真实网络调用（stub provider）
+             */
+            is_stub: boolean;
+            /**
+             * Jd Id
+             * @description 落库后的记录 ID；persist=false 时为 null（前端应避免依赖它）
+             */
+            jd_id?: string | null;
+            /**
+             * Model
+             * @description 本次使用的模型名
+             */
+            model: string;
+            profile: components["schemas"]["JobProfile"];
+            /**
+             * Provider
+             * @description 本次使用的 LLM provider
+             */
+            provider: string;
+            /**
+             * Trace Id
+             * @description 贯穿前后端的请求 ID，可在 Langfuse 按它回放
+             */
+            trace_id: string;
+            /**
+             * Warnings
+             * @description 解析过程中的降级提示，例如「JSON 首次解析失败，已重试」
+             */
+            warnings: string[];
+        };
+        /**
+         * JobProfile
+         * @description 结构化岗位画像。
+         *
+         *     **列表字段一律给默认值**：LLM 输出偶尔会漏字段，缺一个就该降级成空列表，
+         *     而不是让整次解析失败重试。幂等的重试留给「JSON 根本解析不出来」那种情况。
+         * @example {
+         *       "business_domain": "AI 应用 / 效率工具",
+         *       "company": "某互联网公司",
+         *       "implicit_preferences": [
+         *         "偏好有从 0 到 1 独立交付经验的候选人"
+         *       ],
+         *       "keywords": [
+         *         "高并发",
+         *         "agent 编排",
+         *         "可观测性"
+         *       ],
+         *       "nice_to_have": [
+         *         "LangGraph",
+         *         "Docker"
+         *       ],
+         *       "required_skills": [
+         *         "Python",
+         *         "FastAPI",
+         *         "PostgreSQL"
+         *       ],
+         *       "responsibilities": [
+         *         "负责后端服务的设计与实现",
+         *         "参与 agent 流程编排"
+         *       ],
+         *       "seniority": "校招",
+         *       "title": "后端开发工程师（校招）"
+         *     }
+         */
+        JobProfile: {
+            /**
+             * Business Domain
+             * @description 业务域
+             */
+            business_domain?: string | null;
+            /**
+             * Company
+             * @description 公司名
+             */
+            company?: string | null;
+            /**
+             * Implicit Preferences
+             * @description 没明说但能读出来的偏好（例如「抗压」「独立交付」）
+             */
+            implicit_preferences: string[];
+            /**
+             * Keywords
+             * @description JD 里的高频关键词，用于对齐措辞
+             */
+            keywords: string[];
+            /**
+             * Nice To Have
+             * @description 加分项
+             */
+            nice_to_have: string[];
+            /**
+             * Required Skills
+             * @description 必备技能（硬性要求），改写时优先覆盖
+             */
+            required_skills: string[];
+            /**
+             * Responsibilities
+             * @description 岗位职责条目
+             */
+            responsibilities: string[];
+            /**
+             * Seniority
+             * @description 级别：实习 / 校招 / 社招-初级 / 社招-资深
+             */
+            seniority?: string | null;
+            /**
+             * Title
+             * @description 岗位名称
+             */
+            title?: string | null;
+        };
         /**
          * ObservabilityStatusResponse
          * @description 观测配置现状。用来回答「trace 为什么没出现」这类问题。
@@ -233,6 +742,128 @@ export interface components {
              * @description stub | openai-compatible
              */
             llm_provider: string;
+        };
+        /**
+         * ResumeBullet
+         * @description 简历里的一条要点。
+         */
+        ResumeBullet: {
+            /** Evidence */
+            evidence: string[];
+            /** Text */
+            text: string;
+        };
+        /**
+         * ResumeEntry
+         * @description 简历里的一段经历。
+         *
+         *     `org` / `role` / `period` 全部**来自原始经历条目**，不由模型产出。
+         */
+        ResumeEntry: {
+            /** Bullets */
+            bullets: components["schemas"]["ResumeBullet"][];
+            /**
+             * Experience Id
+             * @description 来源经历条目 ID
+             */
+            experience_id: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "project" | "internship" | "campus";
+            /** Org */
+            org: string;
+            /**
+             * Period
+             * @description 形如 2026.09 – 至今；无时间信息时为 null
+             */
+            period: string | null;
+            /** Role */
+            role: string;
+        };
+        /**
+         * ResumeHeader
+         * @description 简历抬头。M1 从 profiles 表取；M2-7 起可编辑。
+         */
+        ResumeHeader: {
+            /** Headline */
+            headline?: string | null;
+            /** Name */
+            name: string;
+        };
+        /**
+         * ResumeRead
+         * @description 一份生成的简历快照。
+         * @example {
+         *       "created_at": "2026-10-09T10:00:00Z",
+         *       "generator": "stub:deepseek-chat(stub)",
+         *       "header": {
+         *         "headline": "后端 / AI 应用开发",
+         *         "name": "本地开发用户"
+         *       },
+         *       "id": "11111111-1111-4111-8111-111111111111",
+         *       "sections": [],
+         *       "status": "draft",
+         *       "template": "classic",
+         *       "title": "后端开发工程师（校招）",
+         *       "updated_at": "2026-10-09T10:00:00Z",
+         *       "user_id": "00000000-0000-4000-8000-000000000001"
+         *     }
+         */
+        ResumeRead: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Generator
+             * @description 产出该简历的 provider:model
+             */
+            generator?: string | null;
+            header: components["schemas"]["ResumeHeader"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Jd Id */
+            jd_id?: string | null;
+            /** Sections */
+            sections: components["schemas"]["ResumeSection"][];
+            /**
+             * Status
+             * @description draft | exported
+             */
+            status: string;
+            /**
+             * Template
+             * @default classic
+             */
+            template: string;
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /**
+         * ResumeSection
+         * @description 简历的一个分区，例如「项目经历」「实习经历」。
+         */
+        ResumeSection: {
+            /** Entries */
+            entries: components["schemas"]["ResumeEntry"][];
+            /** Title */
+            title: string;
         };
         /**
          * ServiceMetaEntry
@@ -362,6 +993,119 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    list_experiences_api_v1_experiences_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExperienceListResponse"];
+                };
+            };
+        };
+    };
+    create_experience_api_v1_experiences_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExperienceCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExperienceRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_experience_api_v1_experiences__experience_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                experience_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExperienceRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_experience_api_v1_experiences__experience_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                experience_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     health_api_v1_health_get: {
         parameters: {
             query?: never;
@@ -378,6 +1122,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    parse_jd_api_v1_jd_parse_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JdParseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JdParseResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -431,6 +1208,139 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ObservabilityStatusResponse"];
+                };
+            };
+        };
+    };
+    generate_resume_api_v1_resumes_generate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_resume_api_v1_resumes__resume_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resume_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_resume_html_api_v1_resumes__resume_id__html_get: {
+        parameters: {
+            query?: {
+                /** @description 覆盖模板；缺省用简历自身记录的模板 */
+                template?: string | null;
+            };
+            header?: never;
+            path: {
+                resume_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_resume_pdf_api_v1_resumes__resume_id__pdf_get: {
+        parameters: {
+            query?: {
+                /** @description true 时强制下载而非内联预览 */
+                download?: boolean;
+            };
+            header?: never;
+            path: {
+                resume_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    "application/pdf": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
