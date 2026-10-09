@@ -13,13 +13,13 @@ export interface paths {
         };
         /**
          * 列出经历条目
-         * @description 返回当前用户的全部经历，按分类与 sort_order 排序（前端可直接分组展示）。
+         * @description 返回当前用户的全部经历，**按分类分组、组内按经历时间倒序**（进行中的排在最前）。前端按这个顺序直接分组展示即可，不必再排一次。
          */
         get: operations["list_experiences_api_v1_experiences_get"];
         put?: never;
         /**
          * 新增一条经历
-         * @description M1 的最小录入入口，供脚本写入素材。UI 表单是 M2-4。
+         * @description 素材库的录入入口（M2-4 的录入表单走这里）。
          */
         post: operations["create_experience_api_v1_experiences_post"];
         delete?: never;
@@ -37,7 +37,15 @@ export interface paths {
         };
         /** 读取一条经历 */
         get: operations["get_experience_api_v1_experiences__experience_id__get"];
-        put?: never;
+        /**
+         * 编辑一条经历（全量替换）
+         * @description **PUT 语义：全量替换**，不是 PATCH。未提交的字段会按默认值处理（例如不传 `skill_tags` 等于清空标签），而不是保留旧值。
+         *
+         *     编辑表单提交的就是整条记录，全量语义下「必填字段缺失」由 Pydantic 直接拦成 422，省掉了 PATCH 里「字段没传」与「显式置空」的歧义。
+         *
+         *     `user_id` 与时间戳不可改；`updated_at` 由数据库触发器维护。
+         */
+        put: operations["update_experience_api_v1_experiences__experience_id__put"];
         post?: never;
         /** 删除一条经历 */
         delete: operations["delete_experience_api_v1_experiences__experience_id__delete"];
@@ -283,7 +291,7 @@ export interface components {
          * ExperienceCreate
          * @description 新增经历的入参。
          *
-         *     刻意**不含 user_id**：M1 没有登录体系，用户由服务端按配置注入，
+         *     刻意**不含 user_id**：本项目是本地单机工具，用户由服务端按配置注入，
          *     不能让客户端指定（否则就是一个越权写入的洞）。
          */
         ExperienceCreate: {
@@ -294,7 +302,7 @@ export interface components {
             end_date?: string | null;
             /**
              * Highlights
-             * @description 量化结果 / 要点。改写只允许引用，不允许模型凭空生成
+             * @description **定性**要点。改写只允许引用，不允许模型凭空生成
              */
             highlights?: string[];
             /**
@@ -303,6 +311,11 @@ export interface components {
              * @enum {string}
              */
             kind: "project" | "internship" | "campus";
+            /**
+             * Metrics
+             * @description **量化**结果。与 highlights 分开存放，便于自动校验「数字不可编造」（M4-7）
+             */
+            metrics?: components["schemas"]["ExperienceMetric"][];
             /**
              * Org
              * @description 组织、公司或项目名
@@ -325,7 +338,7 @@ export interface components {
             skill_tags?: string[];
             /**
              * Sort Order
-             * @description 同一分类内的展示顺序
+             * @description 同一分类内的展示顺序。**M2 起 UI 不再维护**：列表按经历时间倒序，本字段降级为同时间条目的稳定排序兜底
              * @default 0
              */
             sort_order: number;
@@ -334,12 +347,17 @@ export interface components {
              * @description 开始时间
              */
             start_date?: string | null;
+            /**
+             * Variants
+             * @description 按岗位方向保存的多版本表述；同一条目同方向只允许一份
+             */
+            variants?: components["schemas"]["ExperienceVariant"][];
         };
         /** ExperienceListResponse */
         ExperienceListResponse: {
             /**
              * Items
-             * @description 当前用户的经历条目，按分类与 sort_order 排序
+             * @description 当前用户的经历条目，按分类分组、组内按经历时间倒序
              */
             items: components["schemas"]["ExperienceRead"][];
             /**
@@ -349,15 +367,54 @@ export interface components {
             total: number;
         };
         /**
+         * ExperienceMetric
+         * @description 一条**量化结果**：这段经历里可测量的产出。
+         *
+         *     量化的是「成果」，不是过程、也不是技能。三要素缺一不可：
+         *
+         *         name    = 指标名，如「接口 P99 延迟」
+         *         value   = 数值原文，如「800ms → 120ms」
+         *         context = 口径，如「压测 5000 QPS 下」
+         *
+         *     `value` 刻意保持**字符串**而不是解析成数字 + 单位：
+         *     简历里的量化写法千奇百怪（`24 → 82 条`、`3000+`、`下降 40%`），
+         *     强行结构化只会让用户在录入时跟表单较劲。保持原样同样能满足
+         *     「改写可回溯」——校验时做的是**子串匹配**，不需要理解数值语义。
+         */
+        ExperienceMetric: {
+            /**
+             * Context
+             * @description 口径：怎么算的 / 什么范围，如「压测 5000 QPS 下」
+             */
+            context?: string | null;
+            /**
+             * Name
+             * @description 指标名，如「接口 P99 延迟」
+             */
+            name: string;
+            /**
+             * Value
+             * @description 数值原文，如「800ms → 120ms」
+             */
+            value: string;
+        };
+        /**
          * ExperienceRead
          * @description 读出的经历条目。
          * @example {
          *       "created_at": "2026-10-09T10:00:00Z",
          *       "highlights": [
-         *         "把请求 trace_id 复用为 Langfuse trace_id"
+         *         "接入 Langfuse 观测，每次 LLM 调用可按 trace_id 回放"
          *       ],
          *       "id": "00000000-0000-4000-8000-000000000101",
          *       "kind": "project",
+         *       "metrics": [
+         *         {
+         *           "context": "后端 ruff + pytest 全绿",
+         *           "name": "单元测试",
+         *           "value": "24 → 82 条"
+         *         }
+         *       ],
          *       "org": "简历优化器",
          *       "raw_description": "独立设计与实现一个批量生成岗位适配版简历的 Web 工具……",
          *       "role": "独立开发",
@@ -369,7 +426,14 @@ export interface components {
          *       "sort_order": 0,
          *       "start_date": "2026-09-01",
          *       "updated_at": "2026-10-09T10:00:00Z",
-         *       "user_id": "00000000-0000-4000-8000-000000000001"
+         *       "user_id": "00000000-0000-4000-8000-000000000001",
+         *       "variants": [
+         *         {
+         *           "direction": "后端开发",
+         *           "note": "投后端岗时强调编排与工程化",
+         *           "text": "用 FastAPI 承载全部业务逻辑，用 LangGraph 编排多步流程……"
+         *         }
+         *       ]
          *     }
          */
         ExperienceRead: {
@@ -385,7 +449,7 @@ export interface components {
             end_date?: string | null;
             /**
              * Highlights
-             * @description 量化结果 / 要点。改写只允许引用，不允许模型凭空生成
+             * @description **定性**要点。改写只允许引用，不允许模型凭空生成
              */
             highlights?: string[];
             /**
@@ -399,6 +463,11 @@ export interface components {
              * @enum {string}
              */
             kind: "project" | "internship" | "campus";
+            /**
+             * Metrics
+             * @description **量化**结果。与 highlights 分开存放，便于自动校验「数字不可编造」（M4-7）
+             */
+            metrics?: components["schemas"]["ExperienceMetric"][];
             /**
              * Org
              * @description 组织、公司或项目名
@@ -421,7 +490,7 @@ export interface components {
             skill_tags?: string[];
             /**
              * Sort Order
-             * @description 同一分类内的展示顺序
+             * @description 同一分类内的展示顺序。**M2 起 UI 不再维护**：列表按经历时间倒序，本字段降级为同时间条目的稳定排序兜底
              * @default 0
              */
             sort_order: number;
@@ -440,6 +509,108 @@ export interface components {
              * Format: uuid
              */
             user_id: string;
+            /**
+             * Variants
+             * @description 按岗位方向保存的多版本表述；同一条目同方向只允许一份
+             */
+            variants?: components["schemas"]["ExperienceVariant"][];
+        };
+        /**
+         * ExperienceUpdate
+         * @description 编辑经历的入参 —— **PUT 全量替换**语义（M2-3）。
+         *
+         *     为什么是 PUT 而不是 PATCH：编辑表单提交的就是整条记录，
+         *     全量语义下「必填字段缺失」直接被 Pydantic 拦成 422，不需要在服务层
+         *     区分「字段没传」和「显式置空」这两种 PATCH 特有的歧义。
+         *     与「Pydantic model 是接口类型唯一定义源」这条硬约定也最契合。
+         *
+         *     同样不含 `id` / `user_id` / 时间戳：这些不是用户能改的东西。
+         */
+        ExperienceUpdate: {
+            /**
+             * End Date
+             * @description 结束时间；进行中留空
+             */
+            end_date?: string | null;
+            /**
+             * Highlights
+             * @description **定性**要点。改写只允许引用，不允许模型凭空生成
+             */
+            highlights?: string[];
+            /**
+             * Kind
+             * @description 经历类型：项目 / 实习 / 校园
+             * @enum {string}
+             */
+            kind: "project" | "internship" | "campus";
+            /**
+             * Metrics
+             * @description **量化**结果。与 highlights 分开存放，便于自动校验「数字不可编造」（M4-7）
+             */
+            metrics?: components["schemas"]["ExperienceMetric"][];
+            /**
+             * Org
+             * @description 组织、公司或项目名
+             */
+            org: string;
+            /**
+             * Raw Description
+             * @description 原始描述。**事实基线** —— 后续改写的内容必须可回溯到这里
+             */
+            raw_description: string;
+            /**
+             * Role
+             * @description 角色或职位
+             */
+            role: string;
+            /**
+             * Skill Tags
+             * @description 技能标签
+             */
+            skill_tags?: string[];
+            /**
+             * Sort Order
+             * @description 同一分类内的展示顺序。**M2 起 UI 不再维护**：列表按经历时间倒序，本字段降级为同时间条目的稳定排序兜底
+             * @default 0
+             */
+            sort_order: number;
+            /**
+             * Start Date
+             * @description 开始时间
+             */
+            start_date?: string | null;
+            /**
+             * Variants
+             * @description 按岗位方向保存的多版本表述；同一条目同方向只允许一份
+             */
+            variants?: components["schemas"]["ExperienceVariant"][];
+        };
+        /**
+         * ExperienceVariant
+         * @description 同一条经历在**某个岗位方向**下的表述版本（M2-6）。
+         *
+         *     典型用法：同一段「简历优化器」经历，投后端岗时强调 FastAPI / LangGraph 编排，
+         *     投 AI 应用岗时强调 prompt 设计与评测。两份表述都真实，只是侧重不同。
+         *
+         *     变体是**派生内容**，事实基线仍是 `raw_description`。M2 阶段由用户手工维护，
+         *     M4 起可由改写流程自动产出并回填。
+         */
+        ExperienceVariant: {
+            /**
+             * Direction
+             * @description 岗位方向，如「后端开发」「AI 应用」
+             */
+            direction: string;
+            /**
+             * Note
+             * @description 备注，如来源 JD / 使用建议
+             */
+            note?: string | null;
+            /**
+             * Text
+             * @description 该方向下的表述
+             */
+            text: string;
         };
         /**
          * GenerateRequest
@@ -1056,6 +1227,41 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExperienceRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_experience_api_v1_experiences__experience_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                experience_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExperienceUpdate"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

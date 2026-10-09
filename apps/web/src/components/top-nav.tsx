@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const LINKS = [
+  { href: "/library", label: "素材库" },
   { href: "/generate", label: "生成简历" },
   { href: "/", label: "系统自检" },
 ] as const;

@@ -138,8 +138,11 @@ export default function GeneratePage() {
             <p className="text-xs text-[var(--muted)]">读取素材库…</p>
           ) : experiences.length === 0 ? (
             <p className="rounded-md border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-3 py-2 text-xs text-[var(--warn)]">
-              素材库为空。M1 没有录入界面（M2-4 才有），先用接口写入：
-              <code className="ml-1 font-mono">POST /api/v1/experiences</code>
+              素材库为空。请先到
+              <Link href="/library" className="mx-1 underline underline-offset-2">
+                素材库
+              </Link>
+              新增经历。
             </p>
           ) : (
             <ul className="space-y-2">

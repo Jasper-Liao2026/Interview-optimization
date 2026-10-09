@@ -19,6 +19,12 @@ export type DatabaseStatus = components["schemas"]["DatabaseStatus"];
 // --- M1 垂直切片 ---
 export type ExperienceRead = components["schemas"]["ExperienceRead"];
 export type ExperienceListResponse = components["schemas"]["ExperienceListResponse"];
+
+// --- M2 素材库 CRUD（类型一律来自 @resume/api-types，禁止手写）---
+export type ExperienceCreate = components["schemas"]["ExperienceCreate"];
+export type ExperienceUpdate = components["schemas"]["ExperienceUpdate"];
+export type ExperienceMetric = components["schemas"]["ExperienceMetric"];
+export type ExperienceVariant = components["schemas"]["ExperienceVariant"];
 export type GenerateRequest = components["schemas"]["GenerateRequest"];
 export type GenerateResponse = components["schemas"]["GenerateResponse"];
 export type JobProfile = components["schemas"]["JobProfile"];
@@ -94,6 +100,42 @@ export async function apiPost<T>(
   return handle<T>(response, path);
 }
 
+export async function apiPut<T>(
+  { path, requestId, signal }: RequestOptions,
+  body: unknown,
+): Promise<T> {
+  const response = await fetch(`${env.apiBaseUrl}${path}`, {
+    method: "PUT",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...(requestId ? { "X-Request-Id": requestId } : {}),
+    },
+    body: JSON.stringify(body),
+    cache: "no-store",
+    signal,
+  });
+  return handle<T>(response, path);
+}
+
+/**
+ * DELETE 返回 204 无 body，不能 response.json() 解析空响应体。
+ */
+export async function apiDelete({ path, requestId, signal }: RequestOptions): Promise<void> {
+  const response = await fetch(`${env.apiBaseUrl}${path}`, {
+    method: "DELETE",
+    headers: {
+      Accept: "application/json",
+      ...(requestId ? { "X-Request-Id": requestId } : {}),
+    },
+    cache: "no-store",
+    signal,
+  });
+  if (!response.ok) {
+    throw new ApiError(response.status, path, await response.text().catch(() => ""));
+  }
+}
+
 /** 取回服务端渲染的简历 HTML 文本（用于浏览器打印：srcdoc + window.print）。 */
 export async function fetchResumeHtml(resumeId: string, signal?: AbortSignal): Promise<string> {
   const response = await fetch(`${env.apiBaseUrl}${api.resumeHtmlPath(resumeId)}`, {
@@ -118,6 +160,17 @@ export const api = {
     apiGet<ExperienceListResponse>({ path: `${env.apiPrefix}/experiences`, ...opts }),
   generateResume: (body: GenerateRequest, opts?: Omit<RequestOptions, "path">) =>
     apiPost<GenerateResponse>({ path: `${env.apiPrefix}/resumes/generate`, ...opts }, body),
+
+  // --- M2 素材库 CRUD ---
+  getExperience: (id: string, opts?: Omit<RequestOptions, "path">) =>
+    apiGet<ExperienceRead>({ path: `${env.apiPrefix}/experiences/${id}`, ...opts }),
+  createExperience: (body: ExperienceCreate, opts?: Omit<RequestOptions, "path">) =>
+    apiPost<ExperienceRead>({ path: `${env.apiPrefix}/experiences`, ...opts }, body),
+  // PUT 全量替换：编辑时务必把全部字段都发出去（见 page.tsx 注释）。
+  updateExperience: (id: string, body: ExperienceUpdate, opts?: Omit<RequestOptions, "path">) =>
+    apiPut<ExperienceRead>({ path: `${env.apiPrefix}/experiences/${id}`, ...opts }, body),
+  deleteExperience: (id: string, opts?: Omit<RequestOptions, "path">) =>
+    apiDelete({ path: `${env.apiPrefix}/experiences/${id}`, ...opts }),
 
   /**
    * 后端返回的 preview_path / pdf_path 是**相对 API 前缀**的路径，
