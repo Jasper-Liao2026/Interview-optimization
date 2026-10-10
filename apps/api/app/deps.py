@@ -22,7 +22,9 @@ from app.repositories import (
     ProfileRepository,
     ResumeRepository,
 )
+from app.repositories.editing_repo import EditingRepository
 from app.repositories.embedding_repo import EmbeddingRepository
+from app.services.editing import ResumeEditingService
 from app.services.generation import ResumeGenerationService
 from app.services.matching import MatchingService
 from app.services.scoring import ResumeScoringService
@@ -113,6 +115,34 @@ def get_scoring_service(
 
 
 ScoringServiceDep = Annotated[ResumeScoringService, Depends(get_scoring_service)]
+
+
+def get_editing_repository(database: DatabaseDep) -> EditingRepository:
+    return EditingRepository(database)
+
+
+EditingRepoDep = Annotated[EditingRepository, Depends(get_editing_repository)]
+
+
+def get_editing_service(
+    repository: EditingRepoDep,
+    experiences: ExperienceRepoDep,
+    jobs: JdRepoDep,
+    rewriter: RewriterDep,
+    database: DatabaseDep,
+    settings: SettingsDep,
+) -> ResumeEditingService:
+    return ResumeEditingService(
+        repository,
+        experiences,
+        jobs,
+        rewriter,
+        GenerationRunStore(database, database_url=settings.database_url),
+        settings,
+    )
+
+
+EditingServiceDep = Annotated[ResumeEditingService, Depends(get_editing_service)]
 
 
 # ---------------------------------------------------------------- 当前用户

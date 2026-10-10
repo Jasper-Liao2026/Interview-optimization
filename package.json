@@ -33,6 +33,7 @@
     "eval:m4": "node scripts/verify-m4.mjs --eval",
     "verify:m5": "node scripts/verify-m5.mjs",
     "eval:m5": "node scripts/verify-m5.mjs --eval",
+    "verify:m6": "node scripts/verify-m6.mjs",
     "db:up": "docker compose up -d postgres",
     "db:reset": "docker compose down -v postgres",
     "stack:up": "docker compose up -d --build",

@@ -44,6 +44,13 @@ export type MatchResponse = components["schemas"]["MatchResponse"];
 
 export type ScoreRequest = components["schemas"]["ScoreRequest"];
 export type ScoreResponse = components["schemas"]["ScoreResponse"];
+export type ResumeDraft = components["schemas"]["ResumeDraft"];
+export type EditorResponse = components["schemas"]["EditorResponse"];
+export type SaveRevisionRequest = components["schemas"]["SaveRevisionRequest"];
+export type RestoreRevisionRequest = components["schemas"]["RestoreRevisionRequest"];
+export type AiEditRequest = components["schemas"]["AiEditRequest"];
+export type AiEditResponse = components["schemas"]["AiEditResponse"];
+export type AiDecisionRequest = components["schemas"]["AiDecisionRequest"];
 
 export class ApiError extends Error {
   constructor(
@@ -164,6 +171,30 @@ export async function fetchResumeHtml(resumeId: string, signal?: AbortSignal): P
 }
 
 export const api = {
+  getEditor: (id: string, opts?: Omit<RequestOptions, "path">) =>
+    apiGet<EditorResponse>({ path: `${env.apiPrefix}/resumes/${id}/editor`, ...opts }),
+  saveEditor: (id: string, body: SaveRevisionRequest, opts?: Omit<RequestOptions, "path">) =>
+    apiPut<EditorResponse>({ path: `${env.apiPrefix}/resumes/${id}/editor`, ...opts }, body),
+  restoreRevision: (id: string, revisionId: string, body: RestoreRevisionRequest, opts?: Omit<RequestOptions, "path">) =>
+    apiPost<EditorResponse>({ path: `${env.apiPrefix}/resumes/${id}/revisions/${revisionId}/restore`, ...opts }, body),
+  createAiEdit: (id: string, body: AiEditRequest, opts?: Omit<RequestOptions, "path">) =>
+    apiPost<AiEditResponse>({ path: `${env.apiPrefix}/resumes/${id}/ai-edits`, ...opts }, body),
+  getAiEdit: (id: string, runId: string, opts?: Omit<RequestOptions, "path">) =>
+    apiGet<AiEditResponse>({ path: `${env.apiPrefix}/resumes/${id}/ai-edits/${runId}`, ...opts }),
+  decideAiEdit: (id: string, runId: string, body: AiDecisionRequest, opts?: Omit<RequestOptions, "path">) =>
+    apiPost<AiEditResponse>({ path: `${env.apiPrefix}/resumes/${id}/ai-edits/${runId}/decision`, ...opts }, body),
+  previewDraft: async (id: string, body: ResumeDraft, opts?: Omit<RequestOptions, "path">): Promise<Blob> => {
+    const path = `${env.apiPrefix}/resumes/${id}/preview`;
+    const response = await fetch(`${env.apiBaseUrl}${path}`, {
+      method: "POST",
+      headers: { Accept: "application/pdf", "Content-Type": "application/json", ...(opts?.requestId ? { "X-Request-Id": opts.requestId } : {}) },
+      body: JSON.stringify(body),
+      cache: "no-store",
+      signal: opts?.signal,
+    });
+    if (!response.ok) throw new ApiError(response.status, path, await response.text());
+    return response.blob();
+  },
   health: (opts?: Omit<RequestOptions, "path">) =>
     apiGet<HealthResponse>({ path: `${env.apiPrefix}/health`, ...opts }),
   systemInfo: (opts?: Omit<RequestOptions, "path">) =>

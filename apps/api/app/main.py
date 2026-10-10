@@ -19,7 +19,7 @@ from app import __version__
 from app.config import get_settings
 from app.db import DatabaseUnavailable, get_database
 from app.observability import get_observability
-from app.routers import experiences, health, jd, observability, resume, system
+from app.routers import editing, experiences, health, jd, observability, resume, system
 from app.tracing import TraceIdMiddleware, configure_logging, current_trace_id
 
 logger = logging.getLogger(__name__)
@@ -99,6 +99,7 @@ def create_app() -> FastAPI:
     app.include_router(experiences.router, prefix=settings.api_prefix)
     app.include_router(jd.router, prefix=settings.api_prefix)
     app.include_router(resume.router, prefix=settings.api_prefix)
+    app.include_router(editing.router, prefix=settings.api_prefix)
 
     @app.exception_handler(DatabaseUnavailable)
     async def database_unavailable_handler(

@@ -6,7 +6,9 @@ import logging
 from typing import Any
 from uuid import UUID, uuid4
 
+from app.agents.checkpoint import RunConflictError
 from app.db import Database
+from app.schemas.resume import ResumeRead
 
 logger = logging.getLogger("app.repo.resumes")
 
@@ -33,7 +35,12 @@ class ResumeRepository:
         resume_id: UUID | None = None,
         generator_vendor: str | None = None,
     ) -> dict[str, Any]:
-        async with self._db.connection() as conn:
+        async with self._db.connection() as conn, conn.transaction():
+            if resume_id is not None:
+                # Wait for editor transactions before taking the upsert's statement snapshot.
+                await conn.fetchrow(
+                    "select id from public.resumes where id=$1 for update", resume_id
+                )
             row = await conn.fetchrow(
                 f"""
                 insert into public.resumes
@@ -43,7 +50,10 @@ class ResumeRepository:
                 on conflict(id) do update set sections=excluded.sections,
                   generator=excluded.generator,generator_vendor=excluded.generator_vendor,
                   updated_at=now()
-                  where resumes.user_id=excluded.user_id
+                  where resumes.user_id=excluded.user_id and resumes.edit_revision=0
+                  and not exists (
+                    select 1 from public.resume_revisions where resume_id=resumes.id
+                  )
                 returning {_COLUMNS}
                 """,
                 user_id,
@@ -56,7 +66,8 @@ class ResumeRepository:
                 resume_id,
                 generator_vendor,
             )
-        assert row is not None
+        if row is None:
+            raise RunConflictError("简历已被人工编辑，生成任务不能覆盖；请创建新的生成任务")
         logger.info("resume created id=%s sections=%s", row["id"], len(sections))
         return dict(row)
 
@@ -104,6 +115,10 @@ class ResumeRepository:
             )
             if row is None:
                 raise ValueError("source resume no longer exists")
+            result = {
+                **result,
+                "resume_snapshot": ResumeRead.model_validate(dict(row)).model_dump(mode="json"),
+            }
             await conn.execute(
                 "insert into public.resume_score_runs "
                 "(id,user_id,source_resume_id,best_resume_id,result) values($1,$2,$3,$4,$5)",

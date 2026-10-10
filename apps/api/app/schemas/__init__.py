@@ -4,6 +4,16 @@ tech-stack.md §6.1：**任何接口改动都先改这里**，
 前端类型由 `pnpm gen:types` 从 OpenAPI 自动生成，禁止手写。
 """
 
+from app.schemas.editing import (
+    AiDecisionRequest,
+    AiEditRequest,
+    AiEditResponse,
+    EditorResponse,
+    RestoreRevisionRequest,
+    ResumeDraft,
+    ResumeRevision,
+    SaveRevisionRequest,
+)
 from app.schemas.experience import (
     ExperienceBase,
     ExperienceCreate,
@@ -70,7 +80,11 @@ from app.schemas.scoring import (
 
 __all__ = [
     "DEFAULT_SMOKE_PROMPT",
+    "AiDecisionRequest",
+    "AiEditRequest",
+    "AiEditResponse",
     "DatabaseStatus",
+    "EditorResponse",
     "ErrorResponse",
     "ExperienceBase",
     "ExperienceCreate",
@@ -100,13 +114,17 @@ __all__ = [
     "MatchResponse",
     "ObservabilityStatusResponse",
     "RequirementMatch",
+    "RestoreRevisionRequest",
     "ResumeBullet",
+    "ResumeDraft",
     "ResumeEntry",
     "ResumeHeader",
     "ResumeRead",
+    "ResumeRevision",
     "ResumeSection",
     "RewrittenBullet",
     "RewrittenExperience",
+    "SaveRevisionRequest",
     "ScoreDeduction",
     "ScoreDimension",
     "ScoreLoopResult",

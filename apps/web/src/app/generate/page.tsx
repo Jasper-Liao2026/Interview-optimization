@@ -331,6 +331,7 @@ export default function GeneratePage() {
             <button type="button" onClick={() => void continueRun()} className="mt-3 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-3 py-2 text-xs">恢复上次生成</button>
           ) : null}
           {result ? <ResultView result={result} onRetry={index => void continueRun(index)} onResume={() => void continueRun()} busy={status.kind === "busy"} activeAction={activeAction} /> : null}
+          {result?.preview_path ? <Link href={`/edit/${result.resume.id}`} className="mt-4 inline-block rounded-md border border-[var(--accent)] bg-[var(--accent)]/10 px-3 py-2 text-xs hover:bg-[var(--accent)]/20">编辑简历</Link> : null}
         </section>
       </div>
 

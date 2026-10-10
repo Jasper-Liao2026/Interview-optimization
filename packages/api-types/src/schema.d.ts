@@ -296,6 +296,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/resumes/{resume_id}/ai-edits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Propose Edit */
+        post: operations["propose_edit_api_v1_resumes__resume_id__ai_edits_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes/{resume_id}/ai-edits/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Edit */
+        get: operations["read_edit_api_v1_resumes__resume_id__ai_edits__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes/{resume_id}/ai-edits/{run_id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide Edit */
+        post: operations["decide_edit_api_v1_resumes__resume_id__ai_edits__run_id__decision_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes/{resume_id}/editor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Editor */
+        get: operations["get_editor_api_v1_resumes__resume_id__editor_get"];
+        /** Save Editor */
+        put: operations["save_editor_api_v1_resumes__resume_id__editor_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/resumes/{resume_id}/html": {
         parameters: {
             query?: never;
@@ -333,6 +402,40 @@ export interface paths {
         get: operations["export_resume_pdf_api_v1_resumes__resume_id__pdf_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes/{resume_id}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Draft */
+        post: operations["preview_draft_api_v1_resumes__resume_id__preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes/{resume_id}/revisions/{revision_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore Revision */
+        post: operations["restore_revision_api_v1_resumes__resume_id__revisions__revision_id__restore_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -417,6 +520,61 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AiDecisionRequest */
+        AiDecisionRequest: {
+            /** Accept */
+            accept: boolean;
+        };
+        /** AiEditRequest */
+        AiEditRequest: {
+            /** Entry Index */
+            entry_index: number;
+            /** Expected Revision */
+            expected_revision: number;
+            /** Instruction */
+            instruction: string;
+            /** Section Index */
+            section_index: number;
+        };
+        /** AiEditResponse */
+        AiEditResponse: {
+            /** Base Revision */
+            base_revision: number;
+            editor?: components["schemas"]["EditorResponse"] | null;
+            /** Entry Index */
+            entry_index: number;
+            /** Instruction */
+            instruction: string;
+            /** Is Stub */
+            is_stub: boolean;
+            /** Original Bullets */
+            original_bullets: {
+                [key: string]: unknown;
+            }[];
+            /** Proposed Bullets */
+            proposed_bullets: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Resume Id
+             * Format: uuid
+             */
+            resume_id: string;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /** Section Index */
+            section_index: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "applied" | "rejected";
+            /** Warnings */
+            warnings: string[];
+        };
         /**
          * DatabaseStatus
          * @description 数据库探活结果。连不上不算接口失败，只降级。
@@ -439,6 +597,14 @@ export interface components {
              * @description Postgres 版本
              */
             server_version?: string | null;
+        };
+        /** EditorResponse */
+        EditorResponse: {
+            /** History */
+            history: components["schemas"]["ResumeRevision"][];
+            resume: components["schemas"]["ResumeRead"];
+            /** Revision */
+            revision: number;
         };
         /**
          * ExperienceCreate
@@ -1330,6 +1496,11 @@ export interface components {
              */
             status: "covered" | "related" | "missing";
         };
+        /** RestoreRevisionRequest */
+        RestoreRevisionRequest: {
+            /** Expected Revision */
+            expected_revision: number;
+        };
         /**
          * ResumeBullet
          * @description 简历里的一条要点。
@@ -1339,6 +1510,14 @@ export interface components {
             evidence: string[];
             /** Text */
             text: string;
+        };
+        /** ResumeDraft */
+        ResumeDraft: {
+            header: components["schemas"]["ResumeHeader"];
+            /** Sections */
+            sections: components["schemas"]["ResumeSection"][];
+            /** Title */
+            title: string;
         };
         /**
          * ResumeEntry
@@ -1447,6 +1626,24 @@ export interface components {
              */
             user_id: string;
         };
+        /** ResumeRevision */
+        ResumeRevision: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            draft: components["schemas"]["ResumeDraft"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Reason */
+            reason: string;
+            /** Revision */
+            revision: number;
+        };
         /**
          * ResumeSection
          * @description 简历的一个分区，例如「项目经历」「实习经历」。
@@ -1454,6 +1651,16 @@ export interface components {
         ResumeSection: {
             /** Entries */
             entries: components["schemas"]["ResumeEntry"][];
+            /** Title */
+            title: string;
+        };
+        /** SaveRevisionRequest */
+        SaveRevisionRequest: {
+            /** Expected Revision */
+            expected_revision: number;
+            header: components["schemas"]["ResumeHeader"];
+            /** Sections */
+            sections: components["schemas"]["ResumeSection"][];
             /** Title */
             title: string;
         };
@@ -2344,6 +2551,175 @@ export interface operations {
             };
         };
     };
+    propose_edit_api_v1_resumes__resume_id__ai_edits_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resume_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiEditRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiEditResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_edit_api_v1_resumes__resume_id__ai_edits__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resume_id: string;
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiEditResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decide_edit_api_v1_resumes__resume_id__ai_edits__run_id__decision_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resume_id: string;
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiEditResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_editor_api_v1_resumes__resume_id__editor_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resume_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_editor_api_v1_resumes__resume_id__editor_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resume_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveRevisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_resume_html_api_v1_resumes__resume_id__html_get: {
         parameters: {
             query?: {
@@ -2400,6 +2776,78 @@ export interface operations {
                 content: {
                     "application/json": unknown;
                     "application/pdf": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_draft_api_v1_resumes__resume_id__preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resume_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResumeDraft"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    "application/pdf": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_revision_api_v1_resumes__resume_id__revisions__revision_id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resume_id: string;
+                revision_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestoreRevisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditorResponse"];
                 };
             };
             /** @description Validation Error */

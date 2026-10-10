@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/library", label: "素材库" },
   { href: "/jobs", label: "岗位匹配" },
   { href: "/generate", label: "生成简历" },
+  { href: "/edit", label: "编辑简历" },
   { href: "/", label: "系统自检" },
 ] as const;
 
@@ -19,7 +20,7 @@ export function TopNav() {
         简历优化器
       </span>
       {LINKS.map((link) => {
-        const active = pathname === link.href;
+        const active = pathname === link.href || (link.href === "/edit" && pathname.startsWith("/edit/"));
         return (
           <Link
             key={link.href}

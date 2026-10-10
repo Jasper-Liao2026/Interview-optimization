@@ -184,7 +184,10 @@ class ResumeScoringService:
         saved = await self.resumes.get_scoring_result(user_id, resume_id, run_id)
         if saved is None:
             raise ScoringNotFoundError("评分记录不存在")
-        row: dict[str, Any] | None = await self.resumes.get(user_id, saved["best_resume_id"])
+        result = dict(saved["result"])
+        row: dict[str, Any] | None = result.pop("resume_snapshot", None)
+        if row is None:
+            row = await self.resumes.get(user_id, saved["best_resume_id"])
         if row is None:
             raise ScoringNotFoundError("最佳简历不存在")
         prefix = self.settings.api_prefix.rstrip("/")
@@ -194,5 +197,5 @@ class ResumeScoringService:
             score_run_id=run_id,
             preview_path=f"{prefix}/resumes/{row['id']}/html",
             pdf_path=f"{prefix}/resumes/{row['id']}/pdf",
-            **saved["result"],
+            **result,
         )
