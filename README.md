@@ -6,7 +6,7 @@
 > M1 是第一条端到端垂直切片 —— 「一条经历 + 一个 JD → 生成 → 预览 → 导出 PDF」，
 > M2 是**素材库** —— 经历条目的完整录入、编辑、分组浏览，量化结果与多版本表述；
 > M3 是 **JD 解析与匹配** —— 文本/截图输入、岗位管理、向量粗筛、事实证据矩阵与生成衔接；
-> M5 已交付 **API + 评分循环**：四维 rubric、最多两轮定向改写、调用预算、最佳快照与历史回读；真实 judge 校准待独立厂商 key。
+> M5 已交付 **评分循环与网页交互**：四维 rubric、最多两轮定向改写、调用预算、每轮分数与改写对比、最佳快照与历史回读；真实 judge 校准待独立厂商 key。
 > M6 已交付 **精调编辑页**：结构化编辑、真实 PDF 分页预览、不可变版本回退、持久化 AI 提案与人工确认；真实模型质量仍待配置后评估。
 > M4 是 **并行改写** —— LangGraph 批量生成、Postgres 中断恢复、单条失败重试与事实追溯校验。
 > 验收：`node scripts/verify-m1.mjs` → 13 通过 / 0 失败 / 0 跳过；
@@ -70,6 +70,7 @@ Windows 后端启动入口使用 Selector 事件循环以兼容 psycopg。需要
 - **`/library`** —— M2 的素材库：新增 / 编辑 / 删除经历条目，按实习 · 项目 · 校园分组浏览；
   每条可填「量化结果」（指标名 / 数值 / 口径）与「多版本表述」（同一经历按岗位方向存多份写法）。
 - **`/generate`** —— 粘 JD、勾经历、并行生成、iframe 预览、导出 PDF；刷新后读取上次任务、恢复中断任务、重试失败条目。
+  生成完成后可在同页「评分并优化」：查看初稿与每轮分数、扣分建议、改写前后对比，并打开或下载最佳版本。
 - **`/jobs`** —— M3 的岗位匹配页：文本/截图解析、JD 管理、匹配矩阵、事实证据与缺口；勾选经历后进入生成。
 - **`/edit`** —— M6 的精调编辑页：结构化编辑、PDF 分页预览与下载、历史恢复、AI 提案确认。
 
@@ -152,6 +153,7 @@ pnpm stack:down
 | `pnpm verify:m0` / `pnpm verify:m1` / `pnpm verify:m2` / `pnpm verify:m3` / `pnpm verify:m4` | 一键复现对应里程碑的验收结论 |
 | `pnpm eval:m3` | 真实文本模型 10 份 JD 评测；加 `--images --embeddings` 验收视觉与语义服务 |
 | `pnpm verify:m5` / `pnpm eval:m5` | 真实 Postgres 的 API/循环验收 / 独立厂商 judge 重复评分校准 |
+| `pnpm verify:m5:ui --web-url http://127.0.0.1:3000` | 前端已启动时运行浏览器交互验收及 Postgres 并发快照回归；需可选 Playwright 驱动和本机 Chrome/Edge |
 | `pnpm verify:m6` | 编辑、版本历史、AI interrupt、PDF 预览/下载和 M5 快照兼容性验收 |
 | `pnpm eval:m4 --samples 100 --concurrency 4` | 使用真实文本模型评测改写 schema 与事实规则，输出 `docs/M4-eval.json` |
 

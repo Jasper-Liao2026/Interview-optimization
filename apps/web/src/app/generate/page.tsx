@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { TopNav } from "@/components/top-nav";
+import { ScoreOptimizer } from "@/components/score-optimizer";
 import {
   api,
   ApiError,
@@ -82,6 +83,7 @@ export default function GeneratePage() {
   const [activeAction, setActiveAction] = useState<number | "resume" | null>(null);
   const [inputError, setInputError] = useState<string | null>(null);
   const [previewVersion, setPreviewVersion] = useState(0);
+  const [scoringBusy, setScoringBusy] = useState(false);
 
   // URL 预填只在挂载时读取，已有岗位与经历并行加载，卸载时取消请求。
   useEffect(() => {
@@ -163,7 +165,7 @@ export default function GeneratePage() {
   }, []);
 
   const generate = useCallback(async () => {
-    if (generationController.current) return;
+    if (generationController.current || scoringBusy) return;
     const controller = new AbortController();
     generationController.current = controller;
     const nextRunId = newRunId();
@@ -198,10 +200,10 @@ export default function GeneratePage() {
     } finally {
       if (generationController.current === controller) generationController.current = null;
     }
-  }, [jdText, jdId, selected]);
+  }, [jdText, jdId, selected, scoringBusy]);
 
   const continueRun = useCallback(async (index?: number) => {
-    if (!runId || status.kind === "busy" || generationController.current) return;
+    if (!runId || status.kind === "busy" || generationController.current || scoringBusy) return;
     const controller = new AbortController();
     generationController.current = controller;
     setActiveAction(index ?? "resume");
@@ -220,9 +222,9 @@ export default function GeneratePage() {
       if (!controller.signal.aborted) setActiveAction(null);
       if (generationController.current === controller) generationController.current = null;
     }
-  }, [runId, status.kind]);
+  }, [runId, status.kind, scoringBusy]);
 
-  const canGenerate = !!(jdId || (jdText.trim().length >= 10 && jdText.trim().length <= 20000)) && selected.size > 0 && status.kind !== "busy" && !inputError;
+  const canGenerate = !!(jdId || (jdText.trim().length >= 10 && jdText.trim().length <= 20000)) && selected.size > 0 && status.kind !== "busy" && !scoringBusy && !inputError;
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-8">
@@ -330,10 +332,12 @@ export default function GeneratePage() {
           {runId && !result && status.kind === "error" ? (
             <button type="button" onClick={() => void continueRun()} className="mt-3 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-3 py-2 text-xs">恢复上次生成</button>
           ) : null}
-          {result ? <ResultView result={result} onRetry={index => void continueRun(index)} onResume={() => void continueRun()} busy={status.kind === "busy"} activeAction={activeAction} /> : null}
+          {result ? <ResultView result={result} onRetry={index => void continueRun(index)} onResume={() => void continueRun()} busy={status.kind === "busy" || scoringBusy} activeAction={activeAction} /> : null}
           {result?.preview_path ? <Link href={`/edit/${result.resume.id}`} className="mt-4 inline-block rounded-md border border-[var(--accent)] bg-[var(--accent)]/10 px-3 py-2 text-xs hover:bg-[var(--accent)]/20">编辑简历</Link> : null}
         </section>
       </div>
+
+      {result?.preview_path && result.resume.sections.some(section => section.entries.length > 0) ? <div className="mt-5"><ScoreOptimizer key={result.resume.id} resumeId={result.resume.id} onBusyChange={setScoringBusy} disabledReason={status.kind === "busy" ? "请等待生成完成。" : !result.resume.jd_id ? "这份简历没有绑定已解析岗位，暂时无法评分优化。" : undefined} /></div> : null}
 
       {/* ------------------------------------------------ 预览 */}
       {result && result.preview_path && result.resume.sections.some(section => section.entries.length > 0) ? (

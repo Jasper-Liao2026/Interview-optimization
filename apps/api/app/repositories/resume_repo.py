@@ -100,10 +100,12 @@ class ResumeRepository:
         """Save the best resume and all score snapshots in one transaction."""
         best_id, run_id = uuid4(), uuid4()
         async with self._db.connection() as conn, conn.transaction():
+            # Keep all output fields from the scored snapshot even if the source
+            # was edited while model calls were in flight.
             row = await conn.fetchrow(
                 f"""insert into public.resumes
                 (id,user_id,jd_id,title,template,header,sections,generator,generator_vendor)
-                select $1,user_id,jd_id,title,template,header,$2,$6,$5
+                select $1,user_id,$7,$8,$9,$10,$2,$6,$5
                 from public.resumes where id=$3 and user_id=$4
                 returning {_COLUMNS}""",
                 best_id,
@@ -112,6 +114,10 @@ class ResumeRepository:
                 user_id,
                 source.get("generator_vendor"),
                 source.get("generator"),
+                source.get("jd_id"),
+                source["title"],
+                source["template"],
+                source["header"],
             )
             if row is None:
                 raise ValueError("source resume no longer exists")
