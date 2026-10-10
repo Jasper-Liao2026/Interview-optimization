@@ -16,7 +16,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.schemas.experience import ExperienceKind
 from app.schemas.jd import JobProfile
@@ -118,7 +118,10 @@ class ResumeRead(BaseModel):
 class GenerateRequest(BaseModel):
     """一次「JD → 简历」生成的入参。"""
 
-    jd_text: str = Field(min_length=10, max_length=20000, description="JD 原文")
+    jd_text: str | None = Field(
+        default=None, min_length=10, max_length=20000, description="JD 原文，与 jd_id 二选一"
+    )
+    jd_id: UUID | None = Field(default=None, description="使用已保存的 JD，复用解析画像")
     experience_ids: list[UUID] = Field(
         default_factory=list,
         description="要用哪些经历。留空表示用当前用户的全部经历（走 M1-2 的素材库）",
@@ -127,6 +130,12 @@ class GenerateRequest(BaseModel):
         default=None, max_length=120, description="简历标题；留空则由岗位名推导"
     )
     persist: bool = Field(default=True, description="是否落库；false 时只生成不保存")
+
+    @model_validator(mode="after")
+    def validate_jd_source(self) -> GenerateRequest:
+        if (self.jd_text is None) == (self.jd_id is None):
+            raise ValueError("必须且只能提供 jd_text 或 jd_id 之一")
+        return self
 
 
 class GenerateResponse(BaseModel):

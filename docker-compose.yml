@@ -32,6 +32,7 @@ services:
       - ./supabase/migrations/20261008000000_init.sql:/docker-entrypoint-initdb.d/10-init.sql:ro
       - ./supabase/migrations/20261009000000_m1_core.sql:/docker-entrypoint-initdb.d/11-m1-core.sql:ro
       - ./supabase/migrations/20261010000000_m2_library.sql:/docker-entrypoint-initdb.d/12-m2-library.sql:ro
+      - ./supabase/migrations/20261011000000_m3_matching.sql:/docker-entrypoint-initdb.d/13-m3-matching.sql:ro
       - ./supabase/seed.sql:/docker-entrypoint-initdb.d/20-seed.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d resume_optimizer"]
@@ -49,7 +50,7 @@ services:
     restart: unless-stopped
     environment:
       ENVIRONMENT: docker
-      MILESTONE: M2
+      MILESTONE: M3
       LOG_LEVEL: INFO
       # 容器内走服务名，不走宿主机的 54322
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/resume_optimizer

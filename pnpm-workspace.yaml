@@ -1,3 +1,10 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# Next 15 的 ESLint parser 引用 next，但上游未声明此依赖。
+# 补充依赖关系，让 pnpm 隔离安装后也能直接 pnpm lint。
+packageExtensions:
+  "eslint-config-next@15":
+    dependencies:
+      next: "^15.5.4"

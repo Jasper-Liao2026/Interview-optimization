@@ -1,0 +1,231 @@
+[
+  {
+    "id": "backend",
+    "raw_text": "招聘后端开发工程师，必须熟悉 Python、FastAPI 和 PostgreSQL。有 Docker 经验优先，负责订单服务开发。",
+    "expected_profile": {
+      "title": "后端开发工程师",
+      "company": null,
+      "seniority": null,
+      "required_skills": [
+        "Python",
+        "FastAPI",
+        "PostgreSQL"
+      ],
+      "nice_to_have": [
+        "Docker"
+      ],
+      "business_domain": null,
+      "keywords": [
+        "订单服务"
+      ],
+      "implicit_preferences": [],
+      "responsibilities": [
+        "负责订单服务开发"
+      ]
+    }
+  },
+  {
+    "id": "frontend",
+    "raw_text": "招聘前端开发工程师，必须熟悉 TypeScript、React。有 Next.js 经验加分，负责页面开发。",
+    "expected_profile": {
+      "title": "前端开发工程师",
+      "company": null,
+      "seniority": null,
+      "required_skills": [
+        "TypeScript",
+        "React"
+      ],
+      "nice_to_have": [
+        "Next.js"
+      ],
+      "business_domain": null,
+      "keywords": [
+        "页面开发"
+      ],
+      "implicit_preferences": [],
+      "responsibilities": [
+        "负责页面开发"
+      ]
+    }
+  },
+  {
+    "id": "data",
+    "raw_text": "招聘数据工程师，必须精通 SQL、Spark。有 Airflow 经验优先，负责数仓建设。",
+    "expected_profile": {
+      "title": "数据工程师",
+      "company": null,
+      "seniority": null,
+      "required_skills": [
+        "SQL",
+        "Spark"
+      ],
+      "nice_to_have": [
+        "Airflow"
+      ],
+      "business_domain": "数据仓库",
+      "keywords": [
+        "数仓"
+      ],
+      "implicit_preferences": [],
+      "responsibilities": [
+        "负责数仓建设"
+      ]
+    }
+  },
+  {
+    "id": "algorithm",
+    "raw_text": "招聘算法工程师，必须掌握 PyTorch、Python。有推荐系统经验优先，负责模型训练。",
+    "expected_profile": {
+      "title": "算法工程师",
+      "company": null,
+      "seniority": null,
+      "required_skills": [
+        "PyTorch",
+        "Python"
+      ],
+      "nice_to_have": [
+        "推荐系统"
+      ],
+      "business_domain": null,
+      "keywords": [
+        "模型训练"
+      ],
+      "implicit_preferences": [],
+      "responsibilities": [
+        "负责模型训练"
+      ]
+    }
+  },
+  {
+    "id": "product",
+    "raw_text": "招聘产品经理，必须具备需求分析能力。有 B2B 产品经验优先，负责需求文档。",
+    "expected_profile": {
+      "title": "产品经理",
+      "company": null,
+      "seniority": null,
+      "required_skills": [
+        "需求分析"
+      ],
+      "nice_to_have": [
+        "B2B 产品"
+      ],
+      "business_domain": null,
+      "keywords": [
+        "需求文档"
+      ],
+      "implicit_preferences": [],
+      "responsibilities": [
+        "负责需求文档"
+      ]
+    }
+  },
+  {
+    "id": "operations",
+    "raw_text": "招聘运营专员，必须具备内容策划能力。有直播运营经验优先，负责用户活动。",
+    "expected_profile": {
+      "title": "运营专员",
+      "company": null,
+      "seniority": null,
+      "required_skills": [
+        "内容策划"
+      ],
+      "nice_to_have": [
+        "直播运营"
+      ],
+      "business_domain": null,
+      "keywords": [
+        "用户活动"
+      ],
+      "implicit_preferences": [],
+      "responsibilities": [
+        "负责用户活动"
+      ]
+    }
+  },
+  {
+    "id": "intern",
+    "raw_text": "招聘开发实习生，必须熟悉 Java。了解 Spring Boot 加分，负责接口开发，面向在校学生。",
+    "expected_profile": {
+      "title": "开发实习生",
+      "company": null,
+      "seniority": "实习",
+      "required_skills": [
+        "Java"
+      ],
+      "nice_to_have": [
+        "Spring Boot"
+      ],
+      "business_domain": null,
+      "keywords": [
+        "接口开发"
+      ],
+      "implicit_preferences": [],
+      "responsibilities": [
+        "负责接口开发"
+      ]
+    }
+  },
+  {
+    "id": "senior",
+    "raw_text": "招聘资深后端工程师，必须精通 Go、Kubernetes。有高并发经验优先，负责架构设计。",
+    "expected_profile": {
+      "title": "资深后端工程师",
+      "company": null,
+      "seniority": "社招-资深",
+      "required_skills": [
+        "Go",
+        "Kubernetes"
+      ],
+      "nice_to_have": [
+        "高并发"
+      ],
+      "business_domain": null,
+      "keywords": [
+        "架构设计"
+      ],
+      "implicit_preferences": [],
+      "responsibilities": [
+        "负责架构设计"
+      ]
+    }
+  },
+  {
+    "id": "sparse",
+    "raw_text": "招聘助理，工作职责和任职条件将在面谈时介绍。",
+    "expected_profile": {
+      "title": "助理",
+      "company": null,
+      "seniority": null,
+      "required_skills": [],
+      "nice_to_have": [],
+      "business_domain": null,
+      "keywords": [],
+      "implicit_preferences": [],
+      "responsibilities": []
+    }
+  },
+  {
+    "id": "bilingual",
+    "raw_text": "招聘 Full Stack Developer，必须熟悉 Node.js 和 React。GraphQL experience preferred. Build web APIs.",
+    "expected_profile": {
+      "title": "Full Stack Developer",
+      "company": null,
+      "seniority": null,
+      "required_skills": [
+        "Node.js",
+        "React"
+      ],
+      "nice_to_have": [
+        "GraphQL"
+      ],
+      "business_domain": null,
+      "keywords": [
+        "web APIs"
+      ],
+      "implicit_preferences": [],
+      "responsibilities": [
+        "Build web APIs"
+      ]
+    }
+  }
+]

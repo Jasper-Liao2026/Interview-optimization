@@ -30,6 +30,7 @@ from app.pdf import PdfExportError, pdf_page_count
 from app.render import UnknownTemplateError, render_resume_html
 from app.schemas import GenerateRequest, GenerateResponse, ResumeRead
 from app.services import NoExperiencesError
+from app.services.generation import InvalidJobError
 from app.tracing import current_trace_id
 
 router = APIRouter(prefix="/resumes", tags=["resumes"])
@@ -66,7 +67,7 @@ async def generate_resume(
     trace_id = normalize_trace_id(current_trace_id())
     try:
         outcome = await service.generate(user_id, payload, trace_id)
-    except NoExperiencesError as exc:
+    except (NoExperiencesError, InvalidJobError) as exc:
         # 素材库为空是**用户侧**问题，明确回 400 并给出补救办法，而不是 500
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except LlmError as exc:

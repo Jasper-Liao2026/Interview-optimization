@@ -21,10 +21,21 @@ from app.schemas.health import (
     SystemInfoResponse,
 )
 from app.schemas.jd import (
+    JdImageParseRequest,
+    JdImageParseResponse,
+    JdListResponse,
+    JdMetadataUpdate,
     JdParseRequest,
     JdParseResponse,
     JdRead,
     JobProfile,
+)
+from app.schemas.matching import (
+    ExperienceMatch,
+    JobRequirement,
+    MatchRequest,
+    MatchResponse,
+    RequirementMatch,
 )
 from app.schemas.meta import ErrorResponse
 from app.schemas.observability import (
@@ -53,6 +64,7 @@ __all__ = [
     "ExperienceCreate",
     "ExperienceKind",
     "ExperienceListResponse",
+    "ExperienceMatch",
     "ExperienceMetric",
     "ExperienceRead",
     "ExperienceUpdate",
@@ -60,11 +72,19 @@ __all__ = [
     "GenerateRequest",
     "GenerateResponse",
     "HealthResponse",
+    "JdImageParseRequest",
+    "JdImageParseResponse",
+    "JdListResponse",
+    "JdMetadataUpdate",
     "JdParseRequest",
     "JdParseResponse",
     "JdRead",
     "JobProfile",
+    "JobRequirement",
+    "MatchRequest",
+    "MatchResponse",
     "ObservabilityStatusResponse",
+    "RequirementMatch",
     "ResumeBullet",
     "ResumeEntry",
     "ResumeHeader",

@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     app_name: str = "resume-optimizer-api"
     service_id: str = "resume-optimizer-api"
     version: str = "0.1.0"
-    milestone: str = Field(default="M2", description="当前里程碑，便于在自检页对照进度")
+    milestone: str = Field(default="M3", description="当前里程碑，便于在自检页对照进度")
     environment: str = Field(default="local", description="local | staging | production")
 
     # --- HTTP ---
@@ -83,6 +83,17 @@ class Settings(BaseSettings):
     # 256 是 M0 只为验证观测链路时定的值。M1 起要输出结构化 JD 画像与多条改写要点，
     # 256 token 会被截断成不完整 JSON（表现为「解析失败 → 重试 → 仍失败」）。
     llm_max_tokens: int = 2048
+
+    # 视觉可独立配置；未设置时复用 LLM 的 URL/key/model（须支持视觉）。
+    vision_provider: str | None = Field(default=None, pattern="^(stub|openai-compatible)$")
+    vision_base_url: str | None = None
+    vision_api_key: str | None = None
+    vision_model: str | None = None
+    embedding_provider: str = Field(default="stub", pattern="^(stub|openai-compatible)$")
+    embedding_base_url: str = "https://api.openai.com/v1"
+    embedding_api_key: str | None = None
+    embedding_model: str = "text-embedding-3-small"
+    embedding_timeout_s: float = Field(default=30.0, gt=0)
 
     # --- 业务（M1）---
     # 项目定位是**本地自托管的开源工具**：单实例单用户，不做账号体系，

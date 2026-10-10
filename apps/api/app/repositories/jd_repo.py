@@ -10,7 +10,10 @@ from app.db import Database
 
 logger = logging.getLogger("app.repo.jd")
 
-_COLUMNS = "id, user_id, title, company, raw_text, parsed, parser_model, created_at, updated_at"
+_COLUMNS = (
+    "id, user_id, title, company, raw_text, parsed, parser_model, "
+    "source_type, created_at, updated_at"
+)
 
 
 class JobDescriptionRepository:
@@ -26,13 +29,14 @@ class JobDescriptionRepository:
         company: str | None,
         parsed: dict[str, Any] | None,
         parser_model: str | None,
+        source_type: str = "text",
     ) -> dict[str, Any]:
         async with self._db.connection() as conn:
             row = await conn.fetchrow(
                 f"""
                 insert into public.job_descriptions
-                  (user_id, title, company, raw_text, parsed, parser_model)
-                values ($1, $2, $3, $4, $5, $6)
+                  (user_id, title, company, raw_text, parsed, parser_model, source_type)
+                values ($1, $2, $3, $4, $5, $6, $7)
                 returning {_COLUMNS}
                 """,
                 user_id,
@@ -41,6 +45,7 @@ class JobDescriptionRepository:
                 raw_text,
                 parsed,
                 parser_model,
+                source_type,
             )
         assert row is not None
         logger.info("jd created id=%s parser_model=%s", row["id"], parser_model)
@@ -55,12 +60,34 @@ class JobDescriptionRepository:
             )
         return dict(row) if row else None
 
-    async def list_for_user(self, user_id: UUID, limit: int = 50) -> list[dict[str, Any]]:
+    async def list_for_user(self, user_id: UUID) -> list[dict[str, Any]]:
         async with self._db.connection() as conn:
             rows = await conn.fetch(
                 f"select {_COLUMNS} from public.job_descriptions "
-                "where user_id = $1 order by created_at desc limit $2",
+                "where user_id = $1 order by created_at desc, id",
                 user_id,
-                limit,
             )
         return [dict(row) for row in rows]
+
+    async def update_metadata(
+        self, user_id: UUID, jd_id: UUID, payload: Any
+    ) -> dict[str, Any] | None:
+        async with self._db.connection() as conn:
+            row = await conn.fetchrow(
+                f"update public.job_descriptions set title=$3, company=$4 "
+                f"where user_id=$1 and id=$2 returning {_COLUMNS}",
+                user_id,
+                jd_id,
+                payload.title,
+                payload.company,
+            )
+        return dict(row) if row else None
+
+    async def delete(self, user_id: UUID, jd_id: UUID) -> bool:
+        async with self._db.connection() as conn:
+            result = await conn.execute(
+                "delete from public.job_descriptions where user_id=$1 and id=$2",
+                user_id,
+                jd_id,
+            )
+        return result == "DELETE 1"

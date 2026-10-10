@@ -31,6 +31,17 @@ export type JobProfile = components["schemas"]["JobProfile"];
 export type ResumeRead = components["schemas"]["ResumeRead"];
 export type ResumeSection = components["schemas"]["ResumeSection"];
 
+// --- M3 岗位管理与匹配 ---
+export type JdRead = components["schemas"]["JdRead"];
+export type JdListResponse = components["schemas"]["JdListResponse"];
+export type JdParseRequest = components["schemas"]["JdParseRequest"];
+export type JdParseResponse = components["schemas"]["JdParseResponse"];
+export type JdImageParseRequest = components["schemas"]["JdImageParseRequest"];
+export type JdImageParseResponse = components["schemas"]["JdImageParseResponse"];
+export type JdMetadataUpdate = components["schemas"]["JdMetadataUpdate"];
+export type MatchRequest = components["schemas"]["MatchRequest"];
+export type MatchResponse = components["schemas"]["MatchResponse"];
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -171,6 +182,21 @@ export const api = {
     apiPut<ExperienceRead>({ path: `${env.apiPrefix}/experiences/${id}`, ...opts }, body),
   deleteExperience: (id: string, opts?: Omit<RequestOptions, "path">) =>
     apiDelete({ path: `${env.apiPrefix}/experiences/${id}`, ...opts }),
+
+  listJobs: (opts?: Omit<RequestOptions, "path">) =>
+    apiGet<JdListResponse>({ path: `${env.apiPrefix}/jd`, ...opts }),
+  getJob: (id: string, opts?: Omit<RequestOptions, "path">) =>
+    apiGet<JdRead>({ path: `${env.apiPrefix}/jd/${id}`, ...opts }),
+  parseJob: (body: JdParseRequest, opts?: Omit<RequestOptions, "path">) =>
+    apiPost<JdParseResponse>({ path: `${env.apiPrefix}/jd/parse`, ...opts }, body),
+  parseJobImage: (body: JdImageParseRequest, opts?: Omit<RequestOptions, "path">) =>
+    apiPost<JdImageParseResponse>({ path: `${env.apiPrefix}/jd/parse-image`, ...opts }, body),
+  updateJob: (id: string, body: JdMetadataUpdate, opts?: Omit<RequestOptions, "path">) =>
+    apiPut<JdRead>({ path: `${env.apiPrefix}/jd/${id}`, ...opts }, body),
+  deleteJob: (id: string, opts?: Omit<RequestOptions, "path">) =>
+    apiDelete({ path: `${env.apiPrefix}/jd/${id}`, ...opts }),
+  matchJob: (id: string, body: MatchRequest, opts?: Omit<RequestOptions, "path">) =>
+    apiPost<MatchResponse>({ path: `${env.apiPrefix}/jd/${id}/match`, ...opts }, body),
 
   /**
    * 后端返回的 preview_path / pdf_path 是**相对 API 前缀**的路径，

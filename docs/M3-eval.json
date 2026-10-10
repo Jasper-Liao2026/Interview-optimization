@@ -1,0 +1,297 @@
+{
+  "timestamp": "2026-10-10T05:54:36.850284+00:00",
+  "text_model": "deepseek-chat",
+  "prompt_version": "m3.0",
+  "cases": [
+    {
+      "id": "backend",
+      "errors": [],
+      "profile": {
+        "title": "后端开发工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Python",
+          "FastAPI",
+          "PostgreSQL"
+        ],
+        "nice_to_have": [
+          "Docker"
+        ],
+        "business_domain": null,
+        "keywords": [
+          "后端开发",
+          "Python",
+          "FastAPI",
+          "PostgreSQL",
+          "Docker",
+          "订单服务"
+        ],
+        "implicit_preferences": [],
+        "responsibilities": [
+          "负责订单服务开发"
+        ]
+      },
+      "warnings": []
+    },
+    {
+      "id": "frontend",
+      "errors": [],
+      "profile": {
+        "title": "前端开发工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "TypeScript",
+          "React"
+        ],
+        "nice_to_have": [
+          "Next.js"
+        ],
+        "business_domain": null,
+        "keywords": [
+          "前端开发",
+          "TypeScript",
+          "React",
+          "Next.js",
+          "页面开发"
+        ],
+        "implicit_preferences": [],
+        "responsibilities": [
+          "负责页面开发"
+        ]
+      },
+      "warnings": []
+    },
+    {
+      "id": "data",
+      "errors": [],
+      "profile": {
+        "title": "数据工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "SQL",
+          "Spark"
+        ],
+        "nice_to_have": [
+          "Airflow"
+        ],
+        "business_domain": null,
+        "keywords": [
+          "数据工程师",
+          "SQL",
+          "Spark",
+          "Airflow",
+          "数仓建设"
+        ],
+        "implicit_preferences": [],
+        "responsibilities": [
+          "负责数仓建设"
+        ]
+      },
+      "warnings": []
+    },
+    {
+      "id": "algorithm",
+      "errors": [],
+      "profile": {
+        "title": "算法工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "PyTorch",
+          "Python"
+        ],
+        "nice_to_have": [
+          "推荐系统经验"
+        ],
+        "business_domain": null,
+        "keywords": [
+          "算法工程师",
+          "PyTorch",
+          "Python",
+          "推荐系统",
+          "模型训练"
+        ],
+        "implicit_preferences": [],
+        "responsibilities": [
+          "负责模型训练"
+        ]
+      },
+      "warnings": []
+    },
+    {
+      "id": "product",
+      "errors": [],
+      "profile": {
+        "title": "产品经理",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "需求分析能力"
+        ],
+        "nice_to_have": [
+          "B2B 产品经验"
+        ],
+        "business_domain": null,
+        "keywords": [
+          "产品经理",
+          "需求分析",
+          "B2B",
+          "需求文档"
+        ],
+        "implicit_preferences": [],
+        "responsibilities": [
+          "负责需求文档"
+        ]
+      },
+      "warnings": []
+    },
+    {
+      "id": "operations",
+      "errors": [],
+      "profile": {
+        "title": "招聘运营专员",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "内容策划能力"
+        ],
+        "nice_to_have": [
+          "直播运营经验"
+        ],
+        "business_domain": null,
+        "keywords": [
+          "内容策划",
+          "直播运营",
+          "用户活动"
+        ],
+        "implicit_preferences": [],
+        "responsibilities": [
+          "负责用户活动"
+        ]
+      },
+      "warnings": []
+    },
+    {
+      "id": "intern",
+      "errors": [],
+      "profile": {
+        "title": "开发实习生",
+        "company": null,
+        "seniority": "实习",
+        "required_skills": [
+          "Java",
+          "面向在校学生"
+        ],
+        "nice_to_have": [
+          "Spring Boot"
+        ],
+        "business_domain": null,
+        "keywords": [
+          "Java",
+          "Spring Boot",
+          "接口开发",
+          "实习生"
+        ],
+        "implicit_preferences": [
+          "偏好在校学生"
+        ],
+        "responsibilities": [
+          "负责接口开发"
+        ]
+      },
+      "warnings": []
+    },
+    {
+      "id": "senior",
+      "errors": [],
+      "profile": {
+        "title": "资深后端工程师",
+        "company": null,
+        "seniority": "社招-资深",
+        "required_skills": [
+          "Go",
+          "Kubernetes"
+        ],
+        "nice_to_have": [
+          "高并发经验"
+        ],
+        "business_domain": null,
+        "keywords": [
+          "资深",
+          "后端",
+          "Go",
+          "Kubernetes",
+          "高并发",
+          "架构设计"
+        ],
+        "implicit_preferences": [
+          "偏好具备高并发场景实战经验的候选人"
+        ],
+        "responsibilities": [
+          "负责架构设计"
+        ]
+      },
+      "warnings": []
+    },
+    {
+      "id": "sparse",
+      "errors": [],
+      "profile": {
+        "title": "招聘助理",
+        "company": null,
+        "seniority": null,
+        "required_skills": [],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [
+          "招聘助理"
+        ],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "warnings": []
+    },
+    {
+      "id": "bilingual",
+      "errors": [],
+      "profile": {
+        "title": "Full Stack Developer",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Node.js",
+          "React"
+        ],
+        "nice_to_have": [
+          "GraphQL"
+        ],
+        "business_domain": null,
+        "keywords": [
+          "Full Stack Developer",
+          "Node.js",
+          "React",
+          "GraphQL",
+          "web APIs"
+        ],
+        "implicit_preferences": [],
+        "responsibilities": [
+          "Build web APIs"
+        ]
+      },
+      "warnings": []
+    }
+  ],
+  "vision": "not run",
+  "embeddings": "not run",
+  "previous_failures": [
+    {
+      "id": "backend",
+      "errors": [
+        "LlmError"
+      ]
+    }
+  ]
+}

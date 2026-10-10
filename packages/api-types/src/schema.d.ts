@@ -74,6 +74,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jd": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Jds */
+        get: operations["list_jds_api_v1_jd_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jd/parse": {
         parameters: {
             query?: never;
@@ -90,6 +107,59 @@ export interface paths {
          *     输出经 Pydantic 校验；**校验失败会自动带错误反馈重试**，重试次数体现在 `warnings` 里。
          */
         post: operations["parse_jd_api_v1_jd_parse_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jd/parse-image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 视觉模型直读 JD 截图 */
+        post: operations["parse_image_api_v1_jd_parse_image_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jd/{jd_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Jd */
+        get: operations["get_jd_api_v1_jd__jd_id__get"];
+        /** 修改 JD 标题和公司；原文与画像作为解析快照保留 */
+        put: operations["update_jd_api_v1_jd__jd_id__put"];
+        post?: never;
+        /** Delete Jd */
+        delete: operations["delete_jd_api_v1_jd__jd_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jd/{jd_id}/match": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Match Jd */
+        post: operations["match_jd_api_v1_jd__jd_id__match_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -366,6 +436,22 @@ export interface components {
              */
             total: number;
         };
+        /** ExperienceMatch */
+        ExperienceMatch: {
+            /**
+             * Experience Id
+             * Format: uuid
+             */
+            experience_id: string;
+            /** Matches */
+            matches: components["schemas"]["RequirementMatch"][];
+            /** Org */
+            org: string;
+            /** Role */
+            role: string;
+            /** Score */
+            score: number;
+        };
         /**
          * ExperienceMetric
          * @description 一条**量化结果**：这段经历里可测量的产出。
@@ -623,10 +709,15 @@ export interface components {
              */
             experience_ids?: string[];
             /**
-             * Jd Text
-             * @description JD 原文
+             * Jd Id
+             * @description 使用已保存的 JD，复用解析画像
              */
-            jd_text: string;
+            jd_id?: string | null;
+            /**
+             * Jd Text
+             * @description JD 原文，与 jd_id 二选一
+             */
+            jd_text?: string | null;
             /**
              * Persist
              * @description 是否落库；false 时只生成不保存
@@ -728,6 +819,73 @@ export interface components {
              */
             version: string;
         };
+        /** JdImageParseRequest */
+        JdImageParseRequest: {
+            /** Company */
+            company?: string | null;
+            /**
+             * Image Data Url
+             * @description PNG/JPEG/WebP data URL，≤5 MiB
+             */
+            image_data_url: string;
+            /**
+             * Persist
+             * @default true
+             */
+            persist: boolean;
+            /** Title */
+            title?: string | null;
+        };
+        /** JdImageParseResponse */
+        JdImageParseResponse: {
+            /**
+             * Is Stub
+             * @description true 表示未发起真实网络调用（stub provider）
+             */
+            is_stub: boolean;
+            /**
+             * Jd Id
+             * @description 落库后的记录 ID；persist=false 时为 null（前端应避免依赖它）
+             */
+            jd_id?: string | null;
+            /**
+             * Model
+             * @description 本次使用的模型名
+             */
+            model: string;
+            profile: components["schemas"]["JobProfile"];
+            /**
+             * Provider
+             * @description 本次使用的 LLM provider
+             */
+            provider: string;
+            /** Raw Text */
+            raw_text: string;
+            /**
+             * Trace Id
+             * @description 贯穿前后端的请求 ID，可在 Langfuse 按它回放
+             */
+            trace_id: string;
+            /**
+             * Warnings
+             * @description 解析过程中的降级提示，例如「JSON 首次解析失败，已重试」
+             */
+            warnings: string[];
+        };
+        /** JdListResponse */
+        JdListResponse: {
+            /** Items */
+            items: components["schemas"]["JdRead"][];
+            /** Total */
+            total: number;
+        };
+        /** JdMetadataUpdate */
+        JdMetadataUpdate: {
+            /** Company */
+            company?: string | null;
+            /** Title */
+            title?: string | null;
+        };
         /** JdParseRequest */
         JdParseRequest: {
             /**
@@ -790,11 +948,50 @@ export interface components {
             warnings: string[];
         };
         /**
+         * JdRead
+         * @description 落库后的 JD 记录。
+         */
+        JdRead: {
+            /** Company */
+            company?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            parsed?: components["schemas"]["JobProfile"] | null;
+            /** Parser Model */
+            parser_model?: string | null;
+            /** Raw Text */
+            raw_text: string;
+            /**
+             * Source Type
+             * @default text
+             */
+            source_type: string;
+            /** Title */
+            title?: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /**
          * JobProfile
          * @description 结构化岗位画像。
          *
-         *     **列表字段一律给默认值**：LLM 输出偶尔会漏字段，缺一个就该降级成空列表，
-         *     而不是让整次解析失败重试。幂等的重试留给「JSON 根本解析不出来」那种情况。
+         *     列表字段必填；模型漏字段由结构化输出重试修正。
          * @example {
          *       "business_domain": "AI 应用 / 效率工具",
          *       "company": "某互联网公司",
@@ -870,6 +1067,50 @@ export interface components {
              */
             title?: string | null;
         };
+        /** JobRequirement */
+        JobRequirement: {
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "required" | "preferred" | "responsibility" | "domain";
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+            /** Weight */
+            weight: number;
+        };
+        /** MatchRequest */
+        MatchRequest: {
+            /**
+             * Candidate Limit
+             * @default 20
+             */
+            candidate_limit: number;
+        };
+        /** MatchResponse */
+        MatchResponse: {
+            /** Embedding Model */
+            embedding_model: string;
+            /** Is Stub */
+            is_stub: boolean;
+            /** Items */
+            items: components["schemas"]["ExperienceMatch"][];
+            /**
+             * Jd Id
+             * Format: uuid
+             */
+            jd_id: string;
+            /** Requirements */
+            requirements: components["schemas"]["JobRequirement"][];
+            /** Trace Id */
+            trace_id: string;
+            /** Uncovered Requirement Ids */
+            uncovered_requirement_ids: string[];
+            /** Warnings */
+            warnings: string[];
+        };
         /**
          * ObservabilityStatusResponse
          * @description 观测配置现状。用来回答「trace 为什么没出现」这类问题。
@@ -913,6 +1154,26 @@ export interface components {
              * @description stub | openai-compatible
              */
             llm_provider: string;
+        };
+        /** RequirementMatch */
+        RequirementMatch: {
+            /** Evidence */
+            evidence: string[];
+            /** Reason */
+            reason: string;
+            /** Requirement Id */
+            requirement_id: string;
+            /** Score */
+            score: number;
+            /** Semantic Similarity */
+            semantic_similarity: number | null;
+            /** Shortlisted */
+            shortlisted: boolean;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "covered" | "related" | "missing";
         };
         /**
          * ResumeBullet
@@ -1332,6 +1593,26 @@ export interface operations {
             };
         };
     };
+    list_jds_api_v1_jd_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JdListResponse"];
+                };
+            };
+        };
+    };
     parse_jd_api_v1_jd_parse_post: {
         parameters: {
             query?: never;
@@ -1352,6 +1633,169 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JdParseResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    parse_image_api_v1_jd_parse_image_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JdImageParseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JdImageParseResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_jd_api_v1_jd__jd_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jd_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JdRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_jd_api_v1_jd__jd_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jd_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JdMetadataUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JdRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_jd_api_v1_jd__jd_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jd_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    match_jd_api_v1_jd__jd_id__match_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jd_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchResponse"];
                 };
             };
             /** @description Validation Error */

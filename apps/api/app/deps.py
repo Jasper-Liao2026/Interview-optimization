@@ -12,6 +12,7 @@ from app.agents.rewriter import ExperienceRewriter, get_experience_rewriter
 from app.config import Settings, get_settings
 from app.db import Database, get_database
 from app.llm import LlmClient, get_llm_client
+from app.llm.embeddings import EmbeddingClient
 from app.observability import Observability, get_observability
 from app.pdf import PdfExporter, get_pdf_exporter
 from app.repositories import (
@@ -20,7 +21,9 @@ from app.repositories import (
     ProfileRepository,
     ResumeRepository,
 )
+from app.repositories.embedding_repo import EmbeddingRepository
 from app.services.generation import ResumeGenerationService
+from app.services.matching import MatchingService
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 DatabaseDep = Annotated[Database, Depends(get_database)]
@@ -108,3 +111,24 @@ def get_current_user_id(settings: SettingsDep) -> UUID:
 
 
 CurrentUserDep = Annotated[UUID, Depends(get_current_user_id)]
+
+
+def get_embedding_repository(database: DatabaseDep) -> EmbeddingRepository:
+    return EmbeddingRepository(database)
+
+
+def get_embedding_client(settings: SettingsDep) -> EmbeddingClient:
+    return EmbeddingClient(settings)
+
+
+EmbeddingRepoDep = Annotated[EmbeddingRepository, Depends(get_embedding_repository)]
+EmbeddingClientDep = Annotated[EmbeddingClient, Depends(get_embedding_client)]
+
+
+def get_matching_service(
+    embeddings: EmbeddingClientDep, repository: EmbeddingRepoDep
+) -> MatchingService:
+    return MatchingService(embeddings, repository)
+
+
+MatchingServiceDep = Annotated[MatchingService, Depends(get_matching_service)]

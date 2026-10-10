@@ -6,7 +6,7 @@
 -- docker compose 首次初始化时也会执行本文件。
 --
 -- 执行顺序（见 docker-compose.yml 的挂载编号）：
---   10-init.sql → 11-m1-core.sql → 12-m2-library.sql → 20-seed.sql
+--   10-init.sql → 11-m1-core.sql → 12-m2-library.sql → 13-m3-matching.sql → 20-seed.sql
 -- 因此这里可以直接引用 M1 / M2 建出来的表与列。
 --
 -- ⚠️ seed 在 migration **之后**执行，所以这里的 schema_version 必须与
@@ -17,8 +17,8 @@
 insert into public.service_meta (key, value)
 values
   ('service_name',   'resume-optimizer-api'),
-  ('milestone',      'M2'),
-  ('schema_version', 'm2_0001'),
+  ('milestone',      'M3'),
+  ('schema_version', 'm3_0001'),
   ('stack',          'Next.js 15 + FastAPI + LangGraph + Postgres')
 on conflict (key) do update
   set value      = excluded.value,

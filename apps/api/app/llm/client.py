@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import TypeVar
+from typing import Any, TypeVar
 
 import httpx
 from pydantic import BaseModel, ValidationError
@@ -86,7 +86,12 @@ class LlmClient:
         return self.provider == STUB_PROVIDER
 
     async def complete(
-        self, prompt: str, *, system: str | None = None, json_mode: bool = False
+        self,
+        prompt: str,
+        *,
+        system: str | None = None,
+        json_mode: bool = False,
+        image_data_url: str | None = None,
     ) -> LlmResult:
         """单次补全。
 
@@ -96,10 +101,12 @@ class LlmClient:
         两道防线各管一件事，不要用其中一个替代另一个。
         """
         if self.provider == STUB_PROVIDER:
+            if image_data_url:
+                raise LlmError("stub 不具备视觉识别能力，请配置支持视觉的模型")
             return self._stub_complete(prompt, system=system)
         if self.provider == OPENAI_COMPATIBLE_PROVIDER:
             return await self._openai_compatible_complete(
-                prompt, system=system, json_mode=json_mode
+                prompt, system=system, json_mode=json_mode, image_data_url=image_data_url
             )
         raise LlmError(f"未知的 LLM_PROVIDER={self.provider!r}，可选：{', '.join(KNOWN_PROVIDERS)}")
 
@@ -111,6 +118,7 @@ class LlmClient:
         *,
         system: str | None = None,
         max_retries: int = 2,
+        image_data_url: str | None = None,
     ) -> StructuredResult[ModelT]:
         """要求模型返回 JSON，按 `schema` 校验；失败则带错误反馈重试。
 
@@ -121,6 +129,8 @@ class LlmClient:
         warnings: list[str] = []
 
         if self.is_stub:
+            if image_data_url:
+                raise LlmError("stub 不具备视觉识别能力，请配置支持视觉的模型")
             # 无 key 环境：返回确定性桩，形状合法但内容显然是假的，用于打通工程链路
             stub_result = self._stub_complete(prompt, system=system)
             warnings.append(
@@ -148,7 +158,10 @@ class LlmClient:
                     "请只重新输出一个符合 Schema 的 JSON 对象，不要解释。"
                 )
             )
-            last_result = await self.complete(current_prompt, system=merged_system)
+            kwargs: dict[str, Any] = {"system": merged_system}
+            if image_data_url:
+                kwargs["image_data_url"] = image_data_url
+            last_result = await self.complete(current_prompt, **kwargs)
             try:
                 parsed = schema.model_validate(extract_json(last_result.text))
             except (ValueError, ValidationError) as exc:
@@ -194,17 +207,28 @@ class LlmClient:
 
     # -------------------------------------------------- openai compatible
     async def _openai_compatible_complete(
-        self, prompt: str, *, system: str | None, json_mode: bool = False
+        self,
+        prompt: str,
+        *,
+        system: str | None,
+        json_mode: bool = False,
+        image_data_url: str | None = None,
     ) -> LlmResult:
         settings = self.settings
         if not settings.llm_api_key:
             raise LlmError("LLM_PROVIDER=openai-compatible 时必须提供 LLM_API_KEY")
 
         url = f"{settings.llm_base_url.rstrip('/')}/chat/completions"
-        messages: list[dict[str, str]] = []
+        messages: list[dict[str, Any]] = []
         if system:
             messages.append({"role": "system", "content": system})
-        messages.append({"role": "user", "content": prompt})
+        content: Any = prompt
+        if image_data_url:
+            content = [
+                {"type": "text", "text": prompt},
+                {"type": "image_url", "image_url": {"url": image_data_url}},
+            ]
+        messages.append({"role": "user", "content": content})
 
         payload: dict[str, object] = {
             "model": settings.llm_model,

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { TopNav } from "@/components/top-nav";
 import {
@@ -36,28 +36,61 @@ export default function GeneratePage() {
   const [experiences, setExperiences] = useState<ExperienceRead[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [jdText, setJdText] = useState("");
+  const [jdId, setJdId] = useState<string | null>(null);
+  const generationController = useRef<AbortController | null>(null);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [result, setResult] = useState<GenerateResponse | null>(null);
 
-  // 素材库：M1 没有录入 UI（M2-4 才有），这里只负责勾选
+  // URL 预填只在挂载时读取，已有岗位与经历并行加载，卸载时取消请求。
   useEffect(() => {
     const controller = new AbortController();
-    api
-      .listExperiences({ requestId: newRequestId(), signal: controller.signal })
-      .then((data) => {
-        setExperiences(data.items);
-        // 默认全选：M1 的场景就是「用我全部经历针对这个 JD 生成一份」
-        setSelected(new Set(data.items.map((item) => item.id)));
+    const params = new URLSearchParams(window.location.search);
+    const requestedJd = params.get("jd");
+    const requestedExperiences = params.has("experiences")
+      ? new Set((params.get("experiences") ?? "").split(",").filter(Boolean))
+      : null;
+    const opts = { requestId: newRequestId(), signal: controller.signal };
+    Promise.allSettled([
+      api.listExperiences(opts),
+      requestedJd ? api.getJob(requestedJd, opts) : Promise.resolve(null),
+    ])
+      .then(([experienceResult, jobResult]) => {
+        if (controller.signal.aborted) return;
+        const errors: string[] = [];
+        if (experienceResult.status === "fulfilled") {
+          const data = experienceResult.value;
+          setExperiences(data.items);
+          setSelected(new Set(data.items.filter(item => requestedExperiences === null || requestedExperiences.has(item.id)).map(item => item.id)));
+        } else {
+          setExperiences([]);
+          errors.push("素材库读取失败");
+        }
+        if (jobResult.status === "fulfilled") {
+          const job = jobResult.value;
+          if (job) {
+            setJdText(job.raw_text);
+            setJdId(job.id);
+          }
+        } else {
+          const err: unknown = jobResult.reason;
+          errors.push(err instanceof ApiError ? `岗位读取失败（${err.status}）：${err.body.slice(0, 300)}` : `岗位读取失败：${String(err)}`);
+        }
+        if (errors.length > 0) {
+          setStatus({ kind: "error", message: errors.join("；") });
+        }
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
         setExperiences([]);
         setStatus({
           kind: "error",
-          message: error instanceof ApiError ? `素材库读取失败：${error.status}` : String(error),
+          message: error instanceof ApiError ? `预填读取失败（${error.status}）：${error.body.slice(0, 300)}` : String(error),
         });
       });
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      generationController.current?.abort();
+    };
   }, []);
 
   const toggle = useCallback((id: string) => {
@@ -70,23 +103,28 @@ export default function GeneratePage() {
   }, []);
 
   const generate = useCallback(async () => {
+    const controller = new AbortController();
+    generationController.current = controller;
     setStatus({ kind: "busy" });
     setResult(null);
     try {
       const data = await api.generateResume(
         {
-          jd_text: jdText,
+          jd_id: jdId,
+          jd_text: jdId ? null : jdText,
           experience_ids: [...selected],
           // `persist` 在后端有默认值 True，但类型管线对「带 default 字面量的字段」
           // 会生成为**必填**（见 docs/M0-summary.md 的契约 bug 一节）。
           // 这里显式传，而不是在前端加 `?? true` 之类的兜底去掩盖契约定义。
           persist: true,
         },
-        { requestId: newRequestId() },
+        { requestId: newRequestId(), signal: controller.signal },
       );
+      if (controller.signal.aborted) return;
       setResult(data);
       setStatus({ kind: "done" });
     } catch (error) {
+      if (controller.signal.aborted) return;
       setStatus({
         kind: "error",
         message:
@@ -95,19 +133,19 @@ export default function GeneratePage() {
             : String(error),
       });
     }
-  }, [jdText, selected]);
+  }, [jdText, jdId, selected]);
 
-  const canGenerate = jdText.trim().length >= 10 && selected.size > 0 && status.kind !== "busy";
+  const canGenerate = jdText.trim().length >= 10 && jdText.trim().length <= 20000 && selected.size > 0 && status.kind !== "busy";
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-8">
       <TopNav />
 
       <header className="mb-6">
-        <p className="font-mono text-xs tracking-widest text-[var(--muted)] uppercase">M1 · 垂直切片</p>
-        <h1 className="mt-2 text-2xl font-semibold">粘贴 JD，生成一份可下载的 PDF</h1>
+        <p className="font-mono text-xs tracking-widest text-[var(--muted)] uppercase">定向生成</p>
+        <h1 className="mt-2 text-2xl font-semibold">选择经历，生成岗位对应的简历</h1>
         <p className="mt-2 text-sm text-[var(--muted)]">
-          一条经历 + 一个 JD → 解析 → 改写 → 渲染 → 导出。这是最小但完整的那条链路。
+          使用已保存的岗位画像，或粘贴新的 JD，生成简历并导出 PDF。
         </p>
       </header>
 
@@ -118,7 +156,8 @@ export default function GeneratePage() {
             <h2 className="font-mono text-sm">① JD 原文</h2>
             <button
               type="button"
-              onClick={() => setJdText(SAMPLE_JD)}
+              disabled={experiences === null || status.kind === "busy"}
+              onClick={() => { setJdText(SAMPLE_JD); setJdId(null); }}
               className="rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-3 py-1 text-xs hover:bg-[var(--border)]"
             >
               填入示例
@@ -126,12 +165,14 @@ export default function GeneratePage() {
           </div>
           <textarea
             value={jdText}
-            onChange={(event) => setJdText(event.target.value)}
+            disabled={experiences === null || status.kind === "busy"}
+            maxLength={20000}
+            onChange={(event) => { setJdText(event.target.value); setJdId(null); }}
             rows={14}
             placeholder="把招聘网站上的 JD 直接粘进来即可，不用整理格式。"
             className="w-full resize-y rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 font-mono text-xs leading-relaxed outline-none focus:border-[var(--accent)]"
           />
-          <p className="mt-2 text-[11px] text-[var(--muted)]">{jdText.trim().length} 字（≥ 10 字）</p>
+          <p className="mt-2 text-[11px] text-[var(--muted)]">{jdText.trim().length} 字（10–20000 字）{jdId ? " · 使用已保存的岗位画像；编辑原文后会重新解析" : ""}</p>
 
           <h2 className="mt-6 mb-2 font-mono text-sm">② 选用哪些经历</h2>
           {experiences === null ? (
@@ -151,6 +192,7 @@ export default function GeneratePage() {
                   <label className="flex cursor-pointer items-start gap-3 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-3 py-2">
                     <input
                       type="checkbox"
+                      disabled={status.kind === "busy"}
                       checked={selected.has(item.id)}
                       onChange={() => toggle(item.id)}
                       className="mt-1 accent-[var(--accent)]"

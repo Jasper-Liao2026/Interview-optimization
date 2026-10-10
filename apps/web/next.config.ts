@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
+import { resolve } from "node:path";
 
 const nextConfig: NextConfig = {
-  // Docker 部署用 standalone 产物，镜像体积和启动时间都更可控
-  output: "standalone",
+  // Linux/Docker 使用 standalone；Windows 本地构建避免其符号链接权限限制。
+  output: process.platform === "win32" ? undefined : "standalone",
+  outputFileTracingRoot: resolve(__dirname, "../.."),
   reactStrictMode: true,
   // 注意：这里刻意不写 transpilePackages: ["@resume/api-types"]。
   // 该包是**纯类型包**（只有 .d.ts 与 `export type`），

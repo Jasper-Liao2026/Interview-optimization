@@ -48,6 +48,10 @@ class NoExperiencesError(GenerationError):
     """一条经历都没有 —— 用户还没录入素材。这是**用户侧**的问题，应回 400。"""
 
 
+class InvalidJobError(GenerationError):
+    """保存的 JD 不存在或没有解析画像。"""
+
+
 @dataclass(slots=True)
 class GenerationOutcome:
     resume: dict[str, Any]
@@ -103,7 +107,8 @@ class ResumeGenerationService:
             TRACE_NAME,
             trace_id=trace_id,
             input={
-                "jd_text": request.jd_text[:2000],
+                "jd_text": (request.jd_text or "")[:2000],
+                "jd_id": str(request.jd_id) if request.jd_id else None,
                 "experience_ids": [str(item) for item in request.experience_ids],
             },
             metadata={**prompt_metadata(), "milestone": self._settings.milestone},
@@ -118,20 +123,27 @@ class ResumeGenerationService:
                 )
 
             # ---- 2. 解析 JD（M1-3）----------------------------------------
-            with self._obs.generation(
-                "jd.parse",
-                model=self._llm.model,
-                input={"raw_text": request.jd_text[:2000]},
-                metadata=prompt_metadata(),
-            ) as generation:
-                parse_outcome = await self._parser.parse(request.jd_text)
-                profile = parse_outcome.value
-                warnings.extend(parse_outcome.warnings)
-                if generation is not None:
-                    generation.update(
-                        output=profile.model_dump(),
-                        usage_details=parse_outcome.llm.usage_details,
-                    )
+            if request.jd_id:
+                saved_jd = await self._jds.get(user_id, request.jd_id)
+                if not saved_jd or not saved_jd["parsed"]:
+                    raise InvalidJobError("JD 不存在或尚未解析，请重新选择已保存的岗位。")
+                profile = JobProfile.model_validate(saved_jd["parsed"])
+            else:
+                assert request.jd_text is not None
+                with self._obs.generation(
+                    "jd.parse",
+                    model=self._llm.model,
+                    input={"raw_text": request.jd_text[:2000]},
+                    metadata=prompt_metadata(),
+                ) as generation:
+                    parse_outcome = await self._parser.parse(request.jd_text)
+                    profile = parse_outcome.value
+                    warnings.extend(parse_outcome.warnings)
+                    if generation is not None:
+                        generation.update(
+                            output=profile.model_dump(),
+                            usage_details=parse_outcome.llm.usage_details,
+                        )
 
             # ---- 3. 串行改写（M1-4）---------------------------------------
             # 先串行，不并行。并行是 M4-3 的事，这里只证明「改写本身可用」。
@@ -175,19 +187,20 @@ class ResumeGenerationService:
                 "headline": profile_row["headline"],
             }
             title = request.title or profile.title or "未命名简历"
-            generator = f"{parse_outcome.llm.provider}:{parse_outcome.llm.model}"
+            generator = f"{self._llm.provider}:{self._llm.model}"
 
-            jd_id: UUID | None = None
+            jd_id: UUID | None = request.jd_id
             if request.persist:
-                jd_row = await self._jds.create(
-                    user_id,
-                    raw_text=request.jd_text,
-                    title=profile.title,
-                    company=profile.company,
-                    parsed=profile.model_dump(),
-                    parser_model=parse_outcome.llm.model,
-                )
-                jd_id = jd_row["id"]
+                if not jd_id:
+                    jd_row = await self._jds.create(
+                        user_id,
+                        raw_text=request.jd_text,
+                        title=profile.title,
+                        company=profile.company,
+                        parsed=profile.model_dump(),
+                        parser_model=parse_outcome.llm.model,
+                    )
+                    jd_id = jd_row["id"]
 
                 resume_row = await self._resumes.create(
                     user_id,
@@ -221,7 +234,7 @@ class ResumeGenerationService:
             if span is not None:
                 span.update_trace(
                     output={"title": title, "sections": len(sections)},
-                    metadata={"warnings": warnings, "is_stub": parse_outcome.llm.is_stub},
+                    metadata={"warnings": warnings, "is_stub": self._llm.is_stub},
                 )
 
         logger.info(
@@ -229,16 +242,16 @@ class ResumeGenerationService:
             trace_id,
             len(experiences),
             len(sections),
-            parse_outcome.llm.is_stub,
+            self._llm.is_stub,
         )
 
         return GenerationOutcome(
             resume=resume_row,
             profile=profile,
             jd_id=jd_id,
-            provider=parse_outcome.llm.provider,
-            model=parse_outcome.llm.model,
-            is_stub=parse_outcome.llm.is_stub,
+            provider=self._llm.provider,
+            model=self._llm.model,
+            is_stub=self._llm.is_stub,
             trace_id=trace_id,
             warnings=warnings,
         )

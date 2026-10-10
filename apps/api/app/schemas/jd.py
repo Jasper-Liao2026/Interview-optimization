@@ -10,17 +10,21 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
 import uuid
+from datetime import datetime
+from io import BytesIO
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from PIL import Image, UnidentifiedImageError
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class JobProfile(BaseModel):
     """结构化岗位画像。
 
-    **列表字段一律给默认值**：LLM 输出偶尔会漏字段，缺一个就该降级成空列表，
-    而不是让整次解析失败重试。幂等的重试留给「JSON 根本解析不出来」那种情况。
+    列表字段必填；模型漏字段由结构化输出重试修正。
     """
 
     model_config = ConfigDict(
@@ -57,6 +61,7 @@ class JobProfile(BaseModel):
 
 
 class JdParseRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
     raw_text: str = Field(min_length=10, max_length=20000, description="JD 原文，直接粘贴即可")
     title: str | None = Field(default=None, max_length=120, description="可选的岗位标题补充")
     company: str | None = Field(default=None, max_length=120, description="可选的公司名补充")
@@ -89,6 +94,68 @@ class JdRead(BaseModel):
     raw_text: str
     parsed: JobProfile | None = None
     parser_model: str | None = None
+    source_type: str = "text"
+    created_at: datetime
+    updated_at: datetime
+
+
+class JdImageParseRequest(BaseModel):
+    image_data_url: str = Field(max_length=7_000_000, description="PNG/JPEG/WebP data URL，≤5 MiB")
+    title: str | None = Field(default=None, max_length=120)
+    company: str | None = Field(default=None, max_length=120)
+    persist: bool = True
+
+    @field_validator("image_data_url")
+    @classmethod
+    def validate_image(cls, value: str) -> str:
+        try:
+            header, encoded = value.split(",", 1)
+            formats = {
+                "data:image/png;base64": "PNG",
+                "data:image/jpeg;base64": "JPEG",
+                "data:image/webp;base64": "WEBP",
+            }
+            if header not in formats:
+                raise ValueError("仅支持 PNG、JPEG、WebP 的 base64 data URL")
+            content = base64.b64decode(encoded, validate=True)
+            if not content or len(content) > 5 * 1024 * 1024:
+                raise ValueError("截图大小必须在 1 字节至 5 MiB 之间")
+            with Image.open(BytesIO(content)) as img:
+                if img.format != formats[header] or img.width * img.height > 20_000_000:
+                    raise ValueError("截图格式不符或超过 2000 万像素")
+                img.verify()
+            # JPEG/WebP 的 verify 可能只检查头部，完整解码才能发现截断像素数据。
+            with Image.open(BytesIO(content)) as decoded:
+                decoded.load()
+        except (
+            binascii.Error,
+            UnidentifiedImageError,
+            OSError,
+            Image.DecompressionBombError,
+        ) as exc:
+            raise ValueError("截图内容损坏或不是有效图片") from exc
+        return value
+
+
+class JdImageExtraction(BaseModel):
+    raw_text: str = Field(
+        min_length=10, max_length=20000, description="逐字读取的 JD 文本，不可补写"
+    )
+    profile: JobProfile
+
+
+class JdImageParseResponse(JdParseResponse):
+    raw_text: str
+
+
+class JdListResponse(BaseModel):
+    items: list[JdRead]
+    total: int
+
+
+class JdMetadataUpdate(BaseModel):
+    title: str | None = Field(default=None, max_length=120)
+    company: str | None = Field(default=None, max_length=120)
 
 
 def new_trace_id() -> str:

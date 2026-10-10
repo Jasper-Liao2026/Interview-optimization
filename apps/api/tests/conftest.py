@@ -27,6 +27,7 @@ from app.agents.rewriter import ExperienceRewriter
 from app.config import Settings, get_settings
 from app.db import DatabaseProbe, get_database
 from app.deps import (
+    get_embedding_repository,
     get_experience_repository,
     get_generation_service,
     get_jd_repository,
@@ -39,6 +40,7 @@ from app.main import create_app
 from app.observability import get_observability
 from app.services.generation import ResumeGenerationService
 from tests.fakes import (
+    FakeEmbeddingRepository,
     FakeExperienceRepository,
     FakeJobDescriptionRepository,
     FakePdfExporter,
@@ -69,6 +71,16 @@ def _isolate_settings(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
         "LLM_PROVIDER",
         "LLM_API_KEY",
         "LLM_BASE_URL",
+        "LLM_MODEL",
+        "VISION_BASE_URL",
+        "VISION_PROVIDER",
+        "VISION_API_KEY",
+        "VISION_MODEL",
+        "EMBEDDING_PROVIDER",
+        "EMBEDDING_API_KEY",
+        "EMBEDDING_BASE_URL",
+        "EMBEDDING_MODEL",
+        "EMBEDDING_TIMEOUT_S",
         "CORS_ORIGINS",
     ):
         monkeypatch.delenv(name, raising=False)
@@ -161,6 +173,7 @@ def api_wiring(app: FastAPI) -> Iterator[dict[str, Any]]:
     settings = get_settings()
     experiences = FakeExperienceRepository()
     jds = FakeJobDescriptionRepository()
+    embeddings = FakeEmbeddingRepository()
     resumes = FakeResumeRepository(resume_row())
     profiles = FakeProfileRepository()
     llm = LlmClient(settings)
@@ -179,6 +192,7 @@ def api_wiring(app: FastAPI) -> Iterator[dict[str, Any]]:
 
     app.dependency_overrides[get_experience_repository] = lambda: experiences
     app.dependency_overrides[get_jd_repository] = lambda: jds
+    app.dependency_overrides[get_embedding_repository] = lambda: embeddings
     app.dependency_overrides[get_resume_repository] = lambda: resumes
     app.dependency_overrides[get_profile_repository] = lambda: profiles
     app.dependency_overrides[get_generation_service] = lambda: service
@@ -187,6 +201,7 @@ def api_wiring(app: FastAPI) -> Iterator[dict[str, Any]]:
     yield {
         "experiences": experiences,
         "jds": jds,
+        "embeddings": embeddings,
         "resumes": resumes,
         "profiles": profiles,
         "service": service,

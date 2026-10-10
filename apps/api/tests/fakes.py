@@ -132,13 +132,110 @@ class FakeExperienceRepository:
 
 
 class FakeJobDescriptionRepository:
-    def __init__(self) -> None:
+    def __init__(self, rows: list[dict[str, Any]] | None = None) -> None:
+        self.rows: list[dict[str, Any]] = rows or []
         self.created: list[dict[str, Any]] = []
+        self.updated: list[UUID] = []
+        self.deleted: list[UUID] = []
 
     async def create(self, user_id: UUID, **fields: Any) -> dict[str, Any]:
-        row = {"id": uuid4(), "user_id": user_id, **fields}
+        row = {
+            "id": uuid4(),
+            "user_id": user_id,
+            "created_at": NOW,
+            "updated_at": NOW,
+            "source_type": "text",
+            **fields,
+        }
+        self.rows.append(row)
         self.created.append(row)
         return row
+
+    async def get(self, user_id: UUID, jd_id: UUID) -> dict[str, Any] | None:
+        return next(
+            (row for row in self.rows if row["id"] == jd_id and row["user_id"] == user_id), None
+        )
+
+    async def list_for_user(self, user_id: UUID) -> list[dict[str, Any]]:
+        return [row for row in self.rows if row["user_id"] == user_id]
+
+    async def update_metadata(
+        self, user_id: UUID, jd_id: UUID, payload: Any
+    ) -> dict[str, Any] | None:
+        row = await self.get(user_id, jd_id)
+        if row is None:
+            return None
+        row["title"] = payload.title
+        row["company"] = payload.company
+        row["updated_at"] = NOW
+        self.updated.append(jd_id)
+        return row
+
+    async def delete(self, user_id: UUID, jd_id: UUID) -> bool:
+        before = len(self.rows)
+        self.rows = [
+            row for row in self.rows if not (row["id"] == jd_id and row["user_id"] == user_id)
+        ]
+        deleted = len(self.rows) < before
+        if deleted:
+            self.deleted.append(jd_id)
+        return deleted
+
+
+class FakeEmbeddingRepository:
+    """Deterministic in-memory counterpart to the pgvector repository."""
+
+    def __init__(self) -> None:
+        self.records: dict[UUID, dict[str, Any]] = {}
+        self.store_calls = 0
+        self.search_calls = 0
+
+    async def fingerprints(self, user_id: UUID) -> dict[UUID, tuple[str, str]]:
+        return {
+            key: (value["source_hash"], value["model_key"])
+            for key, value in self.records.items()
+            if value["user_id"] == user_id
+        }
+
+    async def store(
+        self,
+        user_id: UUID,
+        experience_id: UUID,
+        updated_at: datetime,
+        source_hash: str,
+        model_key: str,
+        vector: list[float],
+    ) -> bool:
+        row = next(
+            (r for r in getattr(self, "experience_rows", []) if r["id"] == experience_id), None
+        )
+        if row is not None and row.get("updated_at") != updated_at:
+            return False
+        self.records[experience_id] = {
+            "user_id": user_id,
+            "updated_at": updated_at,
+            "source_hash": source_hash,
+            "model_key": model_key,
+            "vector": vector,
+        }
+        self.store_calls += 1
+        return True
+
+    async def search(
+        self, user_id: UUID, vector: list[float], model_key: str, limit: int
+    ) -> dict[UUID, float]:
+        self.search_calls += 1
+        candidates = [
+            (key, value)
+            for key, value in self.records.items()
+            if value["user_id"] == user_id and value["model_key"] == model_key
+        ]
+
+        def similarity(stored: list[float]) -> float:
+            return sum(a * b for a, b in zip(stored, vector, strict=False))
+
+        ranked = sorted(candidates, key=lambda item: (-similarity(item[1]["vector"]), str(item[0])))
+        return {key: similarity(value["vector"]) for key, value in ranked[:limit]}
 
 
 class FakeResumeRepository:
