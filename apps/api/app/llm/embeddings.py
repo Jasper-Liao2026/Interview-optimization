@@ -3,6 +3,7 @@
 import hashlib
 import math
 import re
+import struct
 
 import httpx
 
@@ -56,10 +57,12 @@ class EmbeddingClient:
             for vector in vectors:
                 if len(vector) != DIMENSIONS or not all(math.isfinite(x) for x in vector):
                     raise ValueError("向量必须为 1536 维有限数值")
-                if not any(vector):
-                    raise ValueError("不接受零向量")
+                # pgvector 按 float32 存储；float64 有限值仍可能溢出或全部下溢为零。
+                stored = struct.unpack(f"{DIMENSIONS}f", struct.pack(f"{DIMENSIONS}f", *vector))
+                if not all(math.isfinite(x) for x in stored) or not any(stored):
+                    raise ValueError("向量必须在 float32 存储后保持有限且非零")
             return vectors
-        except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
+        except (httpx.HTTPError, KeyError, TypeError, ValueError, OverflowError) as exc:
             raise LlmError(
                 f"嵌入服务调用失败：{type(exc).__name__}；请检查配置和 1536 维支持"
             ) from exc

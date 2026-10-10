@@ -8,6 +8,8 @@
 
 from __future__ import annotations
 
+import subprocess
+import threading
 from pathlib import Path
 
 import pytest
@@ -91,3 +93,32 @@ async def test_render_without_browser_raises_readable_error(
 
     with pytest.raises(PdfExportError, match="未找到可用的 Chromium"):
         await exporter.render("<html></html>")
+
+
+@pytest.mark.parametrize("mode", ["success", "timeout", "missing_output"])
+async def test_windows_print_uses_worker_and_preserves_errors(fake_browser, monkeypatch, mode):
+    exporter = PdfExporter(Settings(chromium_path=str(fake_browser)))
+    main_thread = threading.get_ident()
+    monkeypatch.setattr("app.pdf.export.sys.platform", "win32")
+
+    def run_browser(command, **kwargs):
+        assert threading.get_ident() != main_thread
+        assert kwargs["timeout"] == 7
+        if mode == "timeout":
+            raise subprocess.TimeoutExpired(command, 7)
+        if mode == "success":
+            output = next(
+                arg.removeprefix("--print-to-pdf=")
+                for arg in command
+                if arg.startswith("--print-to-pdf=")
+            )
+            Path(output).write_bytes(b"%PDF-1.4 /Type /Page")
+        return subprocess.CompletedProcess(command, 3, stderr=b"browser failed")
+
+    monkeypatch.setattr("app.pdf.export.subprocess.run", run_browser)
+    if mode == "success":
+        assert (await exporter.render("<html></html>", timeout_s=7)).startswith(b"%PDF")
+    else:
+        message = "打印超时" if mode == "timeout" else "exit=3.*browser failed"
+        with pytest.raises(PdfExportError, match=message):
+            await exporter.render("<html></html>", timeout_s=7)

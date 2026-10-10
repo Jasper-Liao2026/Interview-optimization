@@ -44,11 +44,12 @@ export default function JobsPage() {
   const matchController = useRef<AbortController | null>(null);
   const fileVersion = useRef(0);
   const actionController = useRef<AbortController | null>(null);
+  const imageInput = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
     api.listJobs({ signal: controller.signal, requestId: newRequestId() })
-      .then(data => setJobs(data.items))
+      .then(data => { if (!controller.signal.aborted) setJobs(data.items); })
       .catch((err: unknown) => { if (!controller.signal.aborted) setListError(errorMessage(err)); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => {
@@ -79,10 +80,12 @@ export default function JobsPage() {
     setReadingImage(false);
     if (!file) return;
     if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+      if (imageInput.current) imageInput.current.value = "";
       setError("仅支持 PNG、JPEG 或 WebP 截图。");
       return;
     }
     if (file.size === 0 || file.size > 5 * 1024 * 1024) {
+      if (imageInput.current) imageInput.current.value = "";
       setError("截图必须非空，且不超过 5 MiB。");
       return;
     }
@@ -102,7 +105,10 @@ export default function JobsPage() {
       setImage(dataUrl);
       setImageName(file.name);
     } catch (err) {
-      if (version === fileVersion.current) setError(errorMessage(err));
+      if (version === fileVersion.current) {
+        if (imageInput.current) imageInput.current.value = "";
+        setError(errorMessage(err));
+      }
     } finally {
       if (version === fileVersion.current) setReadingImage(false);
     }
@@ -128,6 +134,7 @@ export default function JobsPage() {
       setCompany("");
       setImage(null);
       setImageName("");
+      if (imageInput.current) imageInput.current.value = "";
       await readSavedJob(response, controller);
     } catch (err) {
       if (!controller.signal.aborted) setError(errorMessage(err));
@@ -248,7 +255,7 @@ export default function JobsPage() {
             <div className="space-y-3">
               <label className="block text-xs text-[var(--muted)]">岗位标题（可选）<input className={`${input} mt-1`} value={title} maxLength={120} disabled={busy} onChange={event => setTitle(event.target.value)} /></label>
               <label className="block text-xs text-[var(--muted)]">公司（可选）<input className={`${input} mt-1`} value={company} maxLength={120} disabled={busy} onChange={event => setCompany(event.target.value)} /></label>
-              {mode === "text" ? <label className="block text-xs text-[var(--muted)]">JD 原文<textarea className={`${input} mt-1`} rows={10} value={rawText} maxLength={20000} disabled={busy} onChange={event => setRawText(event.target.value)} placeholder="粘贴招聘说明，10–20000 字" /><span className="mt-1 block">{rawText.trim().length} / 20000 字</span></label> : <label className="block text-xs text-[var(--muted)]">岗位截图<input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy} className="mt-2 block w-full text-xs" onChange={event => void readImage(event.target.files?.[0])} /><span className="mt-2 block">PNG / JPEG / WebP，≤5 MiB、≤2000 万像素</span>{readingImage ? <span className="mt-2 block">读取截图…</span> : imageName ? <span className="mt-2 block break-all">已选择：{imageName}</span> : null}</label>}
+              {mode === "text" ? <label className="block text-xs text-[var(--muted)]">JD 原文<textarea className={`${input} mt-1`} rows={10} value={rawText} maxLength={20000} disabled={busy} onChange={event => setRawText(event.target.value)} placeholder="粘贴招聘说明，10–20000 字" /><span className="mt-1 block">{rawText.trim().length} / 20000 字</span></label> : <label className="block text-xs text-[var(--muted)]">岗位截图<input ref={imageInput} type="file" accept="image/png,image/jpeg,image/webp" disabled={busy} className="mt-2 block w-full text-xs" onChange={event => void readImage(event.target.files?.[0])} /><span className="mt-2 block">PNG / JPEG / WebP，≤5 MiB、≤2000 万像素</span>{readingImage ? <span className="mt-2 block">读取截图…</span> : imageName ? <span className="mt-2 block break-all">已选择：{imageName}</span> : null}</label>}
               <button type="button" className={`${button} w-full`} disabled={!canParse} onClick={() => void parse()}>{busy ? "处理中…" : "解析并保存岗位"}</button>
             </div>
           </section>
@@ -272,7 +279,7 @@ export default function JobsPage() {
             </section>
             <section className={panel}><h2 className="mb-3 text-sm font-medium">结构化岗位画像</h2>{active.parsed ? <ProfileView profile={active.parsed} /> : <p className="text-xs text-[var(--warn)]">该岗位尚无结构化画像，请重新解析原文。</p>}</section>
             <section className={panel}>
-              <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-sm font-medium">经历 × 岗位要求</h2>{(!match || selected.size > 0) ? <Link href={generateUrl} className={button}>用{match ? `所选 ${selected.size} 段经历` : "此岗位"}生成简历</Link> : <span className="text-xs text-[var(--muted)]">请选择至少一段经历</span>}</div>
+              <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-sm font-medium">经历 × 岗位要求</h2>{!busy && !matching && active.parsed && (!match || selected.size > 0) ? <Link href={generateUrl} className={button}>用{match ? `所选 ${selected.size} 段经历` : "此岗位"}生成简历</Link> : <span className="text-xs text-[var(--muted)]">{busy || matching ? "等待当前操作完成" : !active.parsed ? "请先解析岗位画像" : "请选择至少一段经历"}</span>}</div>
               <p className="mt-2 text-xs leading-relaxed text-[var(--muted)]">规则分范围 0–100，用于比较素材与要求的匹配程度；向量相似只辅助候选召回，已覆盖需有事实证据，分数不代表录用概率。</p>
               {matching ? <p role="status" className="mt-4 text-xs text-[var(--muted)]">正在匹配经历，请稍候…</p> : !match ? <p className="mt-4 text-xs text-[var(--muted)]">点击「匹配素材库经历」查看分数、证据与技能缺口。</p> : <>
                 <Notices isStub={match.is_stub} warnings={match.warnings} />
@@ -309,11 +316,9 @@ function MatchMatrix({ match, selected, onToggle }: {
   if (match.items.length === 0) {
     return <p className="mt-4 text-xs text-[var(--muted)]">素材库暂无可匹配经历，请到 <Link href="/library" className="underline">素材库</Link> 添加经历。</p>;
   }
-  if (match.requirements.length === 0) {
-    return <p className="mt-4 text-xs text-[var(--warn)]">岗位画像未提取到可匹配要求，请检查 JD 原文。</p>;
-  }
   return (
     <div className="mt-4 overflow-x-auto">
+      {match.requirements.length === 0 ? <p className="mb-3 text-xs text-[var(--warn)]">岗位画像未提取到可匹配要求，请检查 JD 原文；仍可勾选经历生成简历。</p> : null}
       <table className="w-full border-collapse text-left text-xs">
         <caption className="sr-only">经历与岗位要求的匹配证据矩阵</caption>
         <thead>

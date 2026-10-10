@@ -21,8 +21,7 @@ const COMMANDS = {
   dev: (extra) => [
     [
       "-m",
-      "uvicorn",
-      "app.main:app",
+      "app.server",
       "--host",
       "127.0.0.1",
       "--port",

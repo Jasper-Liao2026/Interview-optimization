@@ -220,6 +220,24 @@ async def test_vision_failure_returns_502_and_never_persists(client, api_wiring,
     assert api_wiring["jds"].created == []
 
 
+async def test_blank_vision_transcription_is_rejected_and_never_persisted(
+    client, api_wiring, app, monkeypatch
+):
+    mock_http(
+        monkeypatch,
+        lambda request: chat_response(
+            {"raw_text": " \n\t" * 10, "profile": FIXTURES[0]["expected_profile"]}
+        ),
+    )
+    llm = LlmClient(settings())
+    app.dependency_overrides[get_llm_client] = lambda: llm
+    app.dependency_overrides[get_jd_parser_dep] = lambda: JdParser(llm)
+    response = await client.post(f"{API}/jd/parse-image", json={"image_data_url": screenshot()})
+    assert response.status_code == 502
+    assert "结构化输出连续" in response.json()["detail"]
+    assert api_wiring["jds"].created == []
+
+
 @pytest.mark.parametrize("format", ["PNG", "JPEG", "WEBP"])
 def test_supported_image_payloads_are_valid(format):
     image_url = screenshot(format=format)
@@ -327,6 +345,9 @@ async def test_embedding_http_contract_preserves_input_order(monkeypatch):
         [{"index": 0, "embedding": [0] * DIMENSIONS}],
         [{"index": 0, "embedding": ["nan"] + [1] * (DIMENSIONS - 1)}],
         [{"index": 0, "embedding": ["inf"] + [1] * (DIMENSIONS - 1)}],
+        [{"index": 0, "embedding": [10**400] + [1] * (DIMENSIONS - 1)}],
+        [{"index": 0, "embedding": [1e300] + [1] * (DIMENSIONS - 1)}],
+        [{"index": 0, "embedding": [1e-300] * DIMENSIONS}],
         [{"index": 0, "embedding": [1] * DIMENSIONS}, {"index": 0, "embedding": [1] * DIMENSIONS}],
     ],
 )

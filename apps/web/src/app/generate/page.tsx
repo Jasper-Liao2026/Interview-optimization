@@ -31,6 +31,44 @@ const SAMPLE_JD = `后端开发工程师（校招）— 某互联网公司
 对工程质量有要求（写测试、写文档）。`;
 
 type Status = { kind: "idle" } | { kind: "busy" } | { kind: "done" } | { kind: "error"; message: string };
+const RUN_STORAGE_KEY = "resume-optimizer:last-generation-run";
+const runStatusLabels = { pending: "等待生成", running: "生成中", completed: "已完成", partial: "部分完成", failed: "生成失败" };
+
+function newRunId(): string {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6]! & 15) | 64;
+  bytes[8] = (bytes[8]! & 63) | 128;
+  const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+function rememberedRun(jdId: string | null, requestedExperiences: Set<string> | null): string | null {
+  try {
+    const value = localStorage.getItem(RUN_STORAGE_KEY);
+    if (!value) return null;
+    const saved = JSON.parse(value) as { runId?: unknown; jdId?: unknown; experienceIds?: unknown };
+    const sameSelection = requestedExperiences === null ||
+      (Array.isArray(saved.experienceIds) && saved.experienceIds.length === requestedExperiences.size &&
+        saved.experienceIds.every((id: unknown) => typeof id === "string" && requestedExperiences.has(id)));
+    return typeof saved.runId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(saved.runId) && (!jdId || saved.jdId === jdId) && sameSelection ? saved.runId : null;
+  } catch { return null; }
+}
+
+function rememberRun(runId: string | null, jdId: string | null = null, experienceIds: string[] = []) {
+  try {
+    if (runId) localStorage.setItem(RUN_STORAGE_KEY, JSON.stringify({ runId, jdId, experienceIds }));
+    else localStorage.removeItem(RUN_STORAGE_KEY);
+  } catch { /* Generation also works when browser storage is unavailable. */ }
+}
+
+function failureMessage(error: unknown, action: string): string {
+  return error instanceof ApiError ? `${action}（${error.status}）：${error.body.slice(0, 300)}` : `${action}：${String(error)}`;
+}
+
+function optsFor(controller: AbortController) {
+  return { requestId: newRequestId(), signal: controller.signal };
+}
 
 export default function GeneratePage() {
   const [experiences, setExperiences] = useState<ExperienceRead[] | null>(null);
@@ -40,6 +78,10 @@ export default function GeneratePage() {
   const generationController = useRef<AbortController | null>(null);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [result, setResult] = useState<GenerateResponse | null>(null);
+  const [runId, setRunId] = useState<string | null>(null);
+  const [activeAction, setActiveAction] = useState<number | "resume" | null>(null);
+  const [inputError, setInputError] = useState<string | null>(null);
+  const [previewVersion, setPreviewVersion] = useState(0);
 
   // URL 预填只在挂载时读取，已有岗位与经历并行加载，卸载时取消请求。
   useEffect(() => {
@@ -49,6 +91,27 @@ export default function GeneratePage() {
     const requestedExperiences = params.has("experiences")
       ? new Set((params.get("experiences") ?? "").split(",").filter(Boolean))
       : null;
+    const savedRunId = rememberedRun(requestedJd, requestedExperiences);
+    if (savedRunId) {
+      setRunId(savedRunId);
+      setStatus({ kind: "busy" });
+      api.getGenerationRun(savedRunId, optsFor(controller))
+        .then(data => {
+          if (controller.signal.aborted) return;
+          setResult(data);
+          setStatus({ kind: "done" });
+        })
+        .catch((error: unknown) => {
+          if (controller.signal.aborted) return;
+          if (error instanceof ApiError && error.status === 404) {
+            rememberRun(null);
+            setRunId(null);
+            setStatus({ kind: "idle" });
+          } else {
+            setStatus({ kind: "error", message: failureMessage(error, "生成记录读取失败") });
+          }
+        });
+    }
     const opts = { requestId: newRequestId(), signal: controller.signal };
     Promise.allSettled([
       api.listExperiences(opts),
@@ -76,16 +139,13 @@ export default function GeneratePage() {
           errors.push(err instanceof ApiError ? `岗位读取失败（${err.status}）：${err.body.slice(0, 300)}` : `岗位读取失败：${String(err)}`);
         }
         if (errors.length > 0) {
-          setStatus({ kind: "error", message: errors.join("；") });
+          setInputError(errors.join("；"));
         }
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
         setExperiences([]);
-        setStatus({
-          kind: "error",
-          message: error instanceof ApiError ? `预填读取失败（${error.status}）：${error.body.slice(0, 300)}` : String(error),
-        });
+        setInputError(failureMessage(error, "预填读取失败"));
       });
     return () => {
       controller.abort();
@@ -103,16 +163,21 @@ export default function GeneratePage() {
   }, []);
 
   const generate = useCallback(async () => {
+    if (generationController.current) return;
     const controller = new AbortController();
     generationController.current = controller;
+    const nextRunId = newRunId();
+    setRunId(nextRunId);
+    rememberRun(nextRunId, jdId, [...selected]);
     setStatus({ kind: "busy" });
     setResult(null);
     try {
       const data = await api.generateResume(
         {
           jd_id: jdId,
-          jd_text: jdId ? null : jdText,
+          jd_text: jdId ? null : jdText.trim(),
           experience_ids: [...selected],
+          run_id: nextRunId,
           // `persist` 在后端有默认值 True，但类型管线对「带 default 字面量的字段」
           // 会生成为**必填**（见 docs/M0-summary.md 的契约 bug 一节）。
           // 这里显式传，而不是在前端加 `?? true` 之类的兜底去掩盖契约定义。
@@ -122,20 +187,42 @@ export default function GeneratePage() {
       );
       if (controller.signal.aborted) return;
       setResult(data);
+      setPreviewVersion(prev => prev + 1);
       setStatus({ kind: "done" });
     } catch (error) {
       if (controller.signal.aborted) return;
       setStatus({
         kind: "error",
-        message:
-          error instanceof ApiError
-            ? `生成失败（${error.status}）：${error.body.slice(0, 300)}`
-            : String(error),
+        message: failureMessage(error, "生成失败"),
       });
+    } finally {
+      if (generationController.current === controller) generationController.current = null;
     }
   }, [jdText, jdId, selected]);
 
-  const canGenerate = jdText.trim().length >= 10 && jdText.trim().length <= 20000 && selected.size > 0 && status.kind !== "busy";
+  const continueRun = useCallback(async (index?: number) => {
+    if (!runId || status.kind === "busy" || generationController.current) return;
+    const controller = new AbortController();
+    generationController.current = controller;
+    setActiveAction(index ?? "resume");
+    setStatus({ kind: "busy" });
+    try {
+      const data = index === undefined
+        ? await api.resumeGenerationRun(runId, optsFor(controller))
+        : await api.retryGenerationItem(runId, index, optsFor(controller));
+      if (controller.signal.aborted) return;
+      setResult(data);
+      setPreviewVersion(prev => prev + 1);
+      setStatus({ kind: "done" });
+    } catch (error: unknown) {
+      if (!controller.signal.aborted) setStatus({ kind: "error", message: failureMessage(error, index === undefined ? "恢复生成失败" : "条目重试失败") });
+    } finally {
+      if (!controller.signal.aborted) setActiveAction(null);
+      if (generationController.current === controller) generationController.current = null;
+    }
+  }, [runId, status.kind]);
+
+  const canGenerate = !!(jdId || (jdText.trim().length >= 10 && jdText.trim().length <= 20000)) && selected.size > 0 && status.kind !== "busy" && !inputError;
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-8">
@@ -149,15 +236,16 @@ export default function GeneratePage() {
         </p>
       </header>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {/* ------------------------------------------------ 左：输入 */}
         <section className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-5">
+          {inputError ? <p role="alert" className="mb-3 text-xs text-[var(--err)]">{inputError}</p> : null}
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-mono text-sm">① JD 原文</h2>
             <button
               type="button"
               disabled={experiences === null || status.kind === "busy"}
-              onClick={() => { setJdText(SAMPLE_JD); setJdId(null); }}
+              onClick={() => { setJdText(SAMPLE_JD); setJdId(null); setInputError(null); }}
               className="rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-3 py-1 text-xs hover:bg-[var(--border)]"
             >
               填入示例
@@ -167,7 +255,7 @@ export default function GeneratePage() {
             value={jdText}
             disabled={experiences === null || status.kind === "busy"}
             maxLength={20000}
-            onChange={(event) => { setJdText(event.target.value); setJdId(null); }}
+            onChange={(event) => { setJdText(event.target.value); setJdId(null); setInputError(null); }}
             rows={14}
             placeholder="把招聘网站上的 JD 直接粘进来即可，不用整理格式。"
             className="w-full resize-y rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 font-mono text-xs leading-relaxed outline-none focus:border-[var(--accent)]"
@@ -231,7 +319,7 @@ export default function GeneratePage() {
             <p className="text-sm text-[var(--muted)]">还没生成。左边填好 JD 后点「生成简历」。</p>
           ) : null}
 
-          {status.kind === "busy" ? <p className="text-sm text-[var(--muted)]">调用中，请稍候…</p> : null}
+          {status.kind === "busy" ? <p role="status" className="text-sm text-[var(--muted)]">调用中，请稍候…</p> : null}
 
           {status.kind === "error" ? (
             <div className="rounded-md border border-[var(--err)]/40 bg-[var(--err)]/10 px-3 py-3">
@@ -239,16 +327,19 @@ export default function GeneratePage() {
             </div>
           ) : null}
 
-          {result ? <ResultView result={result} /> : null}
+          {runId && !result && status.kind === "error" ? (
+            <button type="button" onClick={() => void continueRun()} className="mt-3 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-3 py-2 text-xs">恢复上次生成</button>
+          ) : null}
+          {result ? <ResultView result={result} onRetry={index => void continueRun(index)} onResume={() => void continueRun()} busy={status.kind === "busy"} activeAction={activeAction} /> : null}
         </section>
       </div>
 
       {/* ------------------------------------------------ 预览 */}
-      {result ? (
+      {result && result.preview_path && result.resume.sections.some(section => section.entries.length > 0) ? (
         <section className="mt-5 rounded-xl border border-[var(--border)] bg-[var(--panel)] p-5">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-mono text-sm">④ 预览（服务端渲染的 HTML，与 PDF 同源）</h2>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Link
                 href={`/print/${result.resume.id}`}
                 target="_blank"
@@ -265,6 +356,7 @@ export default function GeneratePage() {
             </div>
           </div>
           <iframe
+            key={previewVersion}
             title="简历预览"
             src={api.resumeHtmlUrl(result.resume.id)}
             className="h-[900px] w-full rounded-md border border-[var(--border)] bg-white"
@@ -277,17 +369,48 @@ export default function GeneratePage() {
 
 /* ------------------------------------------------------------------ */
 
-function ResultView({ result }: { result: GenerateResponse }) {
-  const { profile, resume, warnings } = result;
+function ResultView({ result, onRetry, onResume, busy, activeAction }: {
+  result: GenerateResponse;
+  onRetry: (index: number) => void;
+  onResume: () => void;
+  busy: boolean;
+  activeAction: number | "resume" | null;
+}) {
+  const { profile, resume, warnings, failures, items, checkpoint } = result;
 
   return (
     <div className="space-y-4 text-sm">
       <dl className="space-y-2">
         <Row k="标题" v={resume.title} />
+        <Row k="运行状态" v={runStatusLabels[checkpoint.status]} />
+        <Row k="运行 ID" v={result.run_id} mono />
         <Row k="产出模型" v={`${result.provider} · ${result.model}`} />
         <Row k="trace_id" v={result.trace_id} mono />
         <Row k="预览地址" v={result.preview_path ?? "—"} mono />
       </dl>
+
+      <div className="space-y-2">
+        <p className="font-mono text-xs text-[var(--muted)]">经历处理结果（成功 {items.filter(item => item.status === "succeeded").length} / {items.length}）</p>
+        {items.map(item => <div key={item.index} className="flex items-center justify-between gap-3 border-b border-[var(--border)] py-2 text-xs">
+          <span className="min-w-0 truncate" title={item.org}>{item.org}</span>
+          <span className="shrink-0" style={{ color: item.status === "succeeded" ? "var(--ok)" : item.status === "failed" ? "var(--err)" : "var(--muted)" }}>{item.status === "succeeded" ? "已完成" : item.status === "failed" ? "失败" : "待处理"}</span>
+        </div>)}
+      </div>
+
+      {failures.length > 0 ? <div className="space-y-2" role="status">
+        <p className="text-xs font-medium text-[var(--err)]">需要处理的经历</p>
+        {failures.map(failure => {
+          const item = items.find(value => value.index === failure.index);
+          return <div key={failure.index} className="rounded-md border border-[var(--err)]/40 p-3 text-xs">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0"><p className="font-medium">{item?.org || failure.experience_id}</p><p className="mt-1 break-words text-[var(--err)]">{failure.error}</p></div>
+              {failure.retryable ? <button type="button" disabled={busy} onClick={() => onRetry(failure.index)} className="shrink-0 rounded-md border border-[var(--border)] px-2 py-1 disabled:opacity-40">{activeAction === failure.index ? "重试中…" : "重试此条"}</button> : null}
+            </div>
+            {(failure.details ?? []).length > 0 ? <ul className="mt-2 list-disc space-y-1 pl-4 text-[var(--muted)]">{failure.details?.map((detail, index) => <li key={index}>{detail}</li>)}</ul> : null}
+          </div>;
+        })}
+      </div> : null}
+      {checkpoint.resumable ? <button type="button" disabled={busy} onClick={onResume} className="rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-3 py-2 text-xs disabled:opacity-40">{activeAction === "resume" ? "恢复中…" : "继续生成未完成条目"}</button> : null}
 
       {result.is_stub ? (
         <div className="rounded-md border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-3 py-2">

@@ -30,13 +30,16 @@ class JobDescriptionRepository:
         parsed: dict[str, Any] | None,
         parser_model: str | None,
         source_type: str = "text",
+        jd_id: UUID | None = None,
     ) -> dict[str, Any]:
         async with self._db.connection() as conn:
             row = await conn.fetchrow(
                 f"""
                 insert into public.job_descriptions
-                  (user_id, title, company, raw_text, parsed, parser_model, source_type)
-                values ($1, $2, $3, $4, $5, $6, $7)
+                  (id, user_id, title, company, raw_text, parsed, parser_model, source_type)
+                values (coalesce($8, gen_random_uuid()), $1, $2, $3, $4, $5, $6, $7)
+                on conflict(id) do update set parsed=excluded.parsed
+                  where job_descriptions.user_id=excluded.user_id
                 returning {_COLUMNS}
                 """,
                 user_id,
@@ -46,8 +49,10 @@ class JobDescriptionRepository:
                 parsed,
                 parser_model,
                 source_type,
+                jd_id,
             )
-        assert row is not None
+        if row is None:
+            raise ValueError("JD ID 已属于其他用户")
         logger.info("jd created id=%s parser_model=%s", row["id"], parser_model)
         return dict(row)
 

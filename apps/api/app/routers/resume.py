@@ -1,12 +1,4 @@
-"""简历生成 / 预览 / 导出接口（M1-4 ~ M1-7）。
-
-三个端点构成闭环：
-  `POST /generate`      JD → 改写 → 组装 → 落库
-  `GET  /{id}/html`     服务端渲染的 HTML（前端 iframe 直接拿来当预览）
-  `GET  /{id}/pdf`      把**同一份 HTML**交给无头浏览器打印
-
-预览与导出共用一个渲染函数，所以「所见即所得」是结构性保证，不是靠人工比对维持的。
-"""
+"""简历生成、任务恢复、失败重试以及共用渲染结果的预览与导出接口。"""
 
 from __future__ import annotations
 
@@ -16,6 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Query, Response, status
 from fastapi.responses import HTMLResponse
 
+from app.agents.checkpoint import RunConflictError
 from app.deps import (
     CurrentUserDep,
     GenerationServiceDep,
@@ -30,7 +23,7 @@ from app.pdf import PdfExportError, pdf_page_count
 from app.render import UnknownTemplateError, render_resume_html
 from app.schemas import GenerateRequest, GenerateResponse, ResumeRead
 from app.services import NoExperiencesError
-from app.services.generation import InvalidJobError
+from app.services.generation import GenerationOutcome, InvalidJobError, RunNotFoundError
 from app.tracing import current_trace_id
 
 router = APIRouter(prefix="/resumes", tags=["resumes"])
@@ -48,11 +41,7 @@ async def _load(user_id: UUID, resume_id: UUID, repository: ResumeRepoDep) -> Re
     "/generate",
     response_model=GenerateResponse,
     summary="按 JD 生成一份简历",
-    description=(
-        "M1 垂直切片的入口：解析 JD → 逐条改写经历（**串行**，并行是 M4-3）→ 组装 → 落库。\n\n"
-        "同一批经历的改写共用同一份岗位画像，但每次改写是独立调用 —— "
-        "为 M4 的 fan-out 并行留好了接口形状。"
-    ),
+    description="LangGraph 并行改写、事实校验、失败隔离与幂等落库。",
 )
 async def generate_resume(
     payload: GenerateRequest,
@@ -70,6 +59,8 @@ async def generate_resume(
     except (NoExperiencesError, InvalidJobError) as exc:
         # 素材库为空是**用户侧**问题，明确回 400 并给出补救办法，而不是 500
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except RunConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except LlmError as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY, detail=f"生成失败：{exc}"
@@ -78,12 +69,20 @@ async def generate_resume(
     # 与观测自检接口一致：生成结束就 flush，避免刚生成的 trace 在 UI 里迟到
     observability.flush()
 
+    return _response(outcome, settings)
+
+
+def _response(outcome: GenerationOutcome, settings: SettingsDep) -> GenerateResponse:
     resume = ResumeRead.model_validate(outcome.resume)
     prefix = settings.api_prefix.rstrip("/")
-    persisted = payload.persist
+    persisted = outcome.persisted
 
     return GenerateResponse(
         resume=resume,
+        run_id=outcome.run_id,
+        items=outcome.items,
+        failures=outcome.failures,
+        checkpoint=outcome.checkpoint,
         profile=outcome.profile,
         preview_path=f"{prefix}/resumes/{resume.id}/html" if persisted else None,
         pdf_path=f"{prefix}/resumes/{resume.id}/pdf" if persisted else None,
@@ -93,6 +92,60 @@ async def generate_resume(
         trace_id=outcome.trace_id,
         warnings=outcome.warnings,
     )
+
+
+@router.get("/runs/{run_id}", response_model=GenerateResponse, summary="读取生成任务")
+async def get_generation_run(
+    run_id: UUID, user_id: CurrentUserDep, service: GenerationServiceDep, settings: SettingsDep
+) -> GenerateResponse:
+    try:
+        return _response(await service.read(user_id, run_id), settings)
+    except RunNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except RunConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.post("/runs/{run_id}/resume", response_model=GenerateResponse, summary="恢复中断的生成任务")
+async def resume_generation_run(
+    run_id: UUID, user_id: CurrentUserDep, service: GenerationServiceDep, settings: SettingsDep
+) -> GenerateResponse:
+    try:
+        return _response(await service.resume(user_id, run_id), settings)
+    except RunNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except RunConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except InvalidJobError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except LlmError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=f"生成失败：{exc}"
+        ) from exc
+
+
+@router.post(
+    "/runs/{run_id}/retry/{index}", response_model=GenerateResponse, summary="重试失败条目"
+)
+async def retry_generation_item(
+    run_id: UUID,
+    index: int,
+    user_id: CurrentUserDep,
+    service: GenerationServiceDep,
+    settings: SettingsDep,
+) -> GenerateResponse:
+    try:
+        return _response(await service.resume(user_id, run_id, retry=index), settings)
+    except RunNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (RunConflictError, IndexError) as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except InvalidJobError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except LlmError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=f"生成失败：{exc}"
+        ) from exc
 
 
 @router.get("/{resume_id}", response_model=ResumeRead, summary="读取一份简历")

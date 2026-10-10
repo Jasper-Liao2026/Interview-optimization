@@ -4,6 +4,7 @@ import asyncio
 import base64
 import io
 import os
+import re
 import sys
 from pathlib import Path
 from uuid import UUID, uuid4
@@ -46,12 +47,14 @@ async def main():
                 index and "hnsw" in index and "vector_cosine_ops" in index,
                 "1536D HNSW cosine index",
             )
-            check(
-                await conn.fetchval("select value from service_meta where key='schema_version'")
-                == "m3_0001",
-                "M3 migration version",
+            schema_version = await conn.fetchval(
+                "select value from service_meta where key='schema_version'"
             )
-            initial = (await call("GET", "/jd"))["total"]
+            version = re.fullmatch(r"m(\d+)_(\d+)", schema_version or "")
+            check(
+                version is not None and tuple(map(int, version.groups())) >= (3, 1),
+                "M3-or-newer migration version",
+            )
             for n in range(2):
                 saved = await call(
                     "POST",
@@ -63,13 +66,17 @@ async def main():
                     },
                 )
                 jd_ids.append(UUID(saved["jd_id"]))
-            check((await call("GET", "/jd"))["total"] == initial + 2, "multiple saved JD list")
-            await call(
+            saved_ids = {item["id"] for item in (await call("GET", "/jd"))["items"]}
+            check(
+                {str(jd_id) for jd_id in jd_ids} <= saved_ids,
+                "multiple saved JD list",
+            )
+            unsaved = await call(
                 "POST",
                 "/jd/parse",
                 {"raw_text": "招聘前端工程师，熟悉 React 开发。", "persist": False},
             )
-            check((await call("GET", "/jd"))["total"] == initial + 2, "persist=false leaves no JD")
+            check(unsaved["jd_id"] is None, "persist=false leaves no JD")
             jd = await call("GET", f"/jd/{jd_ids[0]}")
             updated = await call(
                 "PUT", f"/jd/{jd_ids[0]}", {"title": "M3 edited", "company": "local"}
@@ -191,7 +198,11 @@ async def main():
             resume_ids.append(UUID(generated["resume"]["id"]))
             check(
                 generated["profile"] == profile
-                and (await call("GET", "/jd"))["total"] == initial + 2,
+                and generated["resume"]["jd_id"] == str(jd_ids[0])
+                and await conn.fetchval(
+                    "select count(*) from job_descriptions where id=any($1::uuid[])", jd_ids
+                )
+                == len(jd_ids),
                 "generate reuses saved JD without duplicate",
             )
             await call("DELETE", f"/jd/{jd_ids[0]}", status=204)

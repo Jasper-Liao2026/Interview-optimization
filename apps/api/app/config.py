@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     app_name: str = "resume-optimizer-api"
     service_id: str = "resume-optimizer-api"
     version: str = "0.1.0"
-    milestone: str = Field(default="M3", description="当前里程碑，便于在自检页对照进度")
+    milestone: str = Field(default="M4", description="当前里程碑，便于在自检页对照进度")
     environment: str = Field(default="local", description="local | staging | production")
 
     # --- HTTP ---
@@ -111,6 +111,7 @@ class Settings(BaseSettings):
     rewrite_max_input_chars: int = Field(
         default=6000, description="单条经历送进改写 prompt 的字符上限"
     )
+    rewrite_max_concurrency: int = Field(default=4, ge=1, le=32)
 
     # --- PDF 导出（M1-6 / M1-7）---
     # 走「无头 Chromium 打印服务端渲染的同一份 HTML」这条路：

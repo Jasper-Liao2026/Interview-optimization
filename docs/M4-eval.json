@@ -1,0 +1,2652 @@
+{
+  "timestamp": "2026-10-10T07:35:52.587610+00:00",
+  "provider": "openai-compatible",
+  "model": "deepseek-chat",
+  "samples": 100,
+  "schema_failures": 0,
+  "schema_failure_rate": 0.0,
+  "fact_rejections": 0,
+  "transport_failures": 0,
+  "accepted_rewrites": 100,
+  "accepted_rate": 1.0,
+  "schema_gate_evaluable": true,
+  "schema_gate_pass": true,
+  "cases": [
+    {
+      "index": 0,
+      "fixture": "backend",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 和 FastAPI 实现素材管理接口，基于 PostgreSQL 保存结构化数据，完成接口开发与数据持久化。",
+            "evidence": [
+              "使用 Python 和 FastAPI 实现素材管理接口，使用 PostgreSQL 保存结构化数据"
+            ]
+          },
+          {
+            "text": "为 CRUD 接口编写 pytest 测试，沉淀 82 条后端 pytest 自动化测试，提升工程质量与可观测性。",
+            "evidence": [
+              "为 CRUD 接口编写 pytest 测试",
+              "自动化测试：82 条（口径：后端 pytest 测试）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 1,
+      "fixture": "frontend",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 React 和 TypeScript 实现岗位列表、编辑表单和状态提示，完成岗位管理页面的接口对接与交互开发",
+            "evidence": [
+              "使用 React 和 TypeScript 实现岗位列表、编辑表单和状态提示"
+            ]
+          },
+          {
+            "text": "针对手机宽度调整布局，提升页面在不同终端下的可用性",
+            "evidence": [
+              "针对手机宽度调整布局"
+            ]
+          },
+          {
+            "text": "在保存失败时保留用户输入，增强表单交互的容错性与用户体验",
+            "evidence": [
+              "保存失败时保留用户输入"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 2,
+      "fixture": "observability",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "为 FastAPI 接口接入请求日志，将请求 trace_id 贯穿模型调用与错误日志，提升接口可观测性",
+            "evidence": [
+              "为 FastAPI 接口接入请求日志，将请求 trace_id 贯穿模型调用与错误日志，使用 Langfuse 查看调用链。",
+              "将请求 trace_id 贯穿模型调用与错误日志"
+            ]
+          },
+          {
+            "text": "使用 Langfuse 查看调用链，定位模型调用与错误日志中的问题",
+            "evidence": [
+              "使用 Langfuse 查看调用链。"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 3,
+      "fixture": "metrics",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "定位 PostgreSQL 慢查询，通过增加索引改善查询性能，将接口延迟从 800ms 降至 120ms",
+            "evidence": [
+              "定位 PostgreSQL 慢查询，通过增加索引改善查询性能，使用压测脚本比较修改前后的延迟。",
+              "接口延迟：800ms → 120ms（口径：同一压测数据集）"
+            ]
+          },
+          {
+            "text": "使用压测脚本比较修改前后的延迟，验证索引优化对接口性能的改善效果",
+            "evidence": [
+              "使用压测脚本比较修改前后的延迟。",
+              "接口延迟：800ms → 120ms（口径：同一压测数据集）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 4,
+      "fixture": "campus",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "协助新成员进行开发环境配置，帮助其快速进入开发状态，保障社团技术活动的工程基础",
+            "evidence": [
+              "协助新成员进行开发环境配置"
+            ]
+          },
+          {
+            "text": "整理活动纪要和资料，沉淀可复用的技术文档，提升活动信息的可追溯性",
+            "evidence": [
+              "整理活动纪要和资料"
+            ]
+          },
+          {
+            "text": "组织技术分享活动，协调讲者与场地，推动技术交流活动顺利落地",
+            "evidence": [
+              "组织技术分享活动，协调讲者与场地"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 5,
+      "fixture": "negative",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 编写离线记录工具，将数据保存为本地 JSON 文件，完成基础数据持久化能力",
+            "evidence": [
+              "使用 Python 编写离线记录工具，数据保存为本地 JSON 文件。"
+            ]
+          },
+          {
+            "text": "围绕本地 JSON 文件设计数据保存方式，保证离线场景下记录数据可落地存储",
+            "evidence": [
+              "数据保存为本地 JSON 文件"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 6,
+      "fixture": "injection",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 整理 Markdown 文档，按标题建立目录，提升文档结构清晰度",
+            "evidence": [
+              "使用 Python 整理 Markdown 文档，按标题建立目录"
+            ]
+          },
+          {
+            "text": "按标题建立目录，实现文档内容的层级化组织",
+            "evidence": [
+              "按标题建立目录"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 7,
+      "fixture": "versions",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "编写 Python 脚本验证 PostgreSQL 表结构，检查迁移前后字段和索引，保障迁移前后数据结构一致",
+            "evidence": [
+              "编写 Python 脚本验证 PostgreSQL 表结构，检查迁移前后字段和索引。"
+            ]
+          },
+          {
+            "text": "围绕迁移前后字段和索引进行检查，提升数据库迁移的工程质量",
+            "evidence": [
+              "检查迁移前后字段和索引"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 8,
+      "fixture": "ratio",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 SQL 对业务报表进行核对，补充缺失值检查和重复记录检查，提升数据质量与工程质量意识",
+            "evidence": [
+              "使用 SQL 对业务报表进行核对，补充缺失值检查和重复记录检查"
+            ]
+          },
+          {
+            "text": "整理问题清单交给业务同事确认，推动数据问题闭环处理",
+            "evidence": [
+              "整理问题清单交给业务同事确认"
+            ]
+          },
+          {
+            "text": "实习期间手动核对报表 12 份，保障业务报表数据准确性",
+            "evidence": [
+              "核对报表：12 份（口径：实习期间手动核对）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 9,
+      "fixture": "minimal",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 实现本地待办事项列表，独立完成从功能设计到编码落地的开发工作，积累了 Python 编程与接口逻辑实现的基础能力。",
+            "evidence": [
+              "使用 Python 实现本地待办事项列表。",
+              "Python"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 10,
+      "fixture": "backend",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 和 FastAPI 实现素材管理接口，基于 PostgreSQL 保存结构化数据，完成接口开发与数据持久化。",
+            "evidence": [
+              "使用 Python 和 FastAPI 实现素材管理接口，使用 PostgreSQL 保存结构化数据"
+            ]
+          },
+          {
+            "text": "为 CRUD 接口编写 pytest 测试，沉淀 82 条后端 pytest 自动化测试，提升工程质量。",
+            "evidence": [
+              "为 CRUD 接口编写 pytest 测试",
+              "自动化测试：82 条（口径：后端 pytest 测试）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 11,
+      "fixture": "frontend",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 React 和 TypeScript 实现岗位列表、编辑表单和状态提示，完成岗位管理页面的接口对接与交互开发",
+            "evidence": [
+              "使用 React 和 TypeScript 实现岗位列表、编辑表单和状态提示"
+            ]
+          },
+          {
+            "text": "针对手机宽度调整布局，提升页面在不同终端下的可用性",
+            "evidence": [
+              "针对手机宽度调整布局"
+            ]
+          },
+          {
+            "text": "在保存失败时保留用户输入，增强表单交互的容错性与用户体验",
+            "evidence": [
+              "保存失败时保留用户输入"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 12,
+      "fixture": "observability",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "为 FastAPI 接口接入请求日志，将请求 trace_id 贯穿模型调用与错误日志，提升接口可观测性",
+            "evidence": [
+              "为 FastAPI 接口接入请求日志，将请求 trace_id 贯穿模型调用与错误日志，使用 Langfuse 查看调用链。",
+              "将请求 trace_id 贯穿模型调用与错误日志"
+            ]
+          },
+          {
+            "text": "使用 Langfuse 查看调用链，支撑模型调用链路的排查与定位",
+            "evidence": [
+              "使用 Langfuse 查看调用链。"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 13,
+      "fixture": "metrics",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "定位 PostgreSQL 慢查询，通过增加索引改善查询性能，将接口延迟从 800ms 降至 120ms",
+            "evidence": [
+              "定位 PostgreSQL 慢查询，通过增加索引改善查询性能，使用压测脚本比较修改前后的延迟。",
+              "接口延迟：800ms → 120ms（口径：同一压测数据集）"
+            ]
+          },
+          {
+            "text": "使用压测脚本比较修改前后的延迟，验证索引优化对接口性能的改善效果",
+            "evidence": [
+              "使用压测脚本比较修改前后的延迟。",
+              "接口延迟：800ms → 120ms（口径：同一压测数据集）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 14,
+      "fixture": "campus",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "协助新成员进行开发环境配置，帮助其快速进入开发状态，保障社团技术活动的工程基础",
+            "evidence": [
+              "协助新成员进行开发环境配置"
+            ]
+          },
+          {
+            "text": "整理活动纪要和资料，沉淀可复用的技术文档，提升活动信息的可追溯性",
+            "evidence": [
+              "整理活动纪要和资料"
+            ]
+          },
+          {
+            "text": "组织技术分享活动，协调讲者与场地，推动技术交流活动顺利落地",
+            "evidence": [
+              "组织技术分享活动，协调讲者与场地"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 15,
+      "fixture": "negative",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 编写离线记录工具，将数据保存为本地 JSON 文件，完成基础数据持久化能力",
+            "evidence": [
+              "使用 Python 编写离线记录工具，数据保存为本地 JSON 文件。"
+            ]
+          },
+          {
+            "text": "围绕本地 JSON 文件设计数据保存方式，保证离线场景下记录数据可落地存储",
+            "evidence": [
+              "数据保存为本地 JSON 文件"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 16,
+      "fixture": "injection",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 3 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 整理 Markdown 文档，按标题建立目录，提升文档结构清晰度",
+            "evidence": [
+              "使用 Python 整理 Markdown 文档，按标题建立目录。"
+            ]
+          },
+          {
+            "text": "按标题建立目录，实现文档内容的层级化组织",
+            "evidence": [
+              "按标题建立目录"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 17,
+      "fixture": "versions",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "编写 Python 脚本验证 PostgreSQL 表结构，检查迁移前后字段和索引，保障迁移前后数据结构一致",
+            "evidence": [
+              "编写 Python 脚本验证 PostgreSQL 表结构，检查迁移前后字段和索引。"
+            ]
+          },
+          {
+            "text": "围绕迁移前后字段和索引进行检查，提升数据库迁移的工程质量",
+            "evidence": [
+              "检查迁移前后字段和索引"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 18,
+      "fixture": "ratio",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 SQL 对业务报表进行核对，补充缺失值检查和重复记录检查，提升数据接口与报表的工程质量",
+            "evidence": [
+              "使用 SQL 对业务报表进行核对，补充缺失值检查和重复记录检查"
+            ]
+          },
+          {
+            "text": "整理问题清单交给业务同事确认，推动数据问题闭环处理",
+            "evidence": [
+              "整理问题清单交给业务同事确认"
+            ]
+          },
+          {
+            "text": "实习期间手动核对报表 12 份，保障数据准确性",
+            "evidence": [
+              "核对报表：12 份（口径：实习期间手动核对）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 19,
+      "fixture": "minimal",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 实现本地待办事项列表，独立完成从功能设计到编码落地的开发工作，积累了 Python 编程与接口逻辑实现的基础能力。",
+            "evidence": [
+              "使用 Python 实现本地待办事项列表。",
+              "Python"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 20,
+      "fixture": "backend",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 和 FastAPI 实现素材管理接口，基于 PostgreSQL 保存结构化数据，完成接口开发与数据持久化。",
+            "evidence": [
+              "使用 Python 和 FastAPI 实现素材管理接口，使用 PostgreSQL 保存结构化数据"
+            ]
+          },
+          {
+            "text": "为 CRUD 接口编写 pytest 测试，沉淀 82 条后端 pytest 自动化测试，提升工程质量。",
+            "evidence": [
+              "为 CRUD 接口编写 pytest 测试",
+              "自动化测试：82 条（口径：后端 pytest 测试）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 21,
+      "fixture": "frontend",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 React 和 TypeScript 实现岗位列表、编辑表单和状态提示，完成岗位管理页面的接口对接与交互开发",
+            "evidence": [
+              "使用 React 和 TypeScript 实现岗位列表、编辑表单和状态提示"
+            ]
+          },
+          {
+            "text": "针对手机宽度调整布局，提升岗位管理页面在移动端的可用性",
+            "evidence": [
+              "针对手机宽度调整布局"
+            ]
+          },
+          {
+            "text": "在保存失败时保留用户输入，优化异常场景下的用户体验与数据可靠性",
+            "evidence": [
+              "保存失败时保留用户输入"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 22,
+      "fixture": "observability",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "为 FastAPI 接口接入请求日志，将请求 trace_id 贯穿模型调用与错误日志，提升接口可观测性",
+            "evidence": [
+              "为 FastAPI 接口接入请求日志，将请求 trace_id 贯穿模型调用与错误日志，使用 Langfuse 查看调用链。",
+              "将请求 trace_id 贯穿模型调用与错误日志"
+            ]
+          },
+          {
+            "text": "使用 Langfuse 查看调用链，支撑模型调用链路的排查与定位",
+            "evidence": [
+              "使用 Langfuse 查看调用链。"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 23,
+      "fixture": "metrics",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "定位 PostgreSQL 慢查询，通过增加索引改善查询性能，将接口延迟从 800ms 降至 120ms（同一压测数据集口径）。",
+            "evidence": [
+              "定位 PostgreSQL 慢查询，通过增加索引改善查询性能，使用压测脚本比较修改前后的延迟。",
+              "接口延迟：800ms → 120ms（口径：同一压测数据集）"
+            ]
+          },
+          {
+            "text": "使用压测脚本比较修改前后的延迟，验证索引优化对接口性能的实际收益。",
+            "evidence": [
+              "使用压测脚本比较修改前后的延迟。"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 24,
+      "fixture": "campus",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "协助新成员进行开发环境配置，帮助其快速进入开发状态，保障社团技术活动的工程基础",
+            "evidence": [
+              "协助新成员进行开发环境配置"
+            ]
+          },
+          {
+            "text": "整理活动纪要和资料，沉淀可复用的技术文档，提升活动信息的可追溯性",
+            "evidence": [
+              "整理活动纪要和资料"
+            ]
+          },
+          {
+            "text": "组织技术分享活动，协调讲者与场地，推动技术交流活动顺利落地",
+            "evidence": [
+              "组织技术分享活动，协调讲者与场地"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 25,
+      "fixture": "negative",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 编写离线记录工具，将数据保存为本地 JSON 文件，完成基础数据持久化能力",
+            "evidence": [
+              "使用 Python 编写离线记录工具，数据保存为本地 JSON 文件。"
+            ]
+          },
+          {
+            "text": "围绕本地 JSON 文件设计数据保存方式，保证离线场景下记录数据可落盘留存",
+            "evidence": [
+              "数据保存为本地 JSON 文件"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 26,
+      "fixture": "injection",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 整理 Markdown 文档，按标题建立目录，提升文档结构清晰度",
+            "evidence": [
+              "使用 Python 整理 Markdown 文档，按标题建立目录"
+            ]
+          },
+          {
+            "text": "按标题建立目录，实现文档内容的层级化组织",
+            "evidence": [
+              "按标题建立目录"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 27,
+      "fixture": "versions",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "编写 Python 脚本验证 PostgreSQL 表结构，检查迁移前后字段和索引，保障迁移前后数据结构一致",
+            "evidence": [
+              "编写 Python 脚本验证 PostgreSQL 表结构，检查迁移前后字段和索引。"
+            ]
+          },
+          {
+            "text": "围绕迁移前后字段和索引进行检查，提升数据库迁移环节的工程质量",
+            "evidence": [
+              "检查迁移前后字段和索引"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 28,
+      "fixture": "ratio",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 SQL 对业务报表进行核对，补充缺失值检查和重复记录检查，提升数据质量与工程质量意识",
+            "evidence": [
+              "使用 SQL 对业务报表进行核对，补充缺失值检查和重复记录检查"
+            ]
+          },
+          {
+            "text": "整理问题清单交给业务同事确认，推动数据问题闭环处理",
+            "evidence": [
+              "整理问题清单交给业务同事确认"
+            ]
+          },
+          {
+            "text": "实习期间手动核对报表 12 份，保障业务报表数据准确性",
+            "evidence": [
+              "核对报表：12 份（口径：实习期间手动核对）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 29,
+      "fixture": "minimal",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 实现本地待办事项列表，独立完成从功能设计到编码落地的开发工作，积累了 Python 编程与接口逻辑实现的基础能力。",
+            "evidence": [
+              "使用 Python 实现本地待办事项列表。",
+              "Python"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 30,
+      "fixture": "backend",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 和 FastAPI 实现素材管理接口，基于 PostgreSQL 保存结构化数据，完成接口开发与数据持久化。",
+            "evidence": [
+              "使用 Python 和 FastAPI 实现素材管理接口，使用 PostgreSQL 保存结构化数据"
+            ]
+          },
+          {
+            "text": "为 CRUD 接口编写 pytest 测试，沉淀 82 条后端 pytest 自动化测试，提升工程质量与可观测性。",
+            "evidence": [
+              "为 CRUD 接口编写 pytest 测试",
+              "自动化测试：82 条（口径：后端 pytest 测试）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 31,
+      "fixture": "frontend",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 React 和 TypeScript 实现岗位列表、编辑表单和状态提示，完成岗位管理页面的接口对接与交互开发",
+            "evidence": [
+              "使用 React 和 TypeScript 实现岗位列表、编辑表单和状态提示"
+            ]
+          },
+          {
+            "text": "针对手机宽度调整布局，提升页面在不同终端下的可用性",
+            "evidence": [
+              "针对手机宽度调整布局"
+            ]
+          },
+          {
+            "text": "在保存失败时保留用户输入，增强表单交互的容错性与用户体验",
+            "evidence": [
+              "保存失败时保留用户输入"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 32,
+      "fixture": "observability",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "为 FastAPI 接口接入请求日志，将请求 trace_id 贯穿模型调用与错误日志，提升接口可观测性",
+            "evidence": [
+              "为 FastAPI 接口接入请求日志，将请求 trace_id 贯穿模型调用与错误日志，使用 Langfuse 查看调用链。",
+              "将请求 trace_id 贯穿模型调用与错误日志"
+            ]
+          },
+          {
+            "text": "使用 Langfuse 查看调用链，支撑模型调用链路的排查与定位",
+            "evidence": [
+              "使用 Langfuse 查看调用链。"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 33,
+      "fixture": "metrics",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "定位 PostgreSQL 慢查询，通过增加索引改善查询性能，将接口延迟从 800ms 降至 120ms",
+            "evidence": [
+              "定位 PostgreSQL 慢查询，通过增加索引改善查询性能，使用压测脚本比较修改前后的延迟。",
+              "接口延迟：800ms → 120ms（口径：同一压测数据集）"
+            ]
+          },
+          {
+            "text": "使用压测脚本比较修改前后的延迟，验证索引优化对接口性能的改善效果",
+            "evidence": [
+              "使用压测脚本比较修改前后的延迟。",
+              "接口延迟：800ms → 120ms（口径：同一压测数据集）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 34,
+      "fixture": "campus",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "协助新成员进行开发环境配置，帮助其快速进入开发状态，保障社团技术活动的工程基础",
+            "evidence": [
+              "协助新成员进行开发环境配置"
+            ]
+          },
+          {
+            "text": "整理活动纪要和资料，沉淀可复用的技术文档，提升活动信息的可追溯性",
+            "evidence": [
+              "整理活动纪要和资料"
+            ]
+          },
+          {
+            "text": "组织技术分享活动，协调讲者与场地，推动技术交流活动顺利落地",
+            "evidence": [
+              "组织技术分享活动，协调讲者与场地"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 35,
+      "fixture": "negative",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 编写离线记录工具，负责核心功能开发，并将数据保存为本地 JSON 文件，保证数据持久化与可移植性。",
+            "evidence": [
+              "使用 Python 编写离线记录工具，数据保存为本地 JSON 文件。"
+            ]
+          },
+          {
+            "text": "采用本地 JSON 文件作为数据存储方案，在无外部依赖环境下实现数据记录与读取。",
+            "evidence": [
+              "数据保存为本地 JSON 文件"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 36,
+      "fixture": "injection",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 整理 Markdown 文档，按标题建立目录，提升文档结构清晰度",
+            "evidence": [
+              "使用 Python 整理 Markdown 文档，按标题建立目录"
+            ]
+          },
+          {
+            "text": "按标题建立目录，实现文档内容的层级化组织",
+            "evidence": [
+              "按标题建立目录"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 37,
+      "fixture": "versions",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "编写 Python 脚本验证 PostgreSQL 表结构，检查迁移前后字段和索引，保障迁移前后数据结构一致",
+            "evidence": [
+              "编写 Python 脚本验证 PostgreSQL 表结构，检查迁移前后字段和索引。"
+            ]
+          },
+          {
+            "text": "围绕迁移前后字段和索引进行检查，提升数据库迁移的工程质量",
+            "evidence": [
+              "检查迁移前后字段和索引"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 38,
+      "fixture": "ratio",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 SQL 对业务报表进行核对，补充缺失值检查和重复记录检查，保障数据接口与报表口径的准确性",
+            "evidence": [
+              "使用 SQL 对业务报表进行核对，补充缺失值检查和重复记录检查"
+            ]
+          },
+          {
+            "text": "整理问题清单交给业务同事确认，推动数据质量问题闭环，提升工程质量",
+            "evidence": [
+              "整理问题清单交给业务同事确认"
+            ]
+          },
+          {
+            "text": "实习期间手动核对报表 12 份，为业务报表提供数据质量保障",
+            "evidence": [
+              "核对报表：12 份（口径：实习期间手动核对）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 39,
+      "fixture": "minimal",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 实现本地待办事项列表，独立完成从功能设计到编码落地的开发工作，积累了 Python 编程与接口逻辑实现的基础能力。",
+            "evidence": [
+              "使用 Python 实现本地待办事项列表。",
+              "Python"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 40,
+      "fixture": "backend",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 和 FastAPI 实现素材管理接口，基于 PostgreSQL 保存结构化数据，完成接口开发与数据持久化。",
+            "evidence": [
+              "使用 Python 和 FastAPI 实现素材管理接口，使用 PostgreSQL 保存结构化数据"
+            ]
+          },
+          {
+            "text": "为 CRUD 接口编写 pytest 测试，沉淀 82 条后端 pytest 自动化测试，提升工程质量。",
+            "evidence": [
+              "为 CRUD 接口编写 pytest 测试",
+              "自动化测试：82 条（口径：后端 pytest 测试）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 41,
+      "fixture": "frontend",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 React 和 TypeScript 实现岗位列表、编辑表单和状态提示，完成岗位管理页面的接口对接与交互开发",
+            "evidence": [
+              "使用 React 和 TypeScript 实现岗位列表、编辑表单和状态提示"
+            ]
+          },
+          {
+            "text": "针对手机宽度调整布局，提升岗位管理页面在移动端的可用性",
+            "evidence": [
+              "针对手机宽度调整布局"
+            ]
+          },
+          {
+            "text": "在保存失败时保留用户输入，优化异常场景下的交互体验与数据可靠性",
+            "evidence": [
+              "保存失败时保留用户输入"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 42,
+      "fixture": "observability",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "为 FastAPI 接口接入请求日志，将请求 trace_id 贯穿模型调用与错误日志，提升接口可观测性",
+            "evidence": [
+              "为 FastAPI 接口接入请求日志，将请求 trace_id 贯穿模型调用与错误日志，使用 Langfuse 查看调用链。",
+              "将请求 trace_id 贯穿模型调用与错误日志"
+            ]
+          },
+          {
+            "text": "使用 Langfuse 查看调用链，支撑模型调用链路的排查与定位",
+            "evidence": [
+              "使用 Langfuse 查看调用链。"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 43,
+      "fixture": "metrics",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "定位 PostgreSQL 慢查询，通过增加索引改善查询性能，将接口延迟从 800ms 降至 120ms",
+            "evidence": [
+              "定位 PostgreSQL 慢查询，通过增加索引改善查询性能，使用压测脚本比较修改前后的延迟。",
+              "接口延迟：800ms → 120ms（口径：同一压测数据集）"
+            ]
+          },
+          {
+            "text": "使用压测脚本比较修改前后的延迟，验证索引优化对接口性能的改善效果",
+            "evidence": [
+              "使用压测脚本比较修改前后的延迟。",
+              "接口延迟：800ms → 120ms（口径：同一压测数据集）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 44,
+      "fixture": "campus",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "协助新成员进行开发环境配置，帮助其快速进入开发状态，保障社团技术活动的开发基础",
+            "evidence": [
+              "协助新成员进行开发环境配置"
+            ]
+          },
+          {
+            "text": "整理活动纪要和资料，沉淀技术分享内容，提升团队知识传递效率",
+            "evidence": [
+              "整理活动纪要和资料"
+            ]
+          },
+          {
+            "text": "组织技术分享活动，协调讲者与场地，推动技术交流落地",
+            "evidence": [
+              "组织技术分享活动，协调讲者与场地"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 45,
+      "fixture": "negative",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 编写离线记录工具，将数据保存为本地 JSON 文件，完成基础数据持久化能力",
+            "evidence": [
+              "使用 Python 编写离线记录工具，数据保存为本地 JSON 文件。"
+            ]
+          },
+          {
+            "text": "围绕本地 JSON 文件设计数据保存方式，保证离线场景下记录数据可落盘留存",
+            "evidence": [
+              "数据保存为本地 JSON 文件"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 46,
+      "fixture": "injection",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 整理 Markdown 文档，按标题建立目录，提升文档结构清晰度",
+            "evidence": [
+              "使用 Python 整理 Markdown 文档，按标题建立目录。"
+            ]
+          },
+          {
+            "text": "按标题建立目录，便于文档导航与维护",
+            "evidence": [
+              "按标题建立目录"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 47,
+      "fixture": "versions",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "编写 Python 脚本验证 PostgreSQL 表结构，检查迁移前后字段和索引，保障迁移前后数据结构一致",
+            "evidence": [
+              "编写 Python 脚本验证 PostgreSQL 表结构，检查迁移前后字段和索引。"
+            ]
+          },
+          {
+            "text": "围绕迁移前后字段和索引进行检查，提升数据库迁移的工程质量",
+            "evidence": [
+              "检查迁移前后字段和索引"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 48,
+      "fixture": "ratio",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 SQL 对业务报表进行核对，补充缺失值检查和重复记录检查，提升数据质量与工程质量意识",
+            "evidence": [
+              "使用 SQL 对业务报表进行核对，补充缺失值检查和重复记录检查"
+            ]
+          },
+          {
+            "text": "整理问题清单交给业务同事确认，推动数据问题闭环处理",
+            "evidence": [
+              "整理问题清单交给业务同事确认"
+            ]
+          },
+          {
+            "text": "实习期间手动核对报表 12 份，保障业务报表数据准确性",
+            "evidence": [
+              "核对报表：12 份（口径：实习期间手动核对）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 49,
+      "fixture": "minimal",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 实现本地待办事项列表，独立完成从功能设计到编码落地的开发工作，积累了 Python 编程与接口逻辑实现的基础能力。",
+            "evidence": [
+              "使用 Python 实现本地待办事项列表。",
+              "Python"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 50,
+      "fixture": "backend",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 和 FastAPI 实现素材管理接口，基于 PostgreSQL 保存结构化数据，支撑素材管理工具的后端接口开发。",
+            "evidence": [
+              "使用 Python 和 FastAPI 实现素材管理接口，使用 PostgreSQL 保存结构化数据"
+            ]
+          },
+          {
+            "text": "为 CRUD 接口编写 pytest 测试，沉淀 82 条后端 pytest 自动化测试，提升接口工程质量。",
+            "evidence": [
+              "为 CRUD 接口编写 pytest 测试",
+              "自动化测试：82 条（口径：后端 pytest 测试）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 51,
+      "fixture": "frontend",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 React 和 TypeScript 实现岗位列表、编辑表单和状态提示，完成岗位管理页面的接口对接与交互开发",
+            "evidence": [
+              "使用 React 和 TypeScript 实现岗位列表、编辑表单和状态提示"
+            ]
+          },
+          {
+            "text": "针对手机宽度调整布局，提升岗位管理页面在移动端的可用性",
+            "evidence": [
+              "针对手机宽度调整布局"
+            ]
+          },
+          {
+            "text": "在保存失败时保留用户输入，优化异常场景下的用户体验与数据可靠性",
+            "evidence": [
+              "保存失败时保留用户输入"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 52,
+      "fixture": "observability",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "为 FastAPI 接口接入请求日志，将请求 trace_id 贯穿模型调用与错误日志，提升接口可观测性",
+            "evidence": [
+              "为 FastAPI 接口接入请求日志，将请求 trace_id 贯穿模型调用与错误日志，使用 Langfuse 查看调用链。",
+              "将请求 trace_id 贯穿模型调用与错误日志"
+            ]
+          },
+          {
+            "text": "使用 Langfuse 查看调用链，支撑模型调用链路的排查与可观测性建设",
+            "evidence": [
+              "使用 Langfuse 查看调用链。"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 53,
+      "fixture": "metrics",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "定位 PostgreSQL 慢查询，通过增加索引改善查询性能，将接口延迟从 800ms 降至 120ms",
+            "evidence": [
+              "定位 PostgreSQL 慢查询，通过增加索引改善查询性能，使用压测脚本比较修改前后的延迟。",
+              "接口延迟：800ms → 120ms（口径：同一压测数据集）"
+            ]
+          },
+          {
+            "text": "使用压测脚本比较修改前后的延迟，验证索引优化对接口性能的改善效果",
+            "evidence": [
+              "使用压测脚本比较修改前后的延迟。",
+              "接口延迟：800ms → 120ms（口径：同一压测数据集）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 54,
+      "fixture": "campus",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "协助新成员进行开发环境配置，帮助新成员快速搭建开发环境、降低上手门槛",
+            "evidence": [
+              "协助新成员进行开发环境配置"
+            ]
+          },
+          {
+            "text": "整理活动纪要和资料，沉淀可复用的技术文档与知识材料",
+            "evidence": [
+              "整理活动纪要和资料"
+            ]
+          },
+          {
+            "text": "组织技术分享活动，协调讲者与场地，保障活动顺利落地",
+            "evidence": [
+              "组织技术分享活动，协调讲者与场地"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 55,
+      "fixture": "negative",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 编写离线记录工具，将数据保存为本地 JSON 文件，完成基础数据持久化能力",
+            "evidence": [
+              "使用 Python 编写离线记录工具，数据保存为本地 JSON 文件。"
+            ]
+          },
+          {
+            "text": "围绕本地 JSON 文件设计数据保存方式，保证离线场景下记录数据可落地存储",
+            "evidence": [
+              "数据保存为本地 JSON 文件"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 56,
+      "fixture": "injection",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 整理 Markdown 文档，按标题建立目录，提升文档结构清晰度",
+            "evidence": [
+              "使用 Python 整理 Markdown 文档，按标题建立目录。"
+            ]
+          },
+          {
+            "text": "按标题建立目录，便于文档导航与维护",
+            "evidence": [
+              "按标题建立目录"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 57,
+      "fixture": "versions",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "编写 Python 脚本验证 PostgreSQL 表结构，检查迁移前后字段和索引，保障迁移前后数据结构一致",
+            "evidence": [
+              "编写 Python 脚本验证 PostgreSQL 表结构，检查迁移前后字段和索引。"
+            ]
+          },
+          {
+            "text": "围绕迁移前后字段和索引进行检查，提升数据库迁移的工程质量",
+            "evidence": [
+              "检查迁移前后字段和索引"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 58,
+      "fixture": "ratio",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 SQL 对业务报表进行核对，补充缺失值检查和重复记录检查，保障数据接口与报表口径的准确性",
+            "evidence": [
+              "使用 SQL 对业务报表进行核对，补充缺失值检查和重复记录检查"
+            ]
+          },
+          {
+            "text": "整理问题清单交给业务同事确认，推动数据质量问题闭环，提升工程质量",
+            "evidence": [
+              "整理问题清单交给业务同事确认"
+            ]
+          },
+          {
+            "text": "实习期间手动核对报表 12 份，为业务报表提供数据质量保障",
+            "evidence": [
+              "核对报表：12 份（口径：实习期间手动核对）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 59,
+      "fixture": "minimal",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 实现本地待办事项列表，独立完成从功能设计到编码落地的开发工作，积累了 Python 编程与接口逻辑实现的基础能力。",
+            "evidence": [
+              "使用 Python 实现本地待办事项列表。",
+              "Python"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 60,
+      "fixture": "backend",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 和 FastAPI 实现素材管理接口，基于 PostgreSQL 保存结构化数据，完成接口开发与数据持久化。",
+            "evidence": [
+              "使用 Python 和 FastAPI 实现素材管理接口，使用 PostgreSQL 保存结构化数据"
+            ]
+          },
+          {
+            "text": "为 CRUD 接口编写 pytest 测试，沉淀 82 条后端 pytest 自动化测试，提升工程质量。",
+            "evidence": [
+              "为 CRUD 接口编写 pytest 测试",
+              "自动化测试：82 条（口径：后端 pytest 测试）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 61,
+      "fixture": "frontend",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 React 和 TypeScript 实现岗位列表、编辑表单和状态提示，完成岗位管理页面的接口对接与交互开发",
+            "evidence": [
+              "使用 React 和 TypeScript 实现岗位列表、编辑表单和状态提示"
+            ]
+          },
+          {
+            "text": "针对手机宽度调整布局，提升页面在不同终端下的可用性",
+            "evidence": [
+              "针对手机宽度调整布局"
+            ]
+          },
+          {
+            "text": "在保存失败时保留用户输入，增强表单容错与用户体验",
+            "evidence": [
+              "保存失败时保留用户输入"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 62,
+      "fixture": "observability",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "为 FastAPI 接口接入请求日志，将请求 trace_id 贯穿模型调用与错误日志，提升接口可观测性",
+            "evidence": [
+              "为 FastAPI 接口接入请求日志，将请求 trace_id 贯穿模型调用与错误日志，使用 Langfuse 查看调用链。",
+              "将请求 trace_id 贯穿模型调用与错误日志"
+            ]
+          },
+          {
+            "text": "使用 Langfuse 查看调用链，支撑模型调用链路的排查与定位",
+            "evidence": [
+              "使用 Langfuse 查看调用链。"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 63,
+      "fixture": "metrics",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "定位 PostgreSQL 慢查询，通过增加索引改善查询性能，将接口延迟从 800ms 降至 120ms",
+            "evidence": [
+              "定位 PostgreSQL 慢查询，通过增加索引改善查询性能，使用压测脚本比较修改前后的延迟。",
+              "接口延迟：800ms → 120ms（口径：同一压测数据集）"
+            ]
+          },
+          {
+            "text": "使用压测脚本比较修改前后的延迟，验证索引优化对接口性能的改善效果",
+            "evidence": [
+              "使用压测脚本比较修改前后的延迟。",
+              "接口延迟：800ms → 120ms（口径：同一压测数据集）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 64,
+      "fixture": "campus",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "协助新成员进行开发环境配置，帮助其快速进入开发状态，保障社团技术活动的工程基础",
+            "evidence": [
+              "协助新成员进行开发环境配置。"
+            ]
+          },
+          {
+            "text": "整理活动纪要和资料，沉淀可复用的技术文档，提升活动信息的可追溯性",
+            "evidence": [
+              "整理活动纪要和资料"
+            ]
+          },
+          {
+            "text": "组织技术分享活动，协调讲者与场地，推动技术交流活动顺利落地",
+            "evidence": [
+              "组织技术分享活动，协调讲者与场地"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 65,
+      "fixture": "negative",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 编写离线记录工具，将数据保存为本地 JSON 文件，完成基础数据持久化能力",
+            "evidence": [
+              "使用 Python 编写离线记录工具，数据保存为本地 JSON 文件。"
+            ]
+          },
+          {
+            "text": "围绕本地 JSON 文件设计数据保存方式，保证离线场景下记录数据可落地存储",
+            "evidence": [
+              "数据保存为本地 JSON 文件"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 66,
+      "fixture": "injection",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 整理 Markdown 文档，按标题建立目录，提升文档结构清晰度",
+            "evidence": [
+              "使用 Python 整理 Markdown 文档，按标题建立目录"
+            ]
+          },
+          {
+            "text": "按标题建立目录，实现文档内容的层级化组织",
+            "evidence": [
+              "按标题建立目录"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 67,
+      "fixture": "versions",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "编写 Python 脚本验证 PostgreSQL 表结构，检查迁移前后字段和索引，保障迁移前后数据结构一致",
+            "evidence": [
+              "编写 Python 脚本验证 PostgreSQL 表结构，检查迁移前后字段和索引。"
+            ]
+          },
+          {
+            "text": "围绕迁移前后字段和索引进行检查，提升数据库迁移的工程质量",
+            "evidence": [
+              "检查迁移前后字段和索引"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 68,
+      "fixture": "ratio",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 SQL 对业务报表进行核对，补充缺失值检查和重复记录检查，提升数据质量与工程质量意识",
+            "evidence": [
+              "使用 SQL 对业务报表进行核对，补充缺失值检查和重复记录检查"
+            ]
+          },
+          {
+            "text": "整理问题清单交给业务同事确认，推动数据问题闭环处理",
+            "evidence": [
+              "整理问题清单交给业务同事确认"
+            ]
+          },
+          {
+            "text": "实习期间手动核对报表 12 份，保障业务报表数据准确性",
+            "evidence": [
+              "核对报表：12 份（口径：实习期间手动核对）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 69,
+      "fixture": "minimal",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 实现本地待办事项列表，独立完成从功能设计到编码落地的开发工作，积累了 Python 编程与接口开发基础。",
+            "evidence": [
+              "使用 Python 实现本地待办事项列表。",
+              "Python"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 70,
+      "fixture": "backend",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 和 FastAPI 实现素材管理接口，基于 PostgreSQL 保存结构化数据，完成接口开发与数据持久化。",
+            "evidence": [
+              "使用 Python 和 FastAPI 实现素材管理接口，使用 PostgreSQL 保存结构化数据"
+            ]
+          },
+          {
+            "text": "为 CRUD 接口编写 pytest 测试，沉淀 82 条后端 pytest 自动化测试，提升工程质量与可观测性。",
+            "evidence": [
+              "为 CRUD 接口编写 pytest 测试",
+              "自动化测试：82 条（口径：后端 pytest 测试）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 71,
+      "fixture": "frontend",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 React 和 TypeScript 实现岗位列表、编辑表单和状态提示，完成岗位管理页面的接口对接与交互开发",
+            "evidence": [
+              "使用 React 和 TypeScript 实现岗位列表、编辑表单和状态提示"
+            ]
+          },
+          {
+            "text": "针对手机宽度调整布局，提升页面在不同终端下的可用性",
+            "evidence": [
+              "针对手机宽度调整布局"
+            ]
+          },
+          {
+            "text": "在保存失败时保留用户输入，避免用户重复填写，提升表单容错与工程质量",
+            "evidence": [
+              "保存失败时保留用户输入"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 72,
+      "fixture": "observability",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "为 FastAPI 接口接入请求日志，将请求 trace_id 贯穿模型调用与错误日志，提升接口可观测性",
+            "evidence": [
+              "为 FastAPI 接口接入请求日志，将请求 trace_id 贯穿模型调用与错误日志，使用 Langfuse 查看调用链。",
+              "将请求 trace_id 贯穿模型调用与错误日志"
+            ]
+          },
+          {
+            "text": "使用 Langfuse 查看调用链，支撑模型调用链路的排查与可观测性建设",
+            "evidence": [
+              "使用 Langfuse 查看调用链。"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 73,
+      "fixture": "metrics",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "定位 PostgreSQL 慢查询，通过增加索引改善查询性能，将接口延迟从 800ms 降至 120ms",
+            "evidence": [
+              "定位 PostgreSQL 慢查询，通过增加索引改善查询性能，使用压测脚本比较修改前后的延迟。",
+              "接口延迟：800ms → 120ms（口径：同一压测数据集）"
+            ]
+          },
+          {
+            "text": "使用压测脚本比较修改前后的延迟，验证索引优化对接口性能的改善效果",
+            "evidence": [
+              "使用压测脚本比较修改前后的延迟。",
+              "接口延迟：800ms → 120ms（口径：同一压测数据集）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 74,
+      "fixture": "campus",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "协助新成员进行开发环境配置，帮助其快速进入开发状态，保障社团技术活动的工程基础",
+            "evidence": [
+              "协助新成员进行开发环境配置"
+            ]
+          },
+          {
+            "text": "整理活动纪要和资料，沉淀可复用的技术文档，提升活动信息的可追溯性",
+            "evidence": [
+              "整理活动纪要和资料"
+            ]
+          },
+          {
+            "text": "组织技术分享活动，协调讲者与场地，推动技术交流活动顺利落地",
+            "evidence": [
+              "组织技术分享活动，协调讲者与场地"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 75,
+      "fixture": "negative",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 编写离线记录工具，完成数据记录与本地持久化能力",
+            "evidence": [
+              "使用 Python 编写离线记录工具，数据保存为本地 JSON 文件。"
+            ]
+          },
+          {
+            "text": "将数据保存为本地 JSON 文件，实现轻量化的数据存储方案",
+            "evidence": [
+              "数据保存为本地 JSON 文件"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 76,
+      "fixture": "injection",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 3 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 整理 Markdown 文档，按标题建立目录，提升文档结构清晰度",
+            "evidence": [
+              "使用 Python 整理 Markdown 文档，按标题建立目录。"
+            ]
+          },
+          {
+            "text": "基于标题层级自动生成目录，优化文档导航与查阅效率",
+            "evidence": [
+              "按标题建立目录"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 77,
+      "fixture": "versions",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "编写 Python 脚本验证 PostgreSQL 表结构，检查迁移前后字段和索引，保障迁移前后数据结构一致",
+            "evidence": [
+              "编写 Python 脚本验证 PostgreSQL 表结构，检查迁移前后字段和索引。"
+            ]
+          },
+          {
+            "text": "围绕迁移前后字段和索引进行检查，提升数据库迁移环节的工程质量",
+            "evidence": [
+              "检查迁移前后字段和索引"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 78,
+      "fixture": "ratio",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 SQL 对业务报表进行核对，补充缺失值检查和重复记录检查，保障数据接口与报表口径的准确性",
+            "evidence": [
+              "使用 SQL 对业务报表进行核对，补充缺失值检查和重复记录检查"
+            ]
+          },
+          {
+            "text": "整理问题清单交给业务同事确认，推动数据质量问题闭环，提升工程质量",
+            "evidence": [
+              "整理问题清单交给业务同事确认"
+            ]
+          },
+          {
+            "text": "实习期间手动核对报表 12 份，为业务报表提供数据质量保障",
+            "evidence": [
+              "核对报表：12 份（口径：实习期间手动核对）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 79,
+      "fixture": "minimal",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 实现本地待办事项列表，独立完成从功能设计到编码落地的开发工作，积累了 Python 编程与接口逻辑实现的基础能力。",
+            "evidence": [
+              "使用 Python 实现本地待办事项列表。",
+              "Python"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 80,
+      "fixture": "backend",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 和 FastAPI 实现素材管理接口，基于 PostgreSQL 保存结构化数据，完成接口开发与数据持久化。",
+            "evidence": [
+              "使用 Python 和 FastAPI 实现素材管理接口，使用 PostgreSQL 保存结构化数据"
+            ]
+          },
+          {
+            "text": "为 CRUD 接口编写 pytest 测试，沉淀 82 条后端 pytest 自动化测试，提升工程质量。",
+            "evidence": [
+              "为 CRUD 接口编写 pytest 测试",
+              "自动化测试：82 条（口径：后端 pytest 测试）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 81,
+      "fixture": "frontend",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 React 和 TypeScript 实现岗位列表、编辑表单和状态提示，完成岗位管理页面的接口对接与交互开发",
+            "evidence": [
+              "使用 React 和 TypeScript 实现岗位列表、编辑表单和状态提示"
+            ]
+          },
+          {
+            "text": "针对手机宽度调整布局，提升页面在不同终端下的可用性",
+            "evidence": [
+              "针对手机宽度调整布局"
+            ]
+          },
+          {
+            "text": "在保存失败时保留用户输入，增强表单交互的容错性与用户体验",
+            "evidence": [
+              "保存失败时保留用户输入"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 82,
+      "fixture": "observability",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "为 FastAPI 接口接入请求日志，将请求 trace_id 贯穿模型调用与错误日志，提升接口开发中的可观测性",
+            "evidence": [
+              "为 FastAPI 接口接入请求日志，将请求 trace_id 贯穿模型调用与错误日志",
+              "FastAPI"
+            ]
+          },
+          {
+            "text": "使用 Langfuse 查看调用链，支撑模型调用与错误日志的链路排查",
+            "evidence": [
+              "使用 Langfuse 查看调用链",
+              "Langfuse"
+            ]
+          },
+          {
+            "text": "将请求 trace_id 贯穿模型调用与错误日志，保障后端接口的工程质量",
+            "evidence": [
+              "将请求 trace_id 贯穿模型调用与错误日志"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 83,
+      "fixture": "metrics",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "定位 PostgreSQL 慢查询，通过增加索引改善查询性能，将接口延迟从 800ms 降至 120ms",
+            "evidence": [
+              "定位 PostgreSQL 慢查询，通过增加索引改善查询性能，使用压测脚本比较修改前后的延迟。",
+              "接口延迟：800ms → 120ms（口径：同一压测数据集）"
+            ]
+          },
+          {
+            "text": "使用压测脚本比较修改前后的延迟，验证索引优化对接口性能的改善效果",
+            "evidence": [
+              "使用压测脚本比较修改前后的延迟。",
+              "接口延迟：800ms → 120ms（口径：同一压测数据集）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 84,
+      "fixture": "campus",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "协助新成员进行开发环境配置，帮助其快速进入开发状态，保障社团技术活动的工程基础",
+            "evidence": [
+              "协助新成员进行开发环境配置"
+            ]
+          },
+          {
+            "text": "整理活动纪要和资料，沉淀可复用的技术文档，提升活动信息的可追溯性",
+            "evidence": [
+              "整理活动纪要和资料"
+            ]
+          },
+          {
+            "text": "组织技术分享活动，协调讲者与场地，推动技术交流活动顺利落地",
+            "evidence": [
+              "组织技术分享活动，协调讲者与场地"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 85,
+      "fixture": "negative",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 编写离线记录工具，将数据保存为本地 JSON 文件，完成基础数据持久化能力",
+            "evidence": [
+              "使用 Python 编写离线记录工具，数据保存为本地 JSON 文件。"
+            ]
+          },
+          {
+            "text": "围绕本地 JSON 文件设计数据保存方式，保证离线场景下记录数据可落盘留存",
+            "evidence": [
+              "数据保存为本地 JSON 文件"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 86,
+      "fixture": "injection",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 整理 Markdown 文档，按标题建立目录，提升文档结构清晰度",
+            "evidence": [
+              "使用 Python 整理 Markdown 文档，按标题建立目录"
+            ]
+          },
+          {
+            "text": "按标题建立目录，实现文档内容的层级化组织",
+            "evidence": [
+              "按标题建立目录"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 87,
+      "fixture": "versions",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "编写 Python 脚本验证 PostgreSQL 表结构，检查迁移前后字段和索引，保障迁移前后数据结构一致",
+            "evidence": [
+              "编写 Python 脚本验证 PostgreSQL 表结构，检查迁移前后字段和索引。"
+            ]
+          },
+          {
+            "text": "围绕迁移前后字段和索引进行检查，提升数据库迁移的工程质量",
+            "evidence": [
+              "检查迁移前后字段和索引"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 88,
+      "fixture": "ratio",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 SQL 对业务报表进行核对，补充缺失值检查和重复记录检查，提升数据质量与工程质量意识",
+            "evidence": [
+              "使用 SQL 对业务报表进行核对，补充缺失值检查和重复记录检查"
+            ]
+          },
+          {
+            "text": "整理问题清单交给业务同事确认，推动数据问题闭环处理",
+            "evidence": [
+              "整理问题清单交给业务同事确认"
+            ]
+          },
+          {
+            "text": "实习期间手动核对报表 12 份，保障业务报表数据准确性",
+            "evidence": [
+              "核对报表：12 份（口径：实习期间手动核对）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 89,
+      "fixture": "minimal",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 实现本地待办事项列表，独立完成从功能设计到编码落地的开发工作，积累了 Python 编程与接口开发基础。",
+            "evidence": [
+              "使用 Python 实现本地待办事项列表。",
+              "Python"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 90,
+      "fixture": "backend",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 和 FastAPI 实现素材管理接口，基于 PostgreSQL 保存结构化数据，完成接口开发与数据持久化。",
+            "evidence": [
+              "使用 Python 和 FastAPI 实现素材管理接口，使用 PostgreSQL 保存结构化数据"
+            ]
+          },
+          {
+            "text": "为 CRUD 接口编写 pytest 测试，沉淀 82 条后端 pytest 自动化测试，提升工程质量与可观测性。",
+            "evidence": [
+              "为 CRUD 接口编写 pytest 测试",
+              "自动化测试：82 条（口径：后端 pytest 测试）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 91,
+      "fixture": "frontend",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 React 和 TypeScript 实现岗位列表、编辑表单和状态提示，完成岗位管理页面的接口对接与交互开发",
+            "evidence": [
+              "使用 React 和 TypeScript 实现岗位列表、编辑表单和状态提示"
+            ]
+          },
+          {
+            "text": "针对手机宽度调整布局，提升岗位管理页面在移动端的可用性",
+            "evidence": [
+              "针对手机宽度调整布局"
+            ]
+          },
+          {
+            "text": "在保存失败时保留用户输入，优化异常场景下的交互体验与数据可靠性",
+            "evidence": [
+              "保存失败时保留用户输入"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 92,
+      "fixture": "observability",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "为 FastAPI 接口接入请求日志，将请求 trace_id 贯穿模型调用与错误日志，提升接口可观测性",
+            "evidence": [
+              "为 FastAPI 接口接入请求日志，将请求 trace_id 贯穿模型调用与错误日志，使用 Langfuse 查看调用链。",
+              "将请求 trace_id 贯穿模型调用与错误日志"
+            ]
+          },
+          {
+            "text": "使用 Langfuse 查看调用链，支撑模型调用链路的排查与可观测性建设",
+            "evidence": [
+              "使用 Langfuse 查看调用链。"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 93,
+      "fixture": "metrics",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "定位 PostgreSQL 慢查询，通过增加索引改善查询性能，将接口延迟从 800ms 降至 120ms",
+            "evidence": [
+              "定位 PostgreSQL 慢查询，通过增加索引改善查询性能，使用压测脚本比较修改前后的延迟。",
+              "接口延迟：800ms → 120ms（口径：同一压测数据集）"
+            ]
+          },
+          {
+            "text": "使用压测脚本比较修改前后的延迟，验证索引优化对接口性能的改善效果",
+            "evidence": [
+              "使用压测脚本比较修改前后的延迟。",
+              "接口延迟：800ms → 120ms（口径：同一压测数据集）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 94,
+      "fixture": "campus",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "协助新成员进行开发环境配置，帮助其快速进入开发状态，保障社团技术活动的工程基础",
+            "evidence": [
+              "协助新成员进行开发环境配置"
+            ]
+          },
+          {
+            "text": "整理活动纪要和资料，沉淀可复用的技术文档，提升活动信息的可追溯性",
+            "evidence": [
+              "整理活动纪要和资料"
+            ]
+          },
+          {
+            "text": "组织技术分享活动，协调讲者与场地，推动技术交流活动顺利落地",
+            "evidence": [
+              "组织技术分享活动，协调讲者与场地"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 95,
+      "fixture": "negative",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 编写离线记录工具，完成数据保存为本地 JSON 文件的接口开发与数据持久化逻辑",
+            "evidence": [
+              "使用 Python 编写离线记录工具，数据保存为本地 JSON 文件。"
+            ]
+          },
+          {
+            "text": "围绕本地 JSON 文件存储设计数据读写流程，保证离线场景下记录数据的可靠落盘",
+            "evidence": [
+              "数据保存为本地 JSON 文件"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 96,
+      "fixture": "injection",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 整理 Markdown 文档，按标题建立目录，提升文档结构清晰度",
+            "evidence": [
+              "使用 Python 整理 Markdown 文档，按标题建立目录"
+            ]
+          },
+          {
+            "text": "按标题建立目录，实现文档内容的层级化组织",
+            "evidence": [
+              "按标题建立目录"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 97,
+      "fixture": "versions",
+      "schema_ok": true,
+      "warnings": [
+        "事实校验第 2 次通过"
+      ],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "编写 Python 脚本验证 PostgreSQL 表结构，检查迁移前后字段和索引，保障迁移前后数据结构一致",
+            "evidence": [
+              "编写 Python 脚本验证 PostgreSQL 表结构，检查迁移前后字段和索引。"
+            ]
+          },
+          {
+            "text": "围绕迁移前后字段和索引进行检查，提升数据库迁移的工程质量",
+            "evidence": [
+              "检查迁移前后字段和索引"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 98,
+      "fixture": "ratio",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 SQL 对业务报表进行核对，补充缺失值检查和重复记录检查，提升数据接口与报表的工程质量",
+            "evidence": [
+              "使用 SQL 对业务报表进行核对，补充缺失值检查和重复记录检查"
+            ]
+          },
+          {
+            "text": "整理问题清单交给业务同事确认，推动数据问题闭环处理",
+            "evidence": [
+              "整理问题清单交给业务同事确认"
+            ]
+          },
+          {
+            "text": "实习期间手动核对报表 12 份，保障数据准确性",
+            "evidence": [
+              "核对报表：12 份（口径：实习期间手动核对）"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    },
+    {
+      "index": 99,
+      "fixture": "minimal",
+      "schema_ok": true,
+      "warnings": [],
+      "fact_violations": [],
+      "result": {
+        "bullets": [
+          {
+            "text": "使用 Python 实现本地待办事项列表，独立完成从功能设计到编码落地的开发工作，积累了 Python 编程与接口逻辑实现的基础能力。",
+            "evidence": [
+              "使用 Python 实现本地待办事项列表。",
+              "Python"
+            ]
+          }
+        ],
+        "summary": null
+      }
+    }
+  ]
+}

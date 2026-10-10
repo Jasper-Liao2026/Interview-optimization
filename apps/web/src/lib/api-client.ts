@@ -171,6 +171,12 @@ export const api = {
     apiGet<ExperienceListResponse>({ path: `${env.apiPrefix}/experiences`, ...opts }),
   generateResume: (body: GenerateRequest, opts?: Omit<RequestOptions, "path">) =>
     apiPost<GenerateResponse>({ path: `${env.apiPrefix}/resumes/generate`, ...opts }, body),
+  getGenerationRun: (runId: string, opts?: Omit<RequestOptions, "path">) =>
+    apiGet<GenerateResponse>({ path: `${env.apiPrefix}/resumes/runs/${runId}`, ...opts }),
+  resumeGenerationRun: (runId: string, opts?: Omit<RequestOptions, "path">) =>
+    apiPost<GenerateResponse>({ path: `${env.apiPrefix}/resumes/runs/${runId}/resume`, ...opts }, {}),
+  retryGenerationItem: (runId: string, index: number, opts?: Omit<RequestOptions, "path">) =>
+    apiPost<GenerateResponse>({ path: `${env.apiPrefix}/resumes/runs/${runId}/retry/${index}`, ...opts }, {}),
 
   // --- M2 素材库 CRUD ---
   getExperience: (id: string, opts?: Omit<RequestOptions, "path">) =>

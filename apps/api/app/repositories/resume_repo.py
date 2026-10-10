@@ -30,13 +30,16 @@ class ResumeRepository:
         header: dict[str, Any],
         sections: list[dict[str, Any]],
         generator: str | None,
+        resume_id: UUID | None = None,
     ) -> dict[str, Any]:
         async with self._db.connection() as conn:
             row = await conn.fetchrow(
                 f"""
                 insert into public.resumes
-                  (user_id, jd_id, title, template, header, sections, generator)
-                values ($1, $2, $3, $4, $5, $6, $7)
+                  (id, user_id, jd_id, title, template, header, sections, generator)
+                values (coalesce($8, gen_random_uuid()), $1, $2, $3, $4, $5, $6, $7)
+                on conflict(id) do update set sections=excluded.sections,updated_at=now()
+                  where resumes.user_id=excluded.user_id
                 returning {_COLUMNS}
                 """,
                 user_id,
@@ -46,6 +49,7 @@ class ResumeRepository:
                 header,
                 sections,
                 generator,
+                resume_id,
             )
         assert row is not None
         logger.info("resume created id=%s sections=%s", row["id"], len(sections))

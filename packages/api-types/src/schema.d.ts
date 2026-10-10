@@ -219,11 +219,60 @@ export interface paths {
         put?: never;
         /**
          * 按 JD 生成一份简历
-         * @description M1 垂直切片的入口：解析 JD → 逐条改写经历（**串行**，并行是 M4-3）→ 组装 → 落库。
-         *
-         *     同一批经历的改写共用同一份岗位画像，但每次改写是独立调用 —— 为 M4 的 fan-out 并行留好了接口形状。
+         * @description LangGraph 并行改写、事实校验、失败隔离与幂等落库。
          */
         post: operations["generate_resume_api_v1_resumes_generate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取生成任务 */
+        get: operations["get_generation_run_api_v1_resumes_runs__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes/runs/{run_id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 恢复中断的生成任务 */
+        post: operations["resume_generation_run_api_v1_resumes_runs__run_id__resume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes/runs/{run_id}/retry/{index}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 重试失败条目 */
+        post: operations["retry_generation_item_api_v1_resumes_runs__run_id__retry__index__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -725,6 +774,11 @@ export interface components {
              */
             persist: boolean;
             /**
+             * Run Id
+             * @description 可由客户端指定，用于幂等生成和恢复
+             */
+            run_id?: string | null;
+            /**
              * Title
              * @description 简历标题；留空则由岗位名推导
              */
@@ -735,8 +789,13 @@ export interface components {
          * @description 一次生成的结果。
          */
         GenerateResponse: {
+            checkpoint: components["schemas"]["GenerationCheckpointRead"];
+            /** Failures */
+            failures: components["schemas"]["GenerationFailure"][];
             /** Is Stub */
             is_stub: boolean;
+            /** Items */
+            items: components["schemas"]["GenerationItem"][];
             /** Model */
             model: string;
             /**
@@ -754,6 +813,11 @@ export interface components {
             /** Provider */
             provider: string;
             resume: components["schemas"]["ResumeRead"];
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
             /** Trace Id */
             trace_id: string;
             /**
@@ -761,6 +825,63 @@ export interface components {
              * @description 生成过程中的降级提示（stub、截断、JSON 重试等）
              */
             warnings: string[];
+        };
+        /** GenerationCheckpointRead */
+        GenerationCheckpointRead: {
+            /**
+             * Backend
+             * @enum {string}
+             */
+            backend: "postgres" | "memory";
+            /** Resumable */
+            resumable: boolean;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "running" | "completed" | "partial" | "failed";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** GenerationFailure */
+        GenerationFailure: {
+            /** Details */
+            details?: string[];
+            /** Error */
+            error: string;
+            /**
+             * Experience Id
+             * Format: uuid
+             */
+            experience_id: string;
+            /** Index */
+            index: number;
+            /**
+             * Retryable
+             * @default true
+             */
+            retryable: boolean;
+        };
+        /** GenerationItem */
+        GenerationItem: {
+            entry?: components["schemas"]["ResumeEntry"] | null;
+            /**
+             * Experience Id
+             * Format: uuid
+             */
+            experience_id: string;
+            /** Index */
+            index: number;
+            /** Org */
+            org: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "succeeded" | "failed";
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1874,6 +1995,100 @@ export interface operations {
                 "application/json": components["schemas"]["GenerateRequest"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_generation_run_api_v1_resumes_runs__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resume_generation_run_api_v1_resumes_runs__run_id__resume_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_generation_item_api_v1_resumes_runs__run_id__retry__index__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+                index: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

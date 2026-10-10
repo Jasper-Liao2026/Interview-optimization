@@ -2,7 +2,7 @@
 
 > 2026-10-10 · 对应 M3-1 至 M3-6
 >
-> 后端测试：211 passed；M3 真实 API/Postgres 验收：20 passed；真实文本模型评测：10/10；浏览器流程、类型管线、构建与 lint 均通过。
+> M3 专项测试：125 passed；本轮真实 API/Postgres 验收：19 passed；真实文本模型评测：10/10；类型管线、构建与 lint 均通过。M3/M4 联合回归见 M4 总结。
 
 ## 1. 交付内容
 
@@ -53,8 +53,8 @@ embedding 客户端会校验返回顺序、数量、1536 维、有限数值和�
 
 | 检查 | 结果 |
 |---|---:|
-| `pytest` 全量 | 211 passed |
-| `node scripts/verify-m3.mjs`（stub API + 真实 Postgres） | 20 passed |
+| M3 专项 `pytest` | 125 passed |
+| `node scripts/verify-m3.mjs`（stub API + 真实 Postgres，本轮复验） | 19 passed |
 | `node scripts/verify-m1.mjs` | 13 passed |
 | `node scripts/verify-m2.mjs` | 16 passed |
 | `ruff check` / `ruff format --check` | 通过 |
@@ -89,3 +89,13 @@ pnpm eval:m3 --images --embeddings
 ```
 
 验收脚本只删除自己创建的 UUID；不会清空已有素材或 JD。
+
+## 6. M4 开始前的 M3 审核补充（2026-10-10）
+
+- 修复中文否定事实误判：`无 Python 开发经历`、`不使用 Python`、`不擅长 Python` 等不再算作技能覆盖；混合正反分句仍保留正面证据。
+- 同一要求若同时出现在必备技能、加分项、职责或业务域，矩阵只保留优先级最高的首次出现项，避免重复计分。
+- 视觉模型若返回只有空格或换行的 `raw_text`，结构化校验失败且不会落库。
+- embedding 响应在转换为 pgvector 的 float32 精度后还须有限且非零；溢出或下溢作为嵌入服务错误返回，而非数据库写入时 500。
+- 前端允许重新选择同一张截图；未解析岗位禁止进入生成；没有结构化要求的岗位仍可勾选素材。
+- 验收脚本改为检查本次创建的 UUID，避免并行生成或评测时全局 JD 数量变化造成误报；合并后为 19 项检查，均通过。
+- M3 专项测试 125 条通过；联合回归的后端全量测试、全仓 Ruff 与格式检查通过，最终测试数量见 [`M4-summary.md`](M4-summary.md)。

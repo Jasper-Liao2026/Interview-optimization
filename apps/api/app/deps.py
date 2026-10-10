@@ -7,6 +7,7 @@ from uuid import UUID
 
 from fastapi import Depends
 
+from app.agents.checkpoint import GenerationRunStore
 from app.agents.jd_parser import JdParser, get_jd_parser
 from app.agents.rewriter import ExperienceRewriter, get_experience_rewriter
 from app.config import Settings, get_settings
@@ -27,6 +28,8 @@ from app.services.matching import MatchingService
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 DatabaseDep = Annotated[Database, Depends(get_database)]
+
+
 LlmDep = Annotated[LlmClient, Depends(get_llm_client)]
 ObservabilityDep = Annotated[Observability, Depends(get_observability)]
 PdfDep = Annotated[PdfExporter, Depends(get_pdf_exporter)]
@@ -79,6 +82,7 @@ def get_generation_service(
     rewriter: RewriterDep,
     llm: LlmDep,
     observability: ObservabilityDep,
+    database: DatabaseDep,
 ) -> ResumeGenerationService:
     return ResumeGenerationService(
         settings=settings,
@@ -90,6 +94,7 @@ def get_generation_service(
         rewriter=rewriter,
         llm=llm,
         observability=observability,
+        runs=GenerationRunStore(database, database_url=settings.database_url),
     )
 
 

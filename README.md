@@ -2,13 +2,15 @@
 
 批量生产**岗位适配版简历**的工具。解决 BOSS 直聘海投时「一份简历打天下、逐份手改不可行」的问题。
 
-> 当前进度：**M0 / M1 / M2 已完成，M3 功能已交付**。M0 是脚手架（含 M0-8 Langfuse 观测），
+> 当前进度：**M0 / M1 / M2 / M4 已完成，M3 功能已交付并完成代码审核**。M0 是脚手架（含 M0-8 Langfuse 观测），
 > M1 是第一条端到端垂直切片 —— 「一条经历 + 一个 JD → 生成 → 预览 → 导出 PDF」，
 > M2 是**素材库** —— 经历条目的完整录入、编辑、分组浏览，量化结果与多版本表述；
-> M3 是 **JD 解析与匹配** —— 文本/截图输入、岗位管理、向量粗筛、事实证据矩阵与生成衔接。
+> M3 是 **JD 解析与匹配** —— 文本/截图输入、岗位管理、向量粗筛、事实证据矩阵与生成衔接；
+> M4 是 **并行改写** —— LangGraph 批量生成、Postgres 中断恢复、单条失败重试与事实追溯校验。
 > 验收：`node scripts/verify-m1.mjs` → 13 通过 / 0 失败 / 0 跳过；
-> `node scripts/verify-m2.mjs` → 16 通过 / 0 失败 / 0 跳过；M3 API/Postgres 验收 20 通过。
+> `node scripts/verify-m2.mjs` → 16 通过 / 0 失败 / 0 跳过；本轮 M3 API/Postgres 验收 19 通过，M4 验收 14 通过。
 > 真实文本 JD 评测 10/10；真实截图与语义向量质量待配置模型后验收，见 [`M3 总结`](docs/M3-summary.md)。
+> M4 真实改写评测 100/100 通过结构与事实规则，范围与边界见 [`M4 总结`](docs/M4-summary.md)。
 > 任务全貌见 [`tasks.md`](tasks.md)，选型依据见 [`docs/tech-stack.md`](docs/tech-stack.md)。
 >
 > **定位**：本地自托管的开源工具 —— 不提供线上服务，**不上线**；单机单用户，数据只存在你自己机器上。
@@ -21,7 +23,7 @@
 |---|---|---|
 | 前端 | Next.js 15 App Router + TypeScript + Tailwind v4 | UI 渲染、消费流式响应 |
 | 后端 | FastAPI + Python 3.12（uv 管依赖） | **全部业务逻辑** |
-| Agent 编排 | LangGraph（M4 起） | StateGraph、Checkpointer、interrupt |
+| Agent 编排 | LangGraph | StateGraph 并行改写、Postgres Checkpointer；人工 interrupt 在 M6 |
 | 数据 | 本地 Postgres 16 + pgvector（Docker，无外部依赖） | 业务数据、向量检索 |
 | 观测 | Langfuse（M0-8 起） | trace、dataset、LLM-as-judge |
 | 本地编排 | docker compose | web + api + postgres |
@@ -54,15 +56,21 @@ pnpm api:dev          # 后端 http://localhost:8000（热重载）
 pnpm web              # 前端 http://localhost:3000（热重载）
 ```
 
+Windows 后端启动入口使用 Selector 事件循环以兼容 psycopg。需要不带热重载运行时，在 `apps/api` 目录执行：
+
+```powershell
+.venv/Scripts/python.exe -m app.server --host 127.0.0.1 --port 8000
+```
+
 打开 <http://localhost:3000> 应看到 **M0 自检台**：三段链路（Next.js → FastAPI → Postgres）状态，以及 `service_meta` 表里的数据。
 导航栏提供以下入口：
 
 - **`/library`** —— M2 的素材库：新增 / 编辑 / 删除经历条目，按实习 · 项目 · 校园分组浏览；
   每条可填「量化结果」（指标名 / 数值 / 口径）与「多版本表述」（同一经历按岗位方向存多份写法）。
-- **`/generate`** —— M1 的生成页：粘 JD、勾经历、生成、iframe 预览、导出 PDF。
+- **`/generate`** —— 粘 JD、勾经历、并行生成、iframe 预览、导出 PDF；刷新后读取上次任务、恢复中断任务、重试失败条目。
 - **`/jobs`** —— M3 的岗位匹配页：文本/截图解析、JD 管理、匹配矩阵、事实证据与缺口；勾选经历后进入生成。
 
-### 已有数据库升级到 M3
+### 已有数据库升级到 M4
 
 初始化 SQL 只在数据库卷为空时执行。已有 M2 数据库执行下面的增量迁移，保留现有数据：
 
@@ -72,6 +80,15 @@ docker exec resume-postgres psql -U postgres -d resume_optimizer -v ON_ERROR_STO
 ```
 
 若数据库仍停留在 M1，先以同样方式执行 `20261010000000_m2_library.sql`，再执行 M3。
+
+已有 M3 数据库继续执行 M4 迁移：
+
+```bash
+docker cp supabase/migrations/20261012000000_m4_generation.sql resume-postgres:/tmp/m4-generation.sql
+docker exec resume-postgres psql -U postgres -d resume_optimizer -v ON_ERROR_STOP=1 -f /tmp/m4-generation.sql
+```
+
+LangGraph checkpoint 表在首次生成时自动初始化；恢复任务要求保留数据库卷。升级依赖后重启 API。
 
 ### 文本、截图和语义向量模型
 
@@ -104,8 +121,9 @@ pnpm stack:down
 | `pnpm typecheck` | 全仓 TS 类型检查 |
 | `pnpm gen:types` | 刷新前端接口类型（**改完 Pydantic 必跑**） |
 | `pnpm db:reset` | 重建 postgres 卷并重放 migration |
-| `pnpm verify:m0` / `pnpm verify:m1` / `pnpm verify:m2` / `pnpm verify:m3` | 一键复现对应里程碑的验收结论 |
+| `pnpm verify:m0` / `pnpm verify:m1` / `pnpm verify:m2` / `pnpm verify:m3` / `pnpm verify:m4` | 一键复现对应里程碑的验收结论 |
 | `pnpm eval:m3` | 真实文本模型 10 份 JD 评测；加 `--images --embeddings` 验收视觉与语义服务 |
+| `pnpm eval:m4 --samples 100 --concurrency 4` | 使用真实文本模型评测改写 schema 与事实规则，输出 `docs/M4-eval.json` |
 
 ---
 
@@ -120,7 +138,7 @@ resume-optimizer/
 │   │       └── lib/             # env / 类型化 API 客户端
 │   └── api/                     # FastAPI：业务逻辑 + agent 编排
 │       ├── app/
-│       │   ├── agents/          # JD 解析 / 改写 / 组装（M4 搬进 LangGraph）
+│       │   ├── agents/          # JD 解析 / LangGraph 并行改写 / 事实校验 / checkpoint
 │       │   ├── llm/             # LLM 调用层（stub + OpenAI 兼容）
 │       │   ├── observability/   # Langfuse 接入（可降级）
 │       │   ├── pdf/             # 无头 Chromium 导出（M1-6）
@@ -141,7 +159,7 @@ resume-optimizer/
 │   ├── migrations/              # 表结构变更的唯一来源
 │   └── seed.sql
 ├── scripts/                     # 根级工程脚本（Node，跨平台）
-├── docs/                        # tech-stack / M0·M1·M2·M3 总结 / PDF 方案对比
+├── docs/                        # tech-stack / M0–M4 总结 / 模型评测 / PDF 方案对比
 └── docker-compose.yml
 ```
 
@@ -170,4 +188,5 @@ resume-optimizer/
 | [`docs/M1-summary.md`](docs/M1-summary.md) | **M1 交付总结**：垂直切片、验收数据、踩坑记录、面试要点 |
 | [`docs/M2-summary.md`](docs/M2-summary.md) | **M2 交付总结**：素材库、量化结果与多版本表述的建模动机、PUT 语义取舍 |
 | [`docs/M3-summary.md`](docs/M3-summary.md) | **M3 交付总结**：JD 管理、截图协议、事实匹配与向量缓存、验收边界 |
+| [`docs/M4-summary.md`](docs/M4-summary.md) | **M4 交付总结**：并行编排、Postgres 恢复、单条重试、事实规则与真实模型评测 |
 | [`docs/M1-pdf-export-comparison.md`](docs/M1-pdf-export-comparison.md) | PDF 导出三方案对比：四维矩阵 + 量化证据 + 复现命令 |

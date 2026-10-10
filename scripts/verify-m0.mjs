@@ -193,4 +193,4 @@ const fail = results.filter((r) => r.status === "FAIL").length;
 const skip = results.filter((r) => r.status === "SKIP").length;
 
 console.log(`\n=== 汇总：${pass} 通过 / ${fail} 失败 / ${skip} 跳过 ===\n`);
-process.exit(fail > 0 ? 1 : 0);
+process.exitCode = fail > 0 ? 1 : 0;

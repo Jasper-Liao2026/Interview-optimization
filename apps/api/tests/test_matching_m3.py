@@ -8,7 +8,7 @@ import pytest
 from app.config import Settings
 from app.llm.embeddings import EmbeddingClient
 from app.schemas.jd import JobProfile
-from app.services.matching import MatchingService, evidence_for
+from app.services.matching import MatchingService, evidence_for, requirements_for
 from tests.fakes import DEV_USER, FakeEmbeddingRepository, experience_row
 
 
@@ -20,6 +20,24 @@ def job(*required, nice_to_have=None):
         implicit_preferences=[],
         responsibilities=[],
     )
+
+
+def test_requirements_dedupe_across_categories_and_keep_required_priority():
+    profile = JobProfile(
+        required_skills=["Python", "FastAPI"],
+        nice_to_have=["Python", "Docker"],
+        keywords=[],
+        implicit_preferences=[],
+        responsibilities=["Python", "设计接口"],
+        business_domain="设计接口",
+    )
+    requirements = requirements_for(profile)
+    assert [(item.category, item.text) for item in requirements] == [
+        ("required", "Python"),
+        ("required", "FastAPI"),
+        ("preferred", "Docker"),
+        ("responsibility", "设计接口"),
+    ]
 
 
 def fact_row(text, **updates):
@@ -68,6 +86,14 @@ def test_matching_accepts_canonical_aliases_and_fullwidth(requirement, fact):
         ("Python", "没用过 Python"),
         ("Python", "没有使用过 Python"),
         ("Python", "不具备 Python 经验"),
+        ("Python", "无 Python 开发经历"),
+        ("Python", "没有 Python 开发经历"),
+        ("Python", "无 Python 基础"),
+        ("Python", "不使用 Python"),
+        ("Python", "不擅长 Python"),
+        ("Python", "未曾使用 Python"),
+        ("Python", "未学过 Python"),
+        ("Python", "没学过 Python"),
         ("Python", "Not familiar with Java, Python or Go"),
         ("Go", "Not familiar with Java, Python or Go"),
         ("Python", "没有 Java、Python 或 Go 经验"),
@@ -89,6 +115,8 @@ def test_matching_rejects_false_skill_and_negative_claims(requirement, fact):
         ("使用 Python 开发接口，没有 Kubernetes 经验。", "使用 Python 开发接口，"),
         ("Used Python for APIs, no Kubernetes experience.", "Used Python for APIs,"),
         ("No Kubernetes experience, used Python for APIs.", "used Python for APIs."),
+        ("使用 Python 开发接口，不懂 Kubernetes。", "使用 Python 开发接口，"),
+        ("使用 Python 开发接口，无 Kubernetes 开发经历。", "使用 Python 开发接口，"),
     ],
 )
 def test_negation_in_another_clause_preserves_positive_original_evidence(fact, evidence):

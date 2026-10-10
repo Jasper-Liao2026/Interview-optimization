@@ -1,11 +1,4 @@
-"""单条经历改写（M1-4）。
-
-**刻意先做串行**（task 里写死的）：先证明「一次改写能得到可用文本」，
-再去谈并行。并行只是把 N 次串行同时发出去，改写质量本身与此无关 ——
-先并行会把「质量不行」和「并发有问题」两类故障混在一起，难以定位。
-
-fan-out / fan-in 是 M4-3 / M4-4 的活。
-"""
+"""并行图中的单条经历改写、事实校验与有限纠正重试。"""
 
 from __future__ import annotations
 
@@ -13,21 +6,25 @@ from typing import Any
 
 from app.agents.prompts import REWRITE_SYSTEM, build_rewrite_prompt
 from app.llm import LlmClient, StructuredResult
-from app.schemas import JobProfile, RewrittenExperience
+from app.schemas import JobProfile, RewrittenBullet, RewrittenExperience
 
 
 class ExperienceRewriter:
     def __init__(self, llm: LlmClient, *, max_input_chars: int) -> None:
         self._llm = llm
         self._max_input_chars = max_input_chars
-        # 上一次改写因超长被截掉的字符数（0 表示没截断）。供调用方记 warning。
-        self.last_truncated_chars = 0
+
+    @property
+    def model(self) -> str:
+        return self._llm.model
 
     async def rewrite(
         self, profile: JobProfile, experience: dict[str, Any]
     ) -> StructuredResult[RewrittenExperience]:
+        from app.agents.facts import validate_rewrite_facts
+
         raw_description = str(experience.get("raw_description") or "")
-        self.last_truncated_chars = max(0, len(raw_description) - self._max_input_chars)
+        truncated_chars = max(0, len(raw_description) - self._max_input_chars)
 
         prompt = build_rewrite_prompt(
             profile,
@@ -42,11 +39,45 @@ class ExperienceRewriter:
             metrics=list(experience.get("metrics") or []),
             max_chars=self._max_input_chars,
         )
-        return await self._llm.complete_json(
-            prompt,
-            RewrittenExperience,
-            system=REWRITE_SYSTEM,
-        )
+        retry_prompt = prompt
+        for attempt in range(3):
+            outcome = await self._llm.complete_json(
+                retry_prompt, RewrittenExperience, system=REWRITE_SYSTEM
+            )
+            if self._llm.is_stub:
+                highlights = experience.get("highlights") or []
+                source = (
+                    next((str(x).strip() for x in highlights if str(x).strip()), "")
+                    or raw_description.strip()[:120]
+                )
+                outcome.value.bullets = (
+                    [RewrittenBullet(text=source, evidence=[source])] if source else []
+                )
+                outcome.value.summary = None
+            violations = validate_rewrite_facts(experience, outcome.value)
+            if not violations:
+                if truncated_chars:
+                    outcome.warnings.append(
+                        f"经历描述超出输入上限，已截断 {truncated_chars} 个字符"
+                    )
+                if attempt:
+                    outcome.warnings.append(f"事实校验第 {attempt + 1} 次通过")
+                return outcome
+            if self._llm.is_stub or attempt == 2:
+                raise FactValidationError(violations)
+            retry_prompt = (
+                f"{prompt}\n\n上一次改写违反事实约束：\n"
+                + "\n".join(f"- {issue}" for issue in violations)
+                + "\n请修正上述问题。evidence 必须复制原始素材中的连续原文；"
+                "summary=null；只输出符合 schema 的 JSON。"
+            )
+        raise AssertionError("unreachable")
+
+
+class FactValidationError(ValueError):
+    def __init__(self, violations: list[str]) -> None:
+        self.violations = violations
+        super().__init__("事实约束校验失败：" + "; ".join(violations))
 
 
 def get_experience_rewriter(llm: LlmClient, *, max_input_chars: int) -> ExperienceRewriter:

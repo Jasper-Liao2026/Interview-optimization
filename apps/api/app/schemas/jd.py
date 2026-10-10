@@ -138,6 +138,8 @@ class JdImageParseRequest(BaseModel):
 
 
 class JdImageExtraction(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
     raw_text: str = Field(
         min_length=10, max_length=20000, description="逐字读取的 JD 文本，不可补写"
     )

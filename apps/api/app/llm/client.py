@@ -16,9 +16,10 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any, TypeVar
+from typing import Annotated, Any, TypeVar
 
 import httpx
+from fastapi import Depends
 from pydantic import BaseModel, ValidationError
 
 from app.config import Settings, get_settings
@@ -281,5 +282,5 @@ class LlmClient:
         )
 
 
-def get_llm_client() -> LlmClient:
-    return LlmClient(get_settings())
+def get_llm_client(settings: Annotated[Settings, Depends(get_settings)]) -> LlmClient:
+    return LlmClient(settings)

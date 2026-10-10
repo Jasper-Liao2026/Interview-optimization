@@ -28,6 +28,7 @@ import logging
 import os
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -147,23 +148,42 @@ class PdfExporter:
 
             html_path.write_text(html, encoding="utf-8")
 
-            process = await asyncio.create_subprocess_exec(
-                *self._command(user_data_dir=user_data_dir, pdf_path=pdf_path, html_path=html_path),
-                stdout=asyncio.subprocess.DEVNULL,
-                stderr=asyncio.subprocess.PIPE,
+            command = self._command(
+                user_data_dir=user_data_dir, pdf_path=pdf_path, html_path=html_path
             )
-            try:
-                _, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
-            except TimeoutError as exc:
-                process.kill()
-                await process.wait()
-                raise PdfExportError(f"无头浏览器打印超时（>{timeout:.0f}s）") from exc
+            if sys.platform == "win32":
+                # psycopg 要求的 SelectorEventLoop 不支持异步子进程。在工作线程
+                # 启动 Chromium，subprocess.run 会在超时后杀掉并等待子进程退出。
+                try:
+                    result = await asyncio.to_thread(
+                        subprocess.run,
+                        command,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.PIPE,
+                        timeout=timeout,
+                        check=False,
+                    )
+                except subprocess.TimeoutExpired as exc:
+                    raise PdfExportError(f"无头浏览器打印超时（>{timeout:.0f}s）") from exc
+                stderr, returncode = result.stderr, result.returncode
+            else:
+                process = await asyncio.create_subprocess_exec(
+                    *command,
+                    stdout=asyncio.subprocess.DEVNULL,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                try:
+                    _, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
+                except TimeoutError as exc:
+                    process.kill()
+                    await process.wait()
+                    raise PdfExportError(f"无头浏览器打印超时（>{timeout:.0f}s）") from exc
+                returncode = process.returncode
 
             if not pdf_path.is_file():
                 detail = (stderr or b"").decode("utf-8", "ignore").strip()[-500:]
                 raise PdfExportError(
-                    f"无头浏览器未产出 PDF（exit={process.returncode}）："
-                    f"{detail or '无 stderr 输出'}"
+                    f"无头浏览器未产出 PDF（exit={returncode}）：{detail or '无 stderr 输出'}"
                 )
 
             data = pdf_path.read_bytes()

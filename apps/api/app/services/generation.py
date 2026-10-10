@@ -1,55 +1,37 @@
-"""垂直切片编排：JD → 解析 → 改写 → 组装 → 落库（M1-3 / M1-4）。
-
-这是 M1 的主线，也是后续接 LangGraph 前**先用一条显式顺序流程**把链路跑通的地方。
-
-为什么要先手写顺序流程，而不是一上来就上 StateGraph：
-图的形状取决于「节点边界在哪、状态要带什么」。先把流程真正跑一遍，
-节点边界自然就清楚了，那时再搬进图里是一次机械改写。
-反过来先画图，往往要返工 —— 因为会发现状态设计得不对。
-
-M4-2 会把这个函数拆成 StateGraph 的节点。
-"""
+"""Durable M4 generation, recovery and isolated retry."""
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import UUID, uuid4, uuid5
 
-from app.agents.assembler import assemble_sections
+from app.agents.assembler import build_entry
+from app.agents.checkpoint import GenerationRunStore, RunConflictError
+from app.agents.generation_graph import GenerationGraph
 from app.agents.jd_parser import JdParser
-from app.agents.prompts import prompt_metadata
 from app.agents.rewriter import ExperienceRewriter
 from app.config import Settings
 from app.llm import LlmClient
 from app.observability import Observability
-from app.repositories import (
-    ExperienceRepository,
-    JobDescriptionRepository,
-    ProfileRepository,
-    ResumeRepository,
-)
-from app.schemas import GenerateRequest, JobProfile
-
-logger = logging.getLogger("app.services.generation")
-
-TRACE_NAME = "m1.generate"
-
-DEFAULT_TEMPLATE = "classic"
+from app.schemas import GenerateRequest, JobProfile, RewrittenExperience
 
 
 class GenerationError(RuntimeError):
-    """生成失败的基类。router 会把它翻译成 4xx/5xx。"""
+    pass
 
 
 class NoExperiencesError(GenerationError):
-    """一条经历都没有 —— 用户还没录入素材。这是**用户侧**的问题，应回 400。"""
+    pass
 
 
 class InvalidJobError(GenerationError):
-    """保存的 JD 不存在或没有解析画像。"""
+    pass
+
+
+class RunNotFoundError(GenerationError):
+    pass
 
 
 @dataclass(slots=True)
@@ -61,7 +43,25 @@ class GenerationOutcome:
     model: str
     is_stub: bool
     trace_id: str
+    run_id: UUID
+    items: list[dict[str, Any]]
+    failures: list[dict[str, Any]]
+    checkpoint: dict[str, Any]
+    persisted: bool
     warnings: list[str] = field(default_factory=list)
+
+
+def json_row(row: dict[str, Any]) -> dict[str, Any]:
+    def encode(value: Any) -> Any:
+        if isinstance(value, (UUID, date, datetime)):
+            return str(value)
+        if isinstance(value, dict):
+            return {k: encode(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [encode(v) for v in value]
+        return value
+
+    return encode(row)
 
 
 class ResumeGenerationService:
@@ -69,189 +69,240 @@ class ResumeGenerationService:
         self,
         *,
         settings: Settings,
-        experiences: ExperienceRepository,
-        job_descriptions: JobDescriptionRepository,
-        resumes: ResumeRepository,
-        profiles: ProfileRepository,
+        experiences: Any,
+        job_descriptions: Any,
+        resumes: Any,
+        profiles: Any,
         parser: JdParser,
         rewriter: ExperienceRewriter,
         llm: LlmClient,
         observability: Observability,
+        runs: GenerationRunStore | None = None,
     ) -> None:
-        self._settings = settings
-        self._experiences = experiences
-        self._jds = job_descriptions
-        self._resumes = resumes
-        self._profiles = profiles
-        self._parser = parser
-        self._rewriter = rewriter
-        self._llm = llm
-        self._obs = observability
+        self._settings, self._experiences, self._jds = settings, experiences, job_descriptions
+        self._resumes, self._profiles = resumes, profiles
+        self._parser, self._rewriter, self._llm, self._obs = parser, rewriter, llm, observability
+        self._runs = runs or GenerationRunStore()
 
-    # ------------------------------------------------------------ 内部步骤
-    async def _load_experiences(
-        self, user_id: UUID, experience_ids: list[UUID]
-    ) -> list[dict[str, Any]]:
-        """选定素材。带 ID 时按 ID 取（保持用户勾选顺序），否则取该用户全部。"""
-        if experience_ids:
-            return await self._experiences.list_by_ids(user_id, experience_ids)
-        return await self._experiences.list_for_user(user_id)
-
-    # ---------------------------------------------------------------- 主流程
     async def generate(
         self, user_id: UUID, request: GenerateRequest, trace_id: str
     ) -> GenerationOutcome:
-        warnings: list[str] = []
-
-        with self._obs.span(
-            TRACE_NAME,
-            trace_id=trace_id,
-            input={
-                "jd_text": (request.jd_text or "")[:2000],
-                "jd_id": str(request.jd_id) if request.jd_id else None,
-                "experience_ids": [str(item) for item in request.experience_ids],
-            },
-            metadata={**prompt_metadata(), "milestone": self._settings.milestone},
-            tags=["m1", "generate"],
-        ) as span:
-            # ---- 1. 取素材 -------------------------------------------------
-            experiences = await self._load_experiences(user_id, request.experience_ids)
-            if not experiences:
-                raise NoExperiencesError(
-                    "没有任何经历素材，无法生成简历。先通过 POST /api/v1/experiences 录入，"
-                    "或执行 `node scripts/seed-m1.mjs` 写入示例数据。"
-                )
-
-            # ---- 2. 解析 JD（M1-3）----------------------------------------
-            if request.jd_id:
-                saved_jd = await self._jds.get(user_id, request.jd_id)
-                if not saved_jd or not saved_jd["parsed"]:
-                    raise InvalidJobError("JD 不存在或尚未解析，请重新选择已保存的岗位。")
-                profile = JobProfile.model_validate(saved_jd["parsed"])
-            else:
-                assert request.jd_text is not None
-                with self._obs.generation(
-                    "jd.parse",
-                    model=self._llm.model,
-                    input={"raw_text": request.jd_text[:2000]},
-                    metadata=prompt_metadata(),
-                ) as generation:
-                    parse_outcome = await self._parser.parse(request.jd_text)
-                    profile = parse_outcome.value
-                    warnings.extend(parse_outcome.warnings)
-                    if generation is not None:
-                        generation.update(
-                            output=profile.model_dump(),
-                            usage_details=parse_outcome.llm.usage_details,
-                        )
-
-            # ---- 3. 串行改写（M1-4）---------------------------------------
-            # 先串行，不并行。并行是 M4-3 的事，这里只证明「改写本身可用」。
-            pairs: list[tuple[dict[str, Any], Any]] = []
-            for experience in experiences:
-                with self._obs.generation(
-                    "llm.rewrite_experience",
-                    model=self._llm.model,
-                    input={
-                        "kind": experience["kind"],
-                        "org": experience["org"],
-                        "role": experience["role"],
-                    },
-                    metadata=prompt_metadata(),
-                ) as generation:
-                    rewrite_outcome = await self._rewriter.rewrite(profile, experience)
-                    if generation is not None:
-                        generation.update(
-                            output=rewrite_outcome.value.model_dump(),
-                            usage_details=rewrite_outcome.llm.usage_details,
-                        )
-                warnings.extend(rewrite_outcome.warnings)
-                if self._rewriter.last_truncated_chars:
-                    warnings.append(
-                        f"经历「{experience['org']}」的原始描述超长，"
-                        f"已截断 {self._rewriter.last_truncated_chars} 字后送进改写"
-                    )
-                pairs.append((experience, rewrite_outcome.value))
-
-            # ---- 4. 组装（事实字段来自原始条目，不来自模型）-----------------
-            sections = assemble_sections(pairs)
-
-            # ---- 5. 抬头与落库 --------------------------------------------
-            profile_row = await self._profiles.ensure(
+        run_id = request.run_id or uuid4()
+        async with self._runs.lock(run_id):
+            existing = await self._runs.get(user_id, run_id)
+            body = request.model_dump(mode="json", exclude={"run_id"})
+            if existing:
+                if existing["request"] != body:
+                    raise RunConflictError("run_id 已用于不同的生成请求")
+                return await self._execute(user_id, run_id, existing)
+            rows = (
+                await self._experiences.list_by_ids(user_id, request.experience_ids)
+                if request.experience_ids
+                else await self._experiences.list_for_user(user_id)
+            )
+            if not rows:
+                raise NoExperiencesError("没有任何经历素材，无法生成简历，请先录入经历素材。")
+            if request.experience_ids:
+                by_id = {row["id"]: row for row in rows}
+                if set(request.experience_ids) != set(by_id):
+                    raise NoExperiencesError("选中的经历素材已删除，请重新选择。")
+                rows = [by_id[i] for i in request.experience_ids]
+            header_row = await self._profiles.ensure(
                 user_id,
                 display_name=self._settings.dev_user_name,
                 headline=self._settings.dev_user_headline,
             )
-            header = {
-                "name": profile_row["display_name"],
-                "headline": profile_row["headline"],
+            run = {
+                "request": body,
+                "trace_id": trace_id,
+                "experiences": [json_row(row) for row in rows],
+                "header": {"name": header_row["display_name"], "headline": header_row["headline"]},
+                "resume_id": str(uuid4()),
+                "status": "pending",
+                "warnings": [],
+                "provider": self._llm.provider,
+                "model": self._llm.model,
+                "is_stub": self._llm.is_stub,
             }
-            title = request.title or profile.title or "未命名简历"
-            generator = f"{self._llm.provider}:{self._llm.model}"
+            await self._runs.save(user_id, run_id, run)
+            return await self._execute(user_id, run_id, run)
 
-            jd_id: UUID | None = request.jd_id
-            if request.persist:
-                if not jd_id:
-                    jd_row = await self._jds.create(
-                        user_id,
-                        raw_text=request.jd_text,
-                        title=profile.title,
-                        company=profile.company,
-                        parsed=profile.model_dump(),
-                        parser_model=parse_outcome.llm.model,
-                    )
-                    jd_id = jd_row["id"]
-
-                resume_row = await self._resumes.create(
-                    user_id,
-                    jd_id=jd_id,
-                    title=title,
-                    template=DEFAULT_TEMPLATE,
-                    header=header,
-                    sections=[section.model_dump(mode="json") for section in sections],
-                    generator=generator,
-                )
+    async def _prepare(self, user_id: UUID, run_id: UUID, run: dict[str, Any]) -> None:
+        request = run["request"]
+        if "profile" not in run:
+            if request["jd_id"]:
+                row = await self._jds.get(user_id, UUID(request["jd_id"]))
+                if not row or not row["parsed"]:
+                    raise InvalidJobError("JD 不存在或尚未解析，请重新选择已保存的岗位。")
+                profile = JobProfile.model_validate(row["parsed"])
+                run["jd_id"] = request["jd_id"]
             else:
-                # persist=false：不落库，只能返回结构本身。
-                # id 是临时生成的，**不可持久引用**（html/pdf 端点会 404），
-                # 调用方（router）会据此把 preview/pdf 路径置空并给出 warning。
-                now = datetime.now(UTC)
-                resume_row = {
-                    "id": uuid4(),
-                    "user_id": user_id,
-                    "jd_id": None,
-                    "title": title,
-                    "template": DEFAULT_TEMPLATE,
-                    "header": header,
-                    "sections": [section.model_dump(mode="json") for section in sections],
-                    "status": "draft",
-                    "generator": generator,
-                    "created_at": now,
-                    "updated_at": now,
+                parsed = await self._parser.parse(request["jd_text"])
+                profile = parsed.value
+                run["warnings"].extend(parsed.warnings)
+                run["parser_model"] = parsed.llm.model
+            run["profile"] = profile.model_dump(mode="json")
+            await self._runs.save(user_id, run_id, run)
+        if request["persist"] and not run.get("jd_id"):
+            profile = JobProfile.model_validate(run["profile"])
+            row = await self._jds.create(
+                user_id,
+                raw_text=request["jd_text"],
+                title=profile.title,
+                company=profile.company,
+                parsed=run["profile"],
+                parser_model=run.get("parser_model"),
+                jd_id=uuid5(run_id, "parsed-jd"),
+            )
+            run["jd_id"] = str(row["id"])
+            await self._runs.save(user_id, run_id, run)
+
+    async def _execute(
+        self, user_id: UUID, run_id: UUID, run: dict[str, Any], *, retry: int | None = None
+    ) -> GenerationOutcome:
+        await self._prepare(user_id, run_id, run)
+        async with self._runs.checkpointer() as saver:
+            graph = GenerationGraph(
+                self._rewriter,
+                checkpointer=saver,
+                observability=self._obs,
+                max_concurrency=self._settings.rewrite_max_concurrency,
+            )
+            config = graph.config(str(run_id))
+            snapshot = await graph.graph.aget_state(config)
+            if retry is not None:
+                if snapshot.next:
+                    raise RunConflictError("生成尚未结束，请先恢复任务")
+                item = snapshot.values.get("items", {}).get(str(retry))
+                if item is None or item["status"] != "failed":
+                    raise RunConflictError("只能重试失败条目")
+                input_state = {"selected": [retry]}
+            elif snapshot.next:
+                input_state = None
+            elif snapshot.values:
+                run["graph"] = snapshot.values
+                return await self._finish(user_id, run_id, run)
+            else:
+                input_state = {
+                    "profile": run["profile"],
+                    "experiences": run["experiences"],
+                    "selected": list(range(len(run["experiences"]))),
+                    "items": {},
                 }
-                warnings.append("persist=false：未落库，返回的简历 id 无法用于预览或导出")
+            run["status"] = "running"
+            await self._runs.save(user_id, run_id, run)
+            state = await graph.graph.ainvoke(input_state, config=config, durability="sync")
+            run["graph"] = state
+        return await self._finish(user_id, run_id, run)
 
-            if span is not None:
-                span.update_trace(
-                    output={"title": title, "sections": len(sections)},
-                    metadata={"warnings": warnings, "is_stub": self._llm.is_stub},
+    async def _finish(self, user_id: UUID, run_id: UUID, run: dict[str, Any]) -> GenerationOutcome:
+        state = run.get("graph", {})
+        items = list(state.get("items", {}).values())
+        failures = [item for item in items if item["status"] == "failed"]
+        run["status"] = (
+            "partial"
+            if failures and len(failures) < len(items)
+            else ("failed" if failures else "completed")
+        )
+        profile = JobProfile.model_validate(run["profile"])
+        now = datetime.now(UTC).isoformat()
+        row = {
+            "id": run["resume_id"],
+            "user_id": str(user_id),
+            "jd_id": run.get("jd_id"),
+            "title": run["request"]["title"] or profile.title or "未命名简历",
+            "template": "classic",
+            "header": run["header"],
+            "sections": state.get("sections", []),
+            "status": "draft",
+            "generator": f"{run['provider']}:{run['model']}",
+            "created_at": now,
+            "updated_at": now,
+        }
+        if run["request"]["persist"]:
+            row = await self._resumes.create(
+                user_id,
+                jd_id=UUID(run["jd_id"]) if run.get("jd_id") else None,
+                title=row["title"],
+                template="classic",
+                header=run["header"],
+                sections=row["sections"],
+                generator=row["generator"],
+                resume_id=UUID(run["resume_id"]),
+            )
+        run["resume"] = json_row(row)
+        await self._runs.save(user_id, run_id, run)
+        return self._outcome(run_id, run)
+
+    def _outcome(self, run_id: UUID, run: dict[str, Any]) -> GenerationOutcome:
+        state = run.get("graph", {})
+        items, failures, warnings = [], [], list(run["warnings"])
+        for i, experience in enumerate(run["experiences"]):
+            item = state.get("items", {}).get(str(i), {"status": "pending"})
+            visible = {
+                "index": i,
+                "experience_id": experience["id"],
+                "org": experience["org"],
+                "status": item["status"],
+            }
+            warnings.extend(item.get("warnings", []))
+            if item["status"] == "succeeded":
+                source = dict(experience)
+                for key in ("start_date", "end_date"):
+                    if source.get(key):
+                        source[key] = date.fromisoformat(source[key])
+                visible["entry"] = build_entry(
+                    source, RewrittenExperience.model_validate(item["result"])
+                ).model_dump(mode="json")
+            elif item["status"] == "failed":
+                failures.append(
+                    {
+                        "index": i,
+                        "experience_id": experience["id"],
+                        "error": item["error"],
+                        "details": item.get("details", []),
+                        "retryable": True,
+                    }
                 )
-
-        logger.info(
-            "generate done trace_id=%s experiences=%d sections=%d stub=%s",
-            trace_id,
-            len(experiences),
-            len(sections),
-            self._llm.is_stub,
-        )
-
+            items.append(visible)
+        if not run["request"]["persist"]:
+            warnings.append("persist=false：未落库，返回的简历 id 无法用于预览或导出")
         return GenerationOutcome(
-            resume=resume_row,
-            profile=profile,
-            jd_id=jd_id,
-            provider=self._llm.provider,
-            model=self._llm.model,
-            is_stub=self._llm.is_stub,
-            trace_id=trace_id,
-            warnings=warnings,
+            resume=run["resume"],
+            profile=JobProfile.model_validate(run["profile"]),
+            jd_id=UUID(run["jd_id"]) if run.get("jd_id") else None,
+            provider=run["provider"],
+            model=run["model"],
+            is_stub=run["is_stub"],
+            trace_id=run["trace_id"],
+            run_id=run_id,
+            items=items,
+            failures=failures,
+            checkpoint={
+                "status": run["status"],
+                "updated_at": run["updated_at"],
+                "backend": self._runs.backend,
+                "resumable": run["status"] in ("pending", "running"),
+            },
+            persisted=run["request"]["persist"],
+            warnings=list(dict.fromkeys(warnings)),
         )
+
+    async def resume(
+        self, user_id: UUID, run_id: UUID, *, retry: int | None = None
+    ) -> GenerationOutcome:
+        async with self._runs.lock(run_id):
+            run = await self._runs.get(user_id, run_id)
+            if run is None:
+                raise RunNotFoundError("生成任务不存在")
+            return await self._execute(user_id, run_id, run, retry=retry)
+
+    async def read(self, user_id: UUID, run_id: UUID) -> GenerationOutcome:
+        run = await self._runs.get(user_id, run_id)
+        if run is None:
+            raise RunNotFoundError("生成任务不存在")
+        if "resume" not in run:
+            # A stopped process can leave a run before its first output; resume
+            # is explicit and read remains free of model side effects.
+            raise RunConflictError("任务尚未生成结果，请调用恢复接口")
+        return self._outcome(run_id, run)

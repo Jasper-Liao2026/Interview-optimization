@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -26,17 +27,18 @@ from app.schemas.jd import JobProfile
 class RewrittenBullet(BaseModel):
     """一条改写后的要点。"""
 
+    model_config = ConfigDict(extra="forbid")
+
     text: str = Field(min_length=1, max_length=400, description="改写后的要点文本")
     evidence: list[str] = Field(
-        description=(
-            "事实来源：这条要点自原始条目的哪些片段得出（引用原文即可，不必逐字）。"
-            "M1 只做记录与展示，M4-7 会用它做自动追溯校验。"
-        ),
+        description=("事实来源：逐字引用原始描述、技能标签、定性要点或量化结果。"),
     )
 
 
 class RewrittenExperience(BaseModel):
     """单条经历的改写结果 —— 即 LLM 的输出契约。"""
+
+    model_config = ConfigDict(extra="forbid")
 
     bullets: list[RewrittenBullet] = Field(description="改写后的要点，按重要性排序，建议 2–5 条")
     summary: str | None = Field(
@@ -118,6 +120,8 @@ class ResumeRead(BaseModel):
 class GenerateRequest(BaseModel):
     """一次「JD → 简历」生成的入参。"""
 
+    run_id: UUID | None = Field(default=None, description="可由客户端指定，用于幂等生成和恢复")
+
     jd_text: str | None = Field(
         default=None, min_length=10, max_length=20000, description="JD 原文，与 jd_id 二选一"
     )
@@ -132,16 +136,49 @@ class GenerateRequest(BaseModel):
     persist: bool = Field(default=True, description="是否落库；false 时只生成不保存")
 
     @model_validator(mode="after")
+    def unique_experiences(self) -> GenerateRequest:
+        if len(self.experience_ids) != len(set(self.experience_ids)):
+            raise ValueError("experience_ids 不得重复")
+        return self
+
+    @model_validator(mode="after")
     def validate_jd_source(self) -> GenerateRequest:
         if (self.jd_text is None) == (self.jd_id is None):
             raise ValueError("必须且只能提供 jd_text 或 jd_id 之一")
         return self
 
 
+class GenerationFailure(BaseModel):
+    index: int
+    experience_id: UUID
+    error: str
+    details: list[str] = Field(default_factory=list)
+    retryable: bool = True
+
+
+class GenerationItem(BaseModel):
+    index: int
+    experience_id: UUID
+    org: str
+    status: Literal["pending", "succeeded", "failed"]
+    entry: ResumeEntry | None = None
+
+
+class GenerationCheckpointRead(BaseModel):
+    status: Literal["pending", "running", "completed", "partial", "failed"]
+    updated_at: datetime
+    backend: Literal["postgres", "memory"]
+    resumable: bool
+
+
 class GenerateResponse(BaseModel):
     """一次生成的结果。"""
 
+    run_id: UUID
     resume: ResumeRead
+    items: list[GenerationItem]
+    failures: list[GenerationFailure]
+    checkpoint: GenerationCheckpointRead
     profile: JobProfile = Field(description="本次使用的岗位画像，便于前端展示「为什么这样改写」")
     preview_path: str | None = Field(
         default=None, description="服务端渲染的 HTML 预览地址；persist=false 时为 null"

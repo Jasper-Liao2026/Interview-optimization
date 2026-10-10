@@ -58,6 +58,9 @@ def source_hash(row: dict[str, Any]) -> str:
 
 def requirements_for(profile: JobProfile) -> list[JobRequirement]:
     result: list[JobRequirement] = []
+    # 同一条要求可能被模型同时放进技能、职责或业务域；按优先级保留首次出现的
+    # 分类，避免矩阵重复计算和总权重被重复放大。
+    seen: set[str] = set()
     groups = [
         ("required", profile.required_skills, 2),
         ("preferred", profile.nice_to_have, 1),
@@ -65,7 +68,6 @@ def requirements_for(profile: JobProfile) -> list[JobRequirement]:
         ("domain", [profile.business_domain] if profile.business_domain else [], 1),
     ]
     for category, texts, weight in groups:
-        seen: set[str] = set()
         for text in texts:
             key = normalize(text)
             if not key or key in seen:
@@ -97,7 +99,8 @@ def evidence_for(row: dict[str, Any], requirement: str) -> list[str]:
         # 保留标点与原文；不拆 and/和，不把不同分句的技能拼成完整要求。
         clauses = re.split(
             r"(?<=[。！？!?；;\n])|(?<=\.)\s+|(?=\bbut\b)|(?=但是|但|然而|不过)|"
-            r"(?<=[，,])(?=\s*(?:没有|未使用|不熟悉|使用|负责|开发|"
+            r"(?<=[，,])(?=\s*(?:没有|未使用|不熟悉|不懂|不使用|不具备|不擅长|"
+            r"无.*(?:经验|经历|基础)|使用|负责|开发|"
             r"(?:I|we)\s+(?:use|used|built|developed|have|do)\b|"
             r"(?:no|not|never|used|use|built|developed)\b))",
             segment,
@@ -110,8 +113,9 @@ def evidence_for(row: dict[str, Any], requirement: str) -> list[str]:
             # “not only”表示递进，不能当成否定。
             claim = re.sub(r"\bnot\s+only\b", "", normalize(clause))
             if re.search(
-                r"未使用|未用过|没使用|没用过|没有使用|不具备|不会|没有.*经验|无.*经验|不熟悉|不懂|"
-                r"未接触|没接触|不了解|未掌握|未学习|尚未|缺乏|"
+                r"未使用|未曾使用|未用过|没使用|没用过|没有使用|不具备|不会|"
+                r"没有.*(?:经验|经历|基础)|无.*(?:经验|经历|基础)|不熟悉|不懂|不使用|不擅长|"
+                r"未接触|没接触|不了解|未掌握|未学习|未学过|没学过|尚未|缺乏|"
                 r"\b(?:no|not|never|without|lack(?:s|ed|ing)?|cannot|can't|won't|"
                 r"(?:do|does|did|have|has|had|is|are|was|were|could|would)n['’]t)\b",
                 claim,
