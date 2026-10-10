@@ -9,8 +9,10 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send
 
 from app.agents.assembler import assemble_sections
+from app.agents.prompts import prompt_metadata
 from app.agents.rewriter import ExperienceRewriter
 from app.observability import Observability
+from app.observability.usage import usage_scope
 from app.schemas import JobProfile, RewrittenExperience
 
 
@@ -70,11 +72,13 @@ class GenerationGraph:
     async def _rewrite_item(self, state: dict[str, Any]) -> dict[str, Any]:
         experience, index = state["experience"], state["index"]
         item = {"index": index, "experience_id": experience["id"], "org": experience["org"]}
-        with self.observability.generation(
-            "m4.rewrite",
-            model=self.rewriter.model,
-            input={"experience_id": experience["id"], "org": experience["org"]},
-        ) as observation:
+        with (
+            usage_scope(operation="rewrite"),
+            self.observability.span(
+                "rewrite_item",
+                input={"experience_id": experience["id"], "org": experience["org"]},
+            ) as observation,
+        ):
             try:
                 outcome = await self.rewriter.rewrite(
                     JobProfile.model_validate(state["profile"]), experience
@@ -86,8 +90,12 @@ class GenerationGraph:
                 )
                 if observation is not None:
                     observation.update(
-                        output=item["result"], usage_details=outcome.llm.usage_details
+                        output=item["result"],
+                        metadata=prompt_metadata(
+                            getattr(getattr(self.rewriter, "prompt", None), "version", None)
+                        ),
                     )
+
             except Exception as exc:
                 # Cancellation propagates and leaves resumable tasks; item failures
                 # are data so other tasks can finish and checkpoint their writes.

@@ -8,12 +8,39 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass
 from typing import Any
 
 from app.schemas import JobProfile
 
 PROMPT_VERSION = "m4.0"
+
+
+@dataclass(frozen=True, slots=True)
+class PromptSnapshot:
+    """Immutable prompt bundle used by agents and evaluation runs."""
+
+    version: str
+    jd_system: str
+    rewrite_system: str
+    jd_image: str
+
+    @property
+    def content_hash(self) -> str:
+        payload = [self.jd_system, self.rewrite_system, self.jd_image, "m4-user-templates"]
+        return hashlib.sha256(json.dumps(payload, ensure_ascii=False).encode()).hexdigest()
+
+
+# The registry is populated after the prompt constants are declared.  Values are
+# copied when exposed so a caller cannot mutate a historical version in place.
+_PROMPT_VERSIONS: dict[str, PromptSnapshot] = {}
+_SELECTED_PROMPT_VERSION = PROMPT_VERSION
+_CURRENT_PROMPT: ContextVar[PromptSnapshot | None] = ContextVar("prompt_snapshot", default=None)
 
 # ============================================================ JD 解析（M1-3）
 JD_PARSE_SYSTEM = (
@@ -36,7 +63,8 @@ JD_PARSE_SYSTEM = (
 )
 
 
-def build_jd_prompt(raw_text: str) -> str:
+def build_jd_prompt(raw_text: str, *, version: str | None = None) -> str:
+    get_prompt_snapshot(version)
     return f"请解析下面这份 JD：\n\n<JD>\n{raw_text.strip()}\n</JD>"
 
 
@@ -113,6 +141,7 @@ def build_rewrite_prompt(
     highlights: list[str],
     metrics: list[dict[str, Any]] | None = None,
     max_chars: int,
+    version: str | None = None,
 ) -> str:
     """拼改写 prompt。
 
@@ -157,6 +186,67 @@ def build_rewrite_prompt(
     return "\n".join(parts)
 
 
-def prompt_metadata() -> dict[str, str]:
+def prompt_metadata(version: str | None = None) -> dict[str, str]:
     """写进 Langfuse 的 prompt 版本标记。"""
-    return {"prompt_version": PROMPT_VERSION}
+    snapshot = (
+        get_prompt_snapshot(version)
+        if version
+        else (_CURRENT_PROMPT.get() or get_prompt_snapshot())
+    )
+    return {"prompt_version": snapshot.version, "prompt_content_hash": snapshot.content_hash}
+
+
+@contextmanager
+def prompt_context(snapshot: PromptSnapshot) -> Iterator[None]:
+    """Carry the actual call snapshot through concurrent LLM observations."""
+    token = _CURRENT_PROMPT.set(snapshot)
+    try:
+        yield
+    finally:
+        _CURRENT_PROMPT.reset(token)
+
+
+def _init_prompt_registry() -> None:
+    """Register the shipped immutable snapshots once all constants exist."""
+    if _PROMPT_VERSIONS:
+        return
+    _PROMPT_VERSIONS.update(
+        {
+            "m4.0": PromptSnapshot("m4.0", JD_PARSE_SYSTEM, REWRITE_SYSTEM, JD_IMAGE_PROMPT),
+            # m8.0 is deliberately a real, traceable revision.  Its extra
+            # instruction tightens evaluation reproducibility while retaining
+            # the established output contract.
+            "m8.0": PromptSnapshot(
+                "m8.0",
+                JD_PARSE_SYSTEM + "\n输出必须稳定：列表按 JD 出现顺序排列，重复项去重。",
+                REWRITE_SYSTEM + "\n输出顺序必须稳定：按岗位相关度排序，避免同义重复要点。",
+                JD_IMAGE_PROMPT,
+            ),
+        }
+    )
+
+
+def available_prompt_versions() -> tuple[str, ...]:
+    _init_prompt_registry()
+    return tuple(_PROMPT_VERSIONS)
+
+
+def get_prompt_snapshot(version: str | None = None) -> PromptSnapshot:
+    _init_prompt_registry()
+    key = version or _SELECTED_PROMPT_VERSION
+    try:
+        return _PROMPT_VERSIONS[key]
+    except KeyError as exc:
+        raise ValueError(f"未知 prompt 版本 {key!r}，可选：{', '.join(_PROMPT_VERSIONS)}") from exc
+
+
+def select_prompt_version(version: str) -> PromptSnapshot:
+    """Select a shipped version for new calls; historical snapshots stay immutable."""
+    global _SELECTED_PROMPT_VERSION
+    snapshot = get_prompt_snapshot(version)
+    _SELECTED_PROMPT_VERSION = snapshot.version
+    return snapshot
+
+
+def rollback_prompt_version(version: str) -> PromptSnapshot:
+    return select_prompt_version(version)

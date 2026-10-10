@@ -26,7 +26,8 @@ class Settings(BaseSettings):
     app_name: str = "resume-optimizer-api"
     service_id: str = "resume-optimizer-api"
     version: str = "0.1.0"
-    milestone: str = Field(default="M7", description="当前里程碑，便于在自检页对照进度")
+    milestone: str = Field(default="M8", description="当前里程碑，便于在自检页对照进度")
+    prompt_version: str = "m4.0"
     environment: str = Field(default="local", description="local | staging | production")
 
     # --- HTTP ---
@@ -83,6 +84,8 @@ class Settings(BaseSettings):
     # 256 是 M0 只为验证观测链路时定的值。M1 起要输出结构化 JD 画像与多条改写要点，
     # 256 token 会被截断成不完整 JSON（表现为「解析失败 → 重试 → 仍失败」）。
     llm_max_tokens: int = 2048
+    llm_input_price_per_million_usd: float | None = Field(default=None, ge=0)
+    llm_output_price_per_million_usd: float | None = Field(default=None, ge=0)
 
     # M5: vendor 表示厂商，provider 仅表示调用协议。
     generation_vendor: str = "deepseek"
@@ -92,6 +95,8 @@ class Settings(BaseSettings):
     judge_api_key: str | None = None
     judge_model: str = "gpt-4.1-mini"
     judge_max_tokens: int = Field(default=4096, ge=256)
+    judge_input_price_per_million_usd: float | None = Field(default=None, ge=0)
+    judge_output_price_per_million_usd: float | None = Field(default=None, ge=0)
 
     # 视觉可独立配置；未设置时复用 LLM 的 URL/key/model（须支持视觉）。
     vision_provider: str | None = Field(default=None, pattern="^(stub|openai-compatible)$")

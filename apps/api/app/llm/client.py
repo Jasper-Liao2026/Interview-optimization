@@ -24,6 +24,7 @@ from pydantic import BaseModel, ValidationError
 
 from app.config import Settings, get_settings
 from app.llm.structured import extract_json, fixture_payload, json_instructions
+from app.observability.usage import call_observer, call_operation, record_call
 
 logger = logging.getLogger("app.llm")
 
@@ -94,6 +95,77 @@ class LlmClient:
         json_mode: bool = False,
         image_data_url: str | None = None,
     ) -> LlmResult:
+        from contextlib import nullcontext
+
+        from app.agents.prompts import prompt_metadata
+
+        observer = call_observer()
+        metadata = prompt_metadata()
+        scope = (
+            observer.generation(
+                call_operation(),
+                model=self.model,
+                input={"prompt": prompt, "system": system, "has_image": bool(image_data_url)},
+                metadata=metadata,
+                model_parameters={"temperature": 0, "max_tokens": self.settings.llm_max_tokens},
+            )
+            if observer
+            else nullcontext(None)
+        )
+        started = time.perf_counter()
+        result = None
+        status = "failed"
+        try:
+            with scope as observation:
+                try:
+                    result = await self._complete(
+                        prompt, system=system, json_mode=json_mode, image_data_url=image_data_url
+                    )
+                    status = "succeeded"
+                except Exception as exc:
+                    if observation is not None:
+                        observation.update(level="ERROR", status_message=str(exc))
+                    raise
+                else:
+                    if observation is not None:
+                        observation.update(output=result.text, usage_details=result.usage_details)
+            return result
+        finally:
+            input_tokens = result.input_tokens if result else None
+            output_tokens = result.output_tokens if result else None
+            cost = None
+            if self.is_stub:
+                cost = 0.0
+            elif input_tokens is not None and output_tokens is not None:
+                price_in = self.settings.llm_input_price_per_million_usd
+                price_out = self.settings.llm_output_price_per_million_usd
+                if price_in is not None and price_out is not None:
+                    cost = (input_tokens * price_in + output_tokens * price_out) / 1_000_000
+            await record_call(
+                {
+                    "operation": call_operation(),
+                    "provider": self.provider,
+                    "model": result.model if result else self.model,
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
+                    "total_tokens": (input_tokens or 0) + (output_tokens or 0),
+                    "latency_ms": round((time.perf_counter() - started) * 1000, 2),
+                    "prompt_version": metadata["prompt_version"],
+                    "prompt_hash": metadata["prompt_content_hash"],
+                    "is_stub": self.is_stub,
+                    "cost_usd": cost,
+                    "status": status,
+                }
+            )
+
+    async def _complete(
+        self,
+        prompt: str,
+        *,
+        system: str | None = None,
+        json_mode: bool = False,
+        image_data_url: str | None = None,
+    ) -> LlmResult:
         """单次补全。
 
         `json_mode=True` 时向 OpenAI 兼容端点声明 `response_format={"type": "json_object"}`，
@@ -133,7 +205,7 @@ class LlmClient:
             if image_data_url:
                 raise LlmError("stub 不具备视觉识别能力，请配置支持视觉的模型")
             # 无 key 环境：返回确定性桩，形状合法但内容显然是假的，用于打通工程链路
-            stub_result = self._stub_complete(prompt, system=system)
+            stub_result = await self.complete(prompt, system=system)
             warnings.append(
                 "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。"
                 "要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。"

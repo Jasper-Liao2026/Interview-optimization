@@ -57,6 +57,12 @@ export type BatchGenerateRequest = components["schemas"]["BatchGenerateRequest"]
 export type BatchGenerateResponse = components["schemas"]["BatchGenerateResponse"];
 export type BatchExportRequest = components["schemas"]["BatchExportRequest"];
 
+export type UsageCall = components["schemas"]["UsageCall"];
+export type GenerationUsage = components["schemas"]["GenerationUsage"];
+export type UsageRun = components["schemas"]["UsageRun"];
+export type UsageSummaryResponse = components["schemas"]["UsageSummaryResponse"];
+export type ObservabilityUsage = UsageSummaryResponse;
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -176,6 +182,8 @@ export async function fetchResumeHtml(resumeId: string, signal?: AbortSignal): P
 }
 
 export const api = {
+  getObservabilityUsage: (opts?: Omit<RequestOptions, "path">) =>
+    apiGet<ObservabilityUsage>({ path: `${env.apiPrefix}/observability/usage`, ...opts }),
   listTemplates: (opts?: Omit<RequestOptions, "path">) =>
     apiGet<TemplateListResponse>({ path: `${env.apiPrefix}/resumes/templates`, ...opts }),
   listResumes: (opts?: Omit<RequestOptions, "path">) =>

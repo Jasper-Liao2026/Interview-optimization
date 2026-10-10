@@ -1,0 +1,2577 @@
+{
+  "created_at": "2026-10-10T17:42:38.238561+00:00",
+  "dataset_version": "m8-golden-v1",
+  "prompt_versions": [
+    "m4.0",
+    "m8.0"
+  ],
+  "mode": "stub",
+  "averages": {
+    "m4.0": 63.19,
+    "m8.0": 63.19
+  },
+  "delta": 0.0,
+  "passed": true,
+  "prompt_hashes": {
+    "m4.0": "79cbd3c2e73e257cc3fdc6b03e39278cf7ef9a1c3d0f682fdb43b956ba2c0ca4",
+    "m8.0": "f060df0e44e7d7913e824d629bc5af6d302cb3f7060002b3add7a0f79a8e6022"
+  },
+  "models": {
+    "generation_provider": "stub",
+    "generation_model": "deepseek-chat",
+    "generation_vendor": "deepseek",
+    "judge_provider": "stub",
+    "judge_model": "gpt-4.1-mini",
+    "judge_vendor": "openai"
+  },
+  "cases": [
+    {
+      "case_id": "syn-01",
+      "prompt_version": "m4.0",
+      "score": 62.25,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "实现订单 API",
+            "evidence": [
+              "实现订单 API"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "后端工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Python",
+          "FastAPI",
+          "PostgreSQL"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [
+          "API"
+        ],
+        "implicit_preferences": [],
+        "responsibilities": [
+          "负责 API 设计"
+        ]
+      },
+      "expected_bullets": [
+        "Python",
+        "FastAPI",
+        "PostgreSQL"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-02",
+      "prompt_version": "m4.0",
+      "score": 62.25,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "搭建 ETL 流程",
+            "evidence": [
+              "搭建 ETL 流程"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "数据工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Python",
+          "SQL",
+          "Airflow"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [
+          "ETL"
+        ],
+        "implicit_preferences": [],
+        "responsibilities": [
+          "搭建 ETL"
+        ]
+      },
+      "expected_bullets": [
+        "Python",
+        "SQL",
+        "Airflow"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-03",
+      "prompt_version": "m4.0",
+      "score": 62.25,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "开发组件",
+            "evidence": [
+              "开发组件"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "前端工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "TypeScript",
+          "React",
+          "CSS"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [
+          "组件"
+        ],
+        "implicit_preferences": [],
+        "responsibilities": [
+          "负责组件开发"
+        ]
+      },
+      "expected_bullets": [
+        "TypeScript",
+        "React",
+        "CSS"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-04",
+      "prompt_version": "m4.0",
+      "score": 73.5,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "模型训练",
+            "evidence": [
+              "模型训练"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "机器学习工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Python",
+          "PyTorch",
+          "模型训练"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [
+          "模型"
+        ],
+        "implicit_preferences": [],
+        "responsibilities": [
+          "模型训练"
+        ]
+      },
+      "expected_bullets": [
+        "PyTorch"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-05",
+      "prompt_version": "m4.0",
+      "score": 62.25,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "建立部署流程",
+            "evidence": [
+              "建立部署流程"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "DevOps 工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Docker",
+          "Kubernetes",
+          "CI/CD"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [
+          "部署"
+        ],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "Docker",
+        "Kubernetes"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-06",
+      "prompt_version": "m4.0",
+      "score": 51.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "开发支付服务",
+            "evidence": [
+              "开发支付服务"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "Java 工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Java",
+          "Spring Boot",
+          "MySQL"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "Spring Boot"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-07",
+      "prompt_version": "m4.0",
+      "score": 51.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "开发健康应用",
+            "evidence": [
+              "开发健康应用"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "移动端工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Swift",
+          "iOS",
+          "UIKit"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "Swift"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-08",
+      "prompt_version": "m4.0",
+      "score": 66.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "编写自动化测试",
+            "evidence": [
+              "编写自动化测试"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "测试开发工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Python",
+          "pytest",
+          "自动化测试"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "pytest"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-09",
+      "prompt_version": "m4.0",
+      "score": 66.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "漏洞分析",
+            "evidence": [
+              "漏洞分析"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "安全工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Linux",
+          "网络安全",
+          "漏洞分析"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "漏洞分析"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-10",
+      "prompt_version": "m4.0",
+      "score": 66.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "推动项目管理",
+            "evidence": [
+              "推动项目管理"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "产品经理",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "需求分析",
+          "PRD",
+          "项目管理"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "需求分析"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-11",
+      "prompt_version": "m4.0",
+      "score": 51.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "实现网关",
+            "evidence": [
+              "实现网关"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "后端工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Go",
+          "Gin",
+          "Redis"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [
+          "高并发"
+        ],
+        "implicit_preferences": [],
+        "responsibilities": [
+          "负责高并发服务"
+        ]
+      },
+      "expected_bullets": [
+        "Go"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-12",
+      "prompt_version": "m4.0",
+      "score": 62.25,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "构建智能助手",
+            "evidence": [
+              "构建智能助手"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "AI 应用工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Python",
+          "LLM",
+          "Prompt"
+        ],
+        "nice_to_have": [],
+        "business_domain": "AI",
+        "keywords": [
+          "智能助手"
+        ],
+        "implicit_preferences": [],
+        "responsibilities": [
+          "构建智能助手"
+        ]
+      },
+      "expected_bullets": [
+        "Prompt"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-13",
+      "prompt_version": "m4.0",
+      "score": 66.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "性能优化",
+            "evidence": [
+              "性能优化"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "数据库工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "PostgreSQL",
+          "SQL",
+          "性能优化"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "PostgreSQL"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-14",
+      "prompt_version": "m4.0",
+      "score": 66.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "数据可视化",
+            "evidence": [
+              "数据可视化"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "数据分析师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Python",
+          "Pandas",
+          "可视化"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "Pandas"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-15",
+      "prompt_version": "m4.0",
+      "score": 66.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "设计技术方案",
+            "evidence": [
+              "设计技术方案"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "架构师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "微服务",
+          "分布式系统",
+          "技术方案"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "微服务"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-16",
+      "prompt_version": "m4.0",
+      "score": 66.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "驱动开发",
+            "evidence": [
+              "驱动开发"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "嵌入式工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "C",
+          "嵌入式 Linux",
+          "驱动开发"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "驱动开发"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-17",
+      "prompt_version": "m4.0",
+      "score": 66.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "开发智能合约",
+            "evidence": [
+              "开发智能合约"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "区块链工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Solidity",
+          "Ethereum",
+          "智能合约"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "Solidity"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-18",
+      "prompt_version": "m4.0",
+      "score": 66.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "建设监控告警",
+            "evidence": [
+              "建设监控告警"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "运维工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Linux",
+          "Shell",
+          "监控告警"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "Shell"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-19",
+      "prompt_version": "m4.0",
+      "score": 66.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "完成交互设计",
+            "evidence": [
+              "完成交互设计"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "交互设计师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Figma",
+          "用户研究",
+          "交互设计"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "Figma"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-20",
+      "prompt_version": "m4.0",
+      "score": 66.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "跨团队协作",
+            "evidence": [
+              "跨团队协作"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "项目经理",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "敏捷开发",
+          "风险管理",
+          "跨团队协作"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "敏捷开发"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-01",
+      "prompt_version": "m8.0",
+      "score": 62.25,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "实现订单 API",
+            "evidence": [
+              "实现订单 API"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "后端工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Python",
+          "FastAPI",
+          "PostgreSQL"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [
+          "API"
+        ],
+        "implicit_preferences": [],
+        "responsibilities": [
+          "负责 API 设计"
+        ]
+      },
+      "expected_bullets": [
+        "Python",
+        "FastAPI",
+        "PostgreSQL"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-02",
+      "prompt_version": "m8.0",
+      "score": 62.25,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "搭建 ETL 流程",
+            "evidence": [
+              "搭建 ETL 流程"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "数据工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Python",
+          "SQL",
+          "Airflow"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [
+          "ETL"
+        ],
+        "implicit_preferences": [],
+        "responsibilities": [
+          "搭建 ETL"
+        ]
+      },
+      "expected_bullets": [
+        "Python",
+        "SQL",
+        "Airflow"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-03",
+      "prompt_version": "m8.0",
+      "score": 62.25,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "开发组件",
+            "evidence": [
+              "开发组件"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "前端工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "TypeScript",
+          "React",
+          "CSS"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [
+          "组件"
+        ],
+        "implicit_preferences": [],
+        "responsibilities": [
+          "负责组件开发"
+        ]
+      },
+      "expected_bullets": [
+        "TypeScript",
+        "React",
+        "CSS"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-04",
+      "prompt_version": "m8.0",
+      "score": 73.5,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "模型训练",
+            "evidence": [
+              "模型训练"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "机器学习工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Python",
+          "PyTorch",
+          "模型训练"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [
+          "模型"
+        ],
+        "implicit_preferences": [],
+        "responsibilities": [
+          "模型训练"
+        ]
+      },
+      "expected_bullets": [
+        "PyTorch"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-05",
+      "prompt_version": "m8.0",
+      "score": 62.25,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "建立部署流程",
+            "evidence": [
+              "建立部署流程"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "DevOps 工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Docker",
+          "Kubernetes",
+          "CI/CD"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [
+          "部署"
+        ],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "Docker",
+        "Kubernetes"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-06",
+      "prompt_version": "m8.0",
+      "score": 51.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "开发支付服务",
+            "evidence": [
+              "开发支付服务"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "Java 工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Java",
+          "Spring Boot",
+          "MySQL"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "Spring Boot"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-07",
+      "prompt_version": "m8.0",
+      "score": 51.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "开发健康应用",
+            "evidence": [
+              "开发健康应用"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "移动端工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Swift",
+          "iOS",
+          "UIKit"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "Swift"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-08",
+      "prompt_version": "m8.0",
+      "score": 66.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "编写自动化测试",
+            "evidence": [
+              "编写自动化测试"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "测试开发工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Python",
+          "pytest",
+          "自动化测试"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "pytest"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-09",
+      "prompt_version": "m8.0",
+      "score": 66.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "漏洞分析",
+            "evidence": [
+              "漏洞分析"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "安全工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Linux",
+          "网络安全",
+          "漏洞分析"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "漏洞分析"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-10",
+      "prompt_version": "m8.0",
+      "score": 66.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "推动项目管理",
+            "evidence": [
+              "推动项目管理"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "产品经理",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "需求分析",
+          "PRD",
+          "项目管理"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "需求分析"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-11",
+      "prompt_version": "m8.0",
+      "score": 51.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "实现网关",
+            "evidence": [
+              "实现网关"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "后端工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Go",
+          "Gin",
+          "Redis"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [
+          "高并发"
+        ],
+        "implicit_preferences": [],
+        "responsibilities": [
+          "负责高并发服务"
+        ]
+      },
+      "expected_bullets": [
+        "Go"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-12",
+      "prompt_version": "m8.0",
+      "score": 62.25,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "构建智能助手",
+            "evidence": [
+              "构建智能助手"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "AI 应用工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Python",
+          "LLM",
+          "Prompt"
+        ],
+        "nice_to_have": [],
+        "business_domain": "AI",
+        "keywords": [
+          "智能助手"
+        ],
+        "implicit_preferences": [],
+        "responsibilities": [
+          "构建智能助手"
+        ]
+      },
+      "expected_bullets": [
+        "Prompt"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-13",
+      "prompt_version": "m8.0",
+      "score": 66.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "性能优化",
+            "evidence": [
+              "性能优化"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "数据库工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "PostgreSQL",
+          "SQL",
+          "性能优化"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "PostgreSQL"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-14",
+      "prompt_version": "m8.0",
+      "score": 66.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "数据可视化",
+            "evidence": [
+              "数据可视化"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "数据分析师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Python",
+          "Pandas",
+          "可视化"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "Pandas"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-15",
+      "prompt_version": "m8.0",
+      "score": 66.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "设计技术方案",
+            "evidence": [
+              "设计技术方案"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "架构师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "微服务",
+          "分布式系统",
+          "技术方案"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "微服务"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-16",
+      "prompt_version": "m8.0",
+      "score": 66.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "驱动开发",
+            "evidence": [
+              "驱动开发"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "嵌入式工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "C",
+          "嵌入式 Linux",
+          "驱动开发"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "驱动开发"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-17",
+      "prompt_version": "m8.0",
+      "score": 66.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "开发智能合约",
+            "evidence": [
+              "开发智能合约"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "区块链工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Solidity",
+          "Ethereum",
+          "智能合约"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "Solidity"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-18",
+      "prompt_version": "m8.0",
+      "score": 66.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "建设监控告警",
+            "evidence": [
+              "建设监控告警"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "运维工程师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Linux",
+          "Shell",
+          "监控告警"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "Shell"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-19",
+      "prompt_version": "m8.0",
+      "score": 66.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "完成交互设计",
+            "evidence": [
+              "完成交互设计"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "交互设计师",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "Figma",
+          "用户研究",
+          "交互设计"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "Figma"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    },
+    {
+      "case_id": "syn-20",
+      "prompt_version": "m8.0",
+      "score": 66.0,
+      "is_stub": true,
+      "profile": {
+        "title": "【fixture】title",
+        "company": "【fixture】company",
+        "seniority": "【fixture】seniority",
+        "required_skills": [
+          "【fixture】required_skills"
+        ],
+        "nice_to_have": [
+          "【fixture】nice_to_have"
+        ],
+        "business_domain": "【fixture】business_domain",
+        "keywords": [
+          "【fixture】keywords"
+        ],
+        "implicit_preferences": [
+          "【fixture】implicit_preferences"
+        ],
+        "responsibilities": [
+          "【fixture】responsibilities"
+        ]
+      },
+      "output": {
+        "bullets": [
+          {
+            "text": "跨团队协作",
+            "evidence": [
+              "跨团队协作"
+            ]
+          }
+        ]
+      },
+      "expected_profile": {
+        "title": "项目经理",
+        "company": null,
+        "seniority": null,
+        "required_skills": [
+          "敏捷开发",
+          "风险管理",
+          "跨团队协作"
+        ],
+        "nice_to_have": [],
+        "business_domain": null,
+        "keywords": [],
+        "implicit_preferences": [],
+        "responsibilities": []
+      },
+      "expected_bullets": [
+        "敏捷开发"
+      ],
+      "failures": [],
+      "warnings": [
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "LLM_PROVIDER=stub：返回的是确定性桩数据（字段值带【fixture】前缀），不是真实模型输出。要看真实效果请配置 LLM_PROVIDER=openai-compatible + LLM_API_KEY。",
+        "本地规则评分，不能替代真实模型质量评估。",
+        "stub 本地规则演示，未调用真实异构模型，不能作为质量校准证据。"
+      ]
+    }
+  ],
+  "dataset_id": "96c6d4c3-309d-47d6-862b-947649f82b9b",
+  "run_id": "7f9b5dfe-7e25-4dd6-85e5-d10afae815d6"
+}

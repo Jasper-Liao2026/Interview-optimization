@@ -191,4 +191,37 @@ class GenerateResponse(BaseModel):
     model: str
     is_stub: bool
     trace_id: str
+    langfuse_trace_url: str | None = None
+    prompt_version: str | None = None
+    usage: GenerationUsage = Field(
+        default_factory=lambda: GenerationUsage(),
+        description="本次生成的 token、延迟与调用明细",
+    )
     warnings: list[str] = Field(description="生成过程中的降级提示（stub、截断、JSON 重试等）")
+
+
+class UsageCall(BaseModel):
+    id: str | None = None
+    operation: str
+    provider: str
+    model: str
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    total_tokens: int = 0
+    latency_ms: float = 0
+    prompt_version: str | None = None
+    prompt_hash: str | None = None
+    cost_usd: float | None = None
+    is_stub: bool = False
+    status: str = "succeeded"
+
+
+class GenerationUsage(BaseModel):
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+    latency_ms: float = 0
+    cost_usd: float | None = None
+    unknown_usage_calls: int = 0
+    is_stub: bool = False
+    calls: list[UsageCall] = Field(default_factory=list)

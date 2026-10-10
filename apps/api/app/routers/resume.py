@@ -92,6 +92,13 @@ def _response(outcome: GenerationOutcome, settings: SettingsDep) -> GenerateResp
         model=outcome.model,
         is_stub=outcome.is_stub,
         trace_id=outcome.trace_id,
+        langfuse_trace_url=(
+            f"{settings.langfuse_host.rstrip('/')}/project/{settings.langfuse_project_id}/traces/{outcome.trace_id}"
+            if settings.langfuse_configured
+            else None
+        ),
+        prompt_version=(outcome.usage.get("calls") or [{}])[0].get("prompt_version"),
+        usage=outcome.usage,
         warnings=outcome.warnings,
     )
 

@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/generate", label: "生成简历" },
   { href: "/edit", label: "编辑简历" },
   { href: "/export", label: "批量导出" },
+  { href: "/observability", label: "观测" },
   { href: "/", label: "系统自检" },
 ] as const;
 

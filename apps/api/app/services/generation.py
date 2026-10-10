@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import copy
+import time
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from typing import Any
@@ -15,7 +17,9 @@ from app.agents.rewriter import ExperienceRewriter
 from app.config import Settings
 from app.llm import LlmClient
 from app.observability import Observability
+from app.observability.usage import summarize_calls, usage_scope
 from app.schemas import GenerateRequest, JobProfile, RewrittenExperience
+from app.schemas.resume import GenerationUsage, UsageCall
 
 
 class GenerationError(RuntimeError):
@@ -48,6 +52,7 @@ class GenerationOutcome:
     failures: list[dict[str, Any]]
     checkpoint: dict[str, Any]
     persisted: bool
+    usage: dict[str, Any] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
 
 
@@ -133,6 +138,7 @@ class ResumeGenerationService:
                 else self._settings.generation_vendor,
                 "model": self._llm.model,
                 "is_stub": self._llm.is_stub,
+                "prompt_version": self._settings.prompt_version,
             }
             await self._runs.save(user_id, run_id, run)
             return await self._execute(user_id, run_id, run)
@@ -147,10 +153,12 @@ class ResumeGenerationService:
                 profile = JobProfile.model_validate(row["parsed"])
                 run["jd_id"] = request["jd_id"]
             else:
-                parsed = await self._parser.parse(request["jd_text"])
+                with usage_scope(operation="jd_parse"):
+                    parsed = await self._parser.parse(request["jd_text"])
                 profile = parsed.value
                 run["warnings"].extend(parsed.warnings)
                 run["parser_model"] = parsed.llm.model
+
             run["profile"] = profile.model_dump(mode="json")
             await self._runs.save(user_id, run_id, run)
         if request["persist"] and not run.get("jd_id"):
@@ -168,6 +176,55 @@ class ResumeGenerationService:
             await self._runs.save(user_id, run_id, run)
 
     async def _execute(
+        self, user_id: UUID, run_id: UUID, run: dict[str, Any], *, retry: int | None = None
+    ) -> GenerationOutcome:
+        from app.agents.prompts import get_prompt_snapshot
+
+        version = run.get("prompt_version", self._settings.prompt_version)
+        # Recovery uses the saved snapshot, regardless of the current deployment default.
+        worker = copy.copy(self)
+        worker._rewriter = copy.copy(self._rewriter)
+        worker._parser = copy.copy(self._parser)
+        if isinstance(worker._rewriter, ExperienceRewriter):
+            worker._rewriter.prompt = get_prompt_snapshot(version)
+        if isinstance(worker._parser, JdParser):
+            worker._parser.prompt = get_prompt_snapshot(version)
+
+        async def sink(call):
+            await self._runs.record_usage(user_id, run_id, call)
+
+        started = time.perf_counter()
+        with (
+            usage_scope(sink=sink, observability=self._obs),
+            self._obs.span(
+                "resume.generate",
+                trace_id=run["trace_id"],
+                input=run["request"],
+                metadata={"run_id": str(run_id), "prompt_version": version, "retry_index": retry},
+                tags=["m8", "stub" if self._llm.is_stub else "real"],
+            ) as span,
+        ):
+            try:
+                result = await worker._execute_inner(user_id, run_id, run, retry=retry)
+            except Exception as exc:
+                if span is not None:
+                    span.update(level="ERROR", status_message=str(exc))
+                raise
+            finally:
+                run["usage"] = summarize_calls(
+                    await self._runs.usage(user_id, run_id), is_stub=run["is_stub"]
+                )
+                run["usage"]["latency_ms"] = round(
+                    float(run.get("wall_latency_ms", 0)) + (time.perf_counter() - started) * 1000, 2
+                )
+                run["wall_latency_ms"] = run["usage"]["latency_ms"]
+                await self._runs.save(user_id, run_id, run)
+            result.usage = run["usage"]
+            if span is not None:
+                span.update(output={"resume_id": run["resume_id"], "status": run["status"]})
+        return result
+
+    async def _execute_inner(
         self, user_id: UUID, run_id: UUID, run: dict[str, Any], *, retry: int | None = None
     ) -> GenerationOutcome:
         await self._prepare(user_id, run_id, run)
@@ -219,6 +276,7 @@ class ResumeGenerationService:
             if failures and len(failures) < len(items)
             else ("failed" if failures else "completed")
         )
+        run["usage"] = self._usage(run)
         profile = JobProfile.model_validate(run["profile"])
         now = datetime.now(UTC).isoformat()
         row = {
@@ -250,8 +308,31 @@ class ResumeGenerationService:
                 resume_id=UUID(run["resume_id"]),
             )
         run["resume"] = json_row(row)
+        run["usage"] = self._usage(run)
         await self._runs.save(user_id, run_id, run)
         return self._outcome(run_id, run)
+
+    def _prompt_version(self) -> str | None:
+        try:
+            from app.agents.prompts import prompt_metadata
+
+            return prompt_metadata().get("prompt_version")
+        except (ImportError, ValueError):
+            return None
+
+    @staticmethod
+    def _usage(run: dict[str, Any]) -> dict[str, Any]:
+        calls = list(run.get("usage_calls") or [])
+        for item in (run.get("graph") or {}).get("items", {}).values():
+            if item.get("usage"):
+                calls.append(item["usage"])
+        return GenerationUsage(
+            input_tokens=sum(int(c.get("input_tokens") or 0) for c in calls),
+            output_tokens=sum(int(c.get("output_tokens") or 0) for c in calls),
+            total_tokens=sum(int(c.get("total_tokens") or 0) for c in calls),
+            latency_ms=round(sum(float(c.get("latency_ms", 0)) for c in calls), 2),
+            calls=[UsageCall.model_validate(c) for c in calls],
+        ).model_dump(mode="json")
 
     def _outcome(self, run_id: UUID, run: dict[str, Any]) -> GenerationOutcome:
         state = run.get("graph", {})
@@ -304,6 +385,7 @@ class ResumeGenerationService:
                 "resumable": run["status"] in ("pending", "running"),
             },
             persisted=run["request"]["persist"],
+            usage=run.get("usage", self._usage(run)),
             warnings=list(dict.fromkeys(warnings)),
         )
 

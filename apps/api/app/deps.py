@@ -63,11 +63,15 @@ ProfileRepoDep = Annotated[ProfileRepository, Depends(get_profile_repository)]
 
 # ------------------------------------------------------------------ agent
 def get_jd_parser_dep(llm: LlmDep) -> JdParser:
-    return get_jd_parser(llm)
+    return get_jd_parser(llm, prompt_version=llm.settings.prompt_version)
 
 
 def get_rewriter_dep(llm: LlmDep, settings: SettingsDep) -> ExperienceRewriter:
-    return get_experience_rewriter(llm, max_input_chars=settings.rewrite_max_input_chars)
+    return get_experience_rewriter(
+        llm,
+        max_input_chars=settings.rewrite_max_input_chars,
+        prompt_version=settings.prompt_version,
+    )
 
 
 JdParserDep = Annotated[JdParser, Depends(get_jd_parser_dep)]

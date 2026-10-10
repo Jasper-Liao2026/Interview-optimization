@@ -5,7 +5,7 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.schemas.resume import ResumeRead
+from app.schemas.resume import GenerationUsage, ResumeRead
 
 
 class TemplateRead(BaseModel):
@@ -45,6 +45,10 @@ class BatchGenerateItem(BaseModel):
     resume: ResumeRead | None = None
     error: str | None = None
     warnings: list[str] = Field(default_factory=list)
+    usage: GenerationUsage = Field(default_factory=GenerationUsage)
+    trace_id: str | None = None
+    langfuse_trace_url: str | None = None
+    prompt_version: str | None = None
 
 
 class BatchGenerateResponse(BaseModel):

@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, Field
+
+from app.schemas.resume import GenerationUsage
 
 DEFAULT_SMOKE_PROMPT = "用一句话说明「岗位适配版简历」是什么意思。"
 
@@ -65,3 +69,22 @@ class SmokeResponse(BaseModel):
     output_tokens: int | None = None
     latency_ms: float | None = None
     error: str | None = Field(default=None, description="失败原因")
+
+
+class UsageRun(BaseModel):
+    run_id: str
+    trace_id: str | None = None
+    status: str | None = None
+    updated_at: datetime | None = None
+    langfuse_trace_url: str | None = None
+    usage: GenerationUsage = Field(default_factory=GenerationUsage)
+
+
+class UsageSummaryResponse(BaseModel):
+    runs: list[UsageRun] = Field(default_factory=list)
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+    latency_ms: float = 0
+    cost_usd: float | None = None
+    unknown_usage_calls: int = 0

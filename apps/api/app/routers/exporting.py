@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, Response
 
-from app.deps import CurrentUserDep, GenerationServiceDep, PdfDep, ResumeRepoDep
+from app.deps import CurrentUserDep, GenerationServiceDep, ObservabilityDep, PdfDep, ResumeRepoDep
 from app.observability import normalize_trace_id
 from app.pdf import PdfExportError
 from app.render import UnknownTemplateError, template_definitions
@@ -31,9 +31,16 @@ async def list_resumes(user_id: CurrentUserDep, repository: ResumeRepoDep):
 
 @router.post("/batch-generate", response_model=BatchGenerateResponse)
 async def batch_generate(
-    payload: BatchGenerateRequest, user_id: CurrentUserDep, service: GenerationServiceDep
+    payload: BatchGenerateRequest,
+    user_id: CurrentUserDep,
+    service: GenerationServiceDep,
+    observability: ObservabilityDep,
 ):
-    return await generate_batch(user_id, payload, service, normalize_trace_id(current_trace_id()))
+    result = await generate_batch(
+        user_id, payload, service, normalize_trace_id(current_trace_id()), observability
+    )
+    observability.flush()
+    return result
 
 
 @router.post("/export", responses={200: {"content": {"application/zip": {}}}})

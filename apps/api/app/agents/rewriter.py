@@ -4,15 +4,19 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.agents.prompts import REWRITE_SYSTEM, build_rewrite_prompt
+from app.agents.prompts import build_rewrite_prompt, get_prompt_snapshot, prompt_context
 from app.llm import LlmClient, StructuredResult
 from app.schemas import JobProfile, RewrittenBullet, RewrittenExperience
 
 
 class ExperienceRewriter:
-    def __init__(self, llm: LlmClient, *, max_input_chars: int) -> None:
+    def __init__(
+        self, llm: LlmClient, *, max_input_chars: int, prompt_version: str | None = None
+    ) -> None:
         self._llm = llm
         self._max_input_chars = max_input_chars
+        configured = getattr(getattr(llm, "settings", None), "prompt_version", None)
+        self.prompt = get_prompt_snapshot(prompt_version or configured)
 
     @property
     def model(self) -> str:
@@ -38,6 +42,7 @@ class ExperienceRewriter:
             # 与定性要点分开，M4-7 的数字校验才有明确的参照集合。
             metrics=list(experience.get("metrics") or []),
             max_chars=self._max_input_chars,
+            version=self.prompt.version,
         )
         if feedback:
             prompt += (
@@ -47,9 +52,12 @@ class ExperienceRewriter:
             )
         retry_prompt = prompt
         for attempt in range(3):
-            outcome = await self._llm.complete_json(
-                retry_prompt, RewrittenExperience, system=REWRITE_SYSTEM
-            )
+            with prompt_context(self.prompt):
+                outcome = await self._llm.complete_json(
+                    retry_prompt,
+                    RewrittenExperience,
+                    system=self.prompt.rewrite_system,
+                )
             if self._llm.is_stub:
                 highlights = experience.get("highlights") or []
                 source = (
@@ -86,5 +94,7 @@ class FactValidationError(ValueError):
         super().__init__("事实约束校验失败：" + "; ".join(violations))
 
 
-def get_experience_rewriter(llm: LlmClient, *, max_input_chars: int) -> ExperienceRewriter:
-    return ExperienceRewriter(llm, max_input_chars=max_input_chars)
+def get_experience_rewriter(
+    llm: LlmClient, *, max_input_chars: int, prompt_version: str | None = None
+) -> ExperienceRewriter:
+    return ExperienceRewriter(llm, max_input_chars=max_input_chars, prompt_version=prompt_version)

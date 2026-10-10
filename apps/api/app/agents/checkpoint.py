@@ -8,7 +8,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -31,6 +31,34 @@ class GenerationRunStore:
         self._rows: dict[tuple[UUID, UUID], dict[str, Any]] = {}
         self._locks: dict[UUID, asyncio.Lock] = {}
         self._saver = InMemorySaver()
+        self._usage: dict[tuple[UUID, UUID], list[dict[str, Any]]] = {}
+
+    async def record_usage(self, user_id: UUID, run_id: UUID, call: dict[str, Any]) -> None:
+        call = {"id": str(uuid4()), **call}
+        if self.database is None:
+            self._usage.setdefault((user_id, run_id), []).append(copy.deepcopy(call))
+            return
+        async with self.database.connection() as conn:
+            await conn.execute(
+                "insert into public.generation_llm_calls(id,run_id,user_id,payload) "
+                "values($1,$2,$3,$4)",
+                UUID(call["id"]),
+                run_id,
+                user_id,
+                call,
+            )
+
+    async def usage(self, user_id: UUID, run_id: UUID) -> list[dict[str, Any]]:
+        if self.database is None:
+            return copy.deepcopy(self._usage.get((user_id, run_id), []))
+        async with self.database.connection() as conn:
+            rows = await conn.fetch(
+                "select payload from public.generation_llm_calls where user_id=$1 and run_id=$2 "
+                "order by created_at,id",
+                user_id,
+                run_id,
+            )
+        return [row["payload"] for row in rows]
 
     @asynccontextmanager
     async def lock(self, run_id: UUID) -> AsyncIterator[None]:

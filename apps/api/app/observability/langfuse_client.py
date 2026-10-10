@@ -26,6 +26,7 @@ from collections.abc import Iterator
 from functools import lru_cache
 from typing import Any
 
+import httpx
 from langfuse import Langfuse
 
 from app import __version__
@@ -35,6 +36,25 @@ logger = logging.getLogger("app.observability")
 
 _ZERO_TRACE_ID = "0" * 32
 _NON_HEX = re.compile(r"[^0-9a-fA-F]")
+
+
+class SafeObservation:
+    """SDK export/update failures must never change a business result."""
+
+    def __init__(self, observation: Any) -> None:
+        self.observation = observation
+
+    def update(self, **kwargs: Any) -> None:
+        try:
+            self.observation.update(**kwargs)
+        except Exception:
+            logger.warning("langfuse update failed", exc_info=True)
+
+    def update_trace(self, **kwargs: Any) -> None:
+        try:
+            self.observation.update_trace(**kwargs)
+        except Exception:
+            logger.warning("langfuse trace update failed", exc_info=True)
 
 
 def normalize_trace_id(raw: str | None = None) -> str:
@@ -76,6 +96,7 @@ class Observability:
                 environment=settings.environment,
                 release=__version__,
                 tracing_enabled=True,
+                httpx_client=httpx.Client(follow_redirects=True, timeout=5),
             )
             logger.info(
                 "langfuse 已启用 host=%s env=%s",
@@ -121,6 +142,26 @@ class Observability:
         return f"{host}/project/{project_id}/traces/{trace_id}"
 
     # ------------------------------------------------ trace / span 辅助
+    @contextlib.contextmanager
+    def _observation(self, **kwargs: Any) -> Iterator[Any | None]:
+        if self._client is None:
+            yield None
+            return
+        try:
+            scope = self._client.start_as_current_observation(**kwargs)
+            observation = SafeObservation(scope.__enter__())
+        except Exception:
+            logger.warning("langfuse observation failed; continuing", exc_info=True)
+            yield None
+            return
+        try:
+            yield observation
+        finally:
+            try:
+                scope.__exit__(None, None, None)
+            except Exception:
+                logger.warning("langfuse observation close failed", exc_info=True)
+
     #
     # 统一用 `start_as_current_observation(as_type=...)`：
     # langfuse 3.x 正在陆续废弃 `start_as_current_span` / `start_as_current_generation`
@@ -145,14 +186,14 @@ class Observability:
         # 会直接 ValueError（且 SDK 先 warn「非法」再照用，自己不防）。
         # 这里统一转成 32 位 hex，调用方忘了 normalize 也不会把请求打成 500。
         trace_context = {"trace_id": normalize_trace_id(trace_id)} if trace_id else None
-        with self._client.start_as_current_observation(
+        with self._observation(
             name=name,
             as_type="span",
             trace_context=trace_context,
             input=input,
             metadata=metadata,
         ) as span:
-            if tags:
+            if tags and span is not None:
                 span.update_trace(tags=tags)
             yield span
 
@@ -171,7 +212,7 @@ class Observability:
             yield None
             return
 
-        with self._client.start_as_current_observation(
+        with self._observation(
             name=name,
             as_type="generation",
             model=model,

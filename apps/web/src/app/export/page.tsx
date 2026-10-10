@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { PdfPreview } from "@/components/pdf-preview";
+import { GenerationMetrics } from "@/components/generation-metrics";
 import { TopNav } from "@/components/top-nav";
 import {
   api, ApiError, newRequestId,
@@ -312,6 +313,7 @@ export default function ExportPage() {
       {result ? <ul className="mt-4 space-y-3">{result.items.map(item => <li key={item.jd_id} className="rounded-md border border-[var(--border)] p-3 text-xs">
         <p className="font-medium">{jobName(item.jd_id)} · <span style={{ color: item.status === "completed" ? "var(--ok)" : item.status === "partial" ? "var(--warn)" : "var(--err)" }}>{statuses[item.status]}</span></p>
         {item.error ? <p className="mt-1 break-words text-[var(--err)]">{item.error}</p> : null}
+        {item.usage ? <GenerationMetrics usage={item.usage} traceUrl={item.langfuse_trace_url} promptVersion={item.prompt_version} compact /> : null}
         {item.resume && isStub(item.resume) ? <p className="mt-1 text-[var(--warn)]">当前为 stub 桩数据，包含示例内容，请勿用于正式投递。</p> : null}
         {(item.warnings ?? []).map((warning, index) => <p key={index} className="mt-1 text-[var(--warn)]">{warning}</p>)}
         {item.resume ? <Link href={`/edit/${item.resume.id}`} className="mt-2 inline-block underline">编辑该简历</Link> : null}

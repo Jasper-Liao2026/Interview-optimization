@@ -53,10 +53,13 @@ from app.schemas.observability import (
     ObservabilityStatusResponse,
     SmokeRequest,
     SmokeResponse,
+    UsageRun,
+    UsageSummaryResponse,
 )
 from app.schemas.resume import (
     GenerateRequest,
     GenerateResponse,
+    GenerationUsage,
     ResumeBullet,
     ResumeEntry,
     ResumeHeader,
@@ -64,6 +67,7 @@ from app.schemas.resume import (
     ResumeSection,
     RewrittenBullet,
     RewrittenExperience,
+    UsageCall,
 )
 from app.schemas.scoring import (
     JudgeAssessment,
@@ -97,6 +101,7 @@ __all__ = [
     "ExperienceVariant",
     "GenerateRequest",
     "GenerateResponse",
+    "GenerationUsage",
     "HealthResponse",
     "JdImageParseRequest",
     "JdImageParseResponse",
@@ -136,4 +141,7 @@ __all__ = [
     "SmokeRequest",
     "SmokeResponse",
     "SystemInfoResponse",
+    "UsageCall",
+    "UsageRun",
+    "UsageSummaryResponse",
 ]

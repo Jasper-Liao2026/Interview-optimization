@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -18,6 +19,7 @@ from fastapi.responses import JSONResponse
 from app import __version__
 from app.config import get_settings
 from app.db import DatabaseUnavailable, get_database
+from app.evaluation.prompt_registry import PromptVersionRepository
 from app.observability import get_observability
 from app.routers import editing, experiences, exporting, health, jd, observability, resume, system
 from app.tracing import TraceIdMiddleware, configure_logging, current_trace_id
@@ -39,8 +41,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         "on" if observability_client.enabled else "off",
         settings.llm_provider,
     )
-    # 刻意不在这里连数据库：postgres 慢启动不应阻塞 api 起来。
-    # 连接池在第一次真正用到时才建（见 app/db.py）。
+    # Load a persisted prompt selection when the database is available.  The
+    # timeout keeps the API startup path bounded when Postgres is still coming
+    # up; dependencies continue using the configured default in that case.
+    try:
+        registry = PromptVersionRepository(get_database(), settings=settings)
+        await asyncio.wait_for(registry.ensure_shipped(), timeout=1.0)
+        selected = await asyncio.wait_for(registry.selected(), timeout=1.0)
+        logger.info("prompt registry selected version=%s", selected)
+    except Exception as exc:
+        logger.info("prompt registry unavailable during startup: %s", exc)
     yield
     # 退出前把缓冲里的 trace 推出去，否则最后一批 span 会丢
     observability_client.shutdown()

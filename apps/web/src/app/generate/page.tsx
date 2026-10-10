@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { TopNav } from "@/components/top-nav";
+import { GenerationMetrics } from "@/components/generation-metrics";
 import { ScoreOptimizer } from "@/components/score-optimizer";
 import {
   api,
@@ -395,8 +396,11 @@ function ResultView({ result, onRetry, onResume, busy, activeAction }: {
         <Row k="运行 ID" v={result.run_id} mono />
         <Row k="产出模型" v={`${result.provider} · ${result.model}`} />
         <Row k="trace_id" v={result.trace_id} mono />
+        <Row k="prompt 版本" v={result.prompt_version ?? "—"} mono />
         <Row k="预览地址" v={result.preview_path ?? "—"} mono />
       </dl>
+
+      <GenerationMetrics usage={result.usage} traceUrl={result.langfuse_trace_url} promptVersion={result.prompt_version} />
 
       <div className="space-y-2">
         <p className="font-mono text-xs text-[var(--muted)]">经历处理结果（成功 {items.filter(item => item.status === "succeeded").length} / {items.length}）</p>

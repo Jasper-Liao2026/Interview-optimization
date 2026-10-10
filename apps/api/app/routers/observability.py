@@ -14,13 +14,14 @@ import logging
 
 from fastapi import APIRouter
 
-from app.deps import LlmDep, ObservabilityDep, SettingsDep
+from app.deps import CurrentUserDep, DatabaseDep, LlmDep, ObservabilityDep, SettingsDep
 from app.llm import LlmError, LlmResult
 from app.observability import normalize_trace_id
 from app.schemas import (
     ObservabilityStatusResponse,
     SmokeRequest,
     SmokeResponse,
+    UsageSummaryResponse,
 )
 from app.tracing import current_trace_id
 
@@ -50,6 +51,38 @@ async def observability_status(
         llm_provider=settings.llm_provider,
         llm_model=settings.llm_model,
         llm_is_stub=settings.llm_provider == "stub",
+    )
+
+
+@router.get(
+    "/observability/usage",
+    response_model=UsageSummaryResponse,
+    summary="生成成本与延迟汇总",
+)
+async def observability_usage(
+    user_id: CurrentUserDep,
+    database: DatabaseDep,
+    observability: ObservabilityDep,
+) -> UsageSummaryResponse:
+    rows = await database.fetch_generation_usage(str(user_id))
+    for row in rows:
+        row["langfuse_trace_url"] = (
+            observability.trace_url(row["trace_id"]) if row["trace_id"] else None
+        )
+    usages = [row["usage"] for row in rows]
+
+    def total(name: str) -> int:
+        return sum(int(item.get(name) or 0) for item in usages)
+
+    costs = [item.get("cost_usd") for item in usages]
+    return UsageSummaryResponse(
+        runs=rows,
+        input_tokens=total("input_tokens"),
+        output_tokens=total("output_tokens"),
+        total_tokens=total("total_tokens"),
+        latency_ms=round(sum(float(item.get("latency_ms") or 0) for item in usages), 2),
+        cost_usd=round(sum(costs), 8) if costs and all(c is not None for c in costs) else None,
+        unknown_usage_calls=total("unknown_usage_calls"),
     )
 
 

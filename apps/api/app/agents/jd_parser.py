@@ -6,22 +6,25 @@
 
 from __future__ import annotations
 
-from app.agents.prompts import JD_IMAGE_PROMPT, JD_PARSE_SYSTEM, build_jd_prompt
+from app.agents.prompts import build_jd_prompt, get_prompt_snapshot, prompt_context
 from app.llm import LlmClient, StructuredResult
 from app.schemas import JobProfile
 from app.schemas.jd import JdImageExtraction
 
 
 class JdParser:
-    def __init__(self, llm: LlmClient) -> None:
+    def __init__(self, llm: LlmClient, *, prompt_version: str | None = None) -> None:
         self._llm = llm
+        configured = getattr(getattr(llm, "settings", None), "prompt_version", None)
+        self.prompt = get_prompt_snapshot(prompt_version or configured)
 
     async def parse(self, raw_text: str) -> StructuredResult[JobProfile]:
-        return await self._llm.complete_json(
-            build_jd_prompt(raw_text),
-            JobProfile,
-            system=JD_PARSE_SYSTEM,
-        )
+        with prompt_context(self.prompt):
+            return await self._llm.complete_json(
+                build_jd_prompt(raw_text, version=self.prompt.version),
+                JobProfile,
+                system=self.prompt.jd_system,
+            )
 
     async def parse_image(self, image_data_url: str) -> StructuredResult[JdImageExtraction]:
         settings = self._llm.settings
@@ -35,13 +38,14 @@ class JdParser:
                 }
             )
         )
-        return await vision.complete_json(
-            JD_IMAGE_PROMPT,
-            JdImageExtraction,
-            system=JD_PARSE_SYSTEM,
-            image_data_url=image_data_url,
-        )
+        with prompt_context(self.prompt):
+            return await vision.complete_json(
+                self.prompt.jd_image,
+                JdImageExtraction,
+                system=self.prompt.jd_system,
+                image_data_url=image_data_url,
+            )
 
 
-def get_jd_parser(llm: LlmClient) -> JdParser:
-    return JdParser(llm)
+def get_jd_parser(llm: LlmClient, *, prompt_version: str | None = None) -> JdParser:
+    return JdParser(llm, prompt_version=prompt_version)

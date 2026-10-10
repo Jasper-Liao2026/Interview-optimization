@@ -31,7 +31,9 @@ def validate_template(template: str) -> None:
         raise UnknownTemplateError(f"未知模板 {template!r}")
 
 
-async def generate_batch(user_id, payload: BatchGenerateRequest, generation, trace_id):
+async def generate_batch(
+    user_id, payload: BatchGenerateRequest, generation, trace_id, observability=None
+):
     # Individual run IDs survive interrupted HTTP requests and process restarts.
     # Each run validates its stored request before reusing its checkpoint.
     semaphore = asyncio.Semaphore(2)
@@ -56,6 +58,16 @@ async def generate_batch(user_id, payload: BatchGenerateRequest, generation, tra
                     status=outcome.checkpoint["status"],
                     resume=ResumeRead.model_validate(outcome.resume),
                     warnings=outcome.warnings,
+                    usage=getattr(outcome, "usage", {}),
+                    trace_id=getattr(outcome, "trace_id", None),
+                    prompt_version=(getattr(outcome, "usage", {}).get("calls") or [{}])[0].get(
+                        "prompt_version"
+                    ),
+                    langfuse_trace_url=(
+                        observability.trace_url(outcome.trace_id)
+                        if observability and getattr(outcome, "trace_id", None)
+                        else None
+                    ),
                     error="全部经历改写失败，请检查素材并重试失败条目"
                     if outcome.checkpoint["status"] == "failed"
                     else None,

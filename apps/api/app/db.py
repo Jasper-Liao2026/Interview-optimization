@@ -171,6 +171,33 @@ class Database:
             for row in rows
         ]
 
+    async def fetch_generation_usage(
+        self, user_id: str, run_id: str | None = None
+    ) -> list[dict[str, Any]]:
+        """Return persisted per-run usage snapshots for the M8 cost view."""
+        query = (
+            "select id, payload->'usage' as usage, payload->>'trace_id' as trace_id, "
+            "payload->>'status' as status, updated_at from public.generation_runs "
+            "where user_id=$1 and payload ? 'usage'"
+        )
+        args: list[Any] = [user_id]
+        if run_id:
+            query += " and id=$2"
+            args.append(run_id)
+        query += " order by updated_at desc"
+        async with self.connection() as conn:
+            rows = await conn.fetch(query, *args)
+        return [
+            {
+                "run_id": str(row["id"]),
+                "trace_id": row["trace_id"],
+                "status": row["status"],
+                "updated_at": row["updated_at"],
+                "usage": row["usage"] or {},
+            }
+            for row in rows
+        ]
+
     async def _discard_pool(self) -> None:
         pool, self._pool = self._pool, None
         if pool is not None:

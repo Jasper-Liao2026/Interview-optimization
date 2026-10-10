@@ -208,6 +208,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/observability/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 生成成本与延迟汇总 */
+        get: operations["observability_usage_api_v1_observability_usage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/resumes": {
         parameters: {
             query?: never;
@@ -662,6 +679,10 @@ export interface components {
              * Format: uuid
              */
             jd_id: string;
+            /** Langfuse Trace Url */
+            langfuse_trace_url?: string | null;
+            /** Prompt Version */
+            prompt_version?: string | null;
             resume?: components["schemas"]["ResumeRead"] | null;
             /**
              * Run Id
@@ -673,6 +694,9 @@ export interface components {
              * @enum {string}
              */
             status: "completed" | "partial" | "failed";
+            /** Trace Id */
+            trace_id?: string | null;
+            usage?: components["schemas"]["GenerationUsage"];
             /** Warnings */
             warnings?: string[];
         };
@@ -1119,6 +1143,8 @@ export interface components {
             is_stub: boolean;
             /** Items */
             items: components["schemas"]["GenerationItem"][];
+            /** Langfuse Trace Url */
+            langfuse_trace_url?: string | null;
             /** Model */
             model: string;
             /**
@@ -1133,6 +1159,8 @@ export interface components {
             preview_path?: string | null;
             /** @description 本次使用的岗位画像，便于前端展示「为什么这样改写」 */
             profile: components["schemas"]["JobProfile"];
+            /** Prompt Version */
+            prompt_version?: string | null;
             /** Provider */
             provider: string;
             resume: components["schemas"]["ResumeRead"];
@@ -1143,6 +1171,8 @@ export interface components {
             run_id: string;
             /** Trace Id */
             trace_id: string;
+            /** @description 本次生成的 token、延迟与调用明细 */
+            usage?: components["schemas"]["GenerationUsage"];
             /**
              * Warnings
              * @description 生成过程中的降级提示（stub、截断、JSON 重试等）
@@ -1205,6 +1235,43 @@ export interface components {
              * @enum {string}
              */
             status: "pending" | "succeeded" | "failed";
+        };
+        /** GenerationUsage */
+        GenerationUsage: {
+            /** Calls */
+            calls?: components["schemas"]["UsageCall"][];
+            /** Cost Usd */
+            cost_usd?: number | null;
+            /**
+             * Input Tokens
+             * @default 0
+             */
+            input_tokens: number;
+            /**
+             * Is Stub
+             * @default false
+             */
+            is_stub: boolean;
+            /**
+             * Latency Ms
+             * @default 0
+             */
+            latency_ms: number;
+            /**
+             * Output Tokens
+             * @default 0
+             */
+            output_tokens: number;
+            /**
+             * Total Tokens
+             * @default 0
+             */
+            total_tokens: number;
+            /**
+             * Unknown Usage Calls
+             * @default 0
+             */
+            unknown_usage_calls: number;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -2081,6 +2148,93 @@ export interface components {
             /** Name */
             name: string;
         };
+        /** UsageCall */
+        UsageCall: {
+            /** Cost Usd */
+            cost_usd?: number | null;
+            /** Id */
+            id?: string | null;
+            /** Input Tokens */
+            input_tokens?: number | null;
+            /**
+             * Is Stub
+             * @default false
+             */
+            is_stub: boolean;
+            /**
+             * Latency Ms
+             * @default 0
+             */
+            latency_ms: number;
+            /** Model */
+            model: string;
+            /** Operation */
+            operation: string;
+            /** Output Tokens */
+            output_tokens?: number | null;
+            /** Prompt Hash */
+            prompt_hash?: string | null;
+            /** Prompt Version */
+            prompt_version?: string | null;
+            /** Provider */
+            provider: string;
+            /**
+             * Status
+             * @default succeeded
+             */
+            status: string;
+            /**
+             * Total Tokens
+             * @default 0
+             */
+            total_tokens: number;
+        };
+        /** UsageRun */
+        UsageRun: {
+            /** Langfuse Trace Url */
+            langfuse_trace_url?: string | null;
+            /** Run Id */
+            run_id: string;
+            /** Status */
+            status?: string | null;
+            /** Trace Id */
+            trace_id?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            usage?: components["schemas"]["GenerationUsage"];
+        };
+        /** UsageSummaryResponse */
+        UsageSummaryResponse: {
+            /** Cost Usd */
+            cost_usd?: number | null;
+            /**
+             * Input Tokens
+             * @default 0
+             */
+            input_tokens: number;
+            /**
+             * Latency Ms
+             * @default 0
+             */
+            latency_ms: number;
+            /**
+             * Output Tokens
+             * @default 0
+             */
+            output_tokens: number;
+            /** Runs */
+            runs?: components["schemas"]["UsageRun"][];
+            /**
+             * Total Tokens
+             * @default 0
+             */
+            total_tokens: number;
+            /**
+             * Unknown Usage Calls
+             * @default 0
+             */
+            unknown_usage_calls: number;
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -2536,6 +2690,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ObservabilityStatusResponse"];
+                };
+            };
+        };
+    };
+    observability_usage_api_v1_observability_usage_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsageSummaryResponse"];
                 };
             };
         };

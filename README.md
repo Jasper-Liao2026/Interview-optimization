@@ -2,13 +2,15 @@
 
 批量生产**岗位适配版简历**的工具。解决 BOSS 直聘海投时「一份简历打天下、逐份手改不可行」的问题。
 
-> 当前进度：**M0 / M1 / M2 / M4 / M6 / M7 已完成，M3 功能已交付并完成代码审核**。M0 是脚手架（含 M0-8 Langfuse 观测），
+> 当前进度：**M0 / M1 / M2 / M4 / M6 / M7 / M8 已完成，M3 功能已交付并完成代码审核**。M0 是脚手架（含 M0-8 Langfuse 观测），
 > M1 是第一条端到端垂直切片 —— 「一条经历 + 一个 JD → 生成 → 预览 → 导出 PDF」，
 > M2 是**素材库** —— 经历条目的完整录入、编辑、分组浏览，量化结果与多版本表述；
 > M3 是 **JD 解析与匹配** —— 文本/截图输入、岗位管理、向量粗筛、事实证据矩阵与生成衔接；
 > M5 已交付 **评分循环与网页交互**：四维 rubric、最多两轮定向改写、调用预算、每轮分数与改写对比、最佳快照与历史回读；真实 judge 校准待独立厂商 key。
 > M6 已交付 **精调编辑页**：结构化编辑、真实 PDF 分页预览、不可变版本回退、持久化 AI 提案与人工确认；真实模型质量仍待配置后评估。
 > M7 已交付 **模板与批量导出**：经典单栏、现代双栏、多岗位生成、批次恢复、快速筛选与 PDF / ZIP 下载；21 项后端集成与 9 项浏览器验收通过。
+>
+> M8 已交付 **观测与评测**：全链路 trace、逐次 token 与费用统计、20 条合成 golden set、双 prompt 回归、版本 hash 和回滚。真实 Langfuse 回放、Postgres 和浏览器验收通过；真实 judge 质量待配置密钥后评测，见 [`M8 总结`](docs/M8-summary.md)。
 > M4 是 **并行改写** —— LangGraph 批量生成、Postgres 中断恢复、单条失败重试与事实追溯校验。
 > 验收：`node scripts/verify-m1.mjs` → 13 通过 / 0 失败 / 0 跳过；
 > `node scripts/verify-m2.mjs` → 16 通过 / 0 失败 / 0 跳过；本轮 M3 API/Postgres 验收 19 通过，M4 验收 14 通过。
@@ -121,6 +123,14 @@ docker exec resume-postgres psql -U postgres -d resume_optimizer -v ON_ERROR_STO
 编辑入口：`/edit`，也可从生成结果的“编辑”链接进入。完整行为和验收边界见 [`M6 总结`](docs/M6-summary.md)。
 
 M7 无新增数据库迁移。在 M6 数据库上更新代码、依赖与类型后重启服务即可。
+
+M8 需应用 `supabase/migrations/20261015000000_m8_evaluation.sql`。PowerShell 已有数据库升级：
+
+```powershell
+Get-Content -Raw supabase/migrations/20261015000000_m8_evaluation.sql | docker compose exec -T postgres psql -U postgres -d resume_optimizer -v ON_ERROR_STOP=1
+```
+
+观测入口为 `/observability`。本机使用代理时请设置 `$env:NO_PROXY='localhost,127.0.0.1,::1'`，再运行 API 或 `pnpm verify:m8 -- --langfuse`。费用单价与 `PROMPT_VERSION` 见 `apps/api/.env.example`。
 模板选择只影响此次预览和导出，不修改简历版本。批量生成最多选择 20 个岗位、60 条素材；ZIP 每批最多 20 份，空要点简历不能打包。
 
 ### 文本、截图和语义向量模型
@@ -162,6 +172,8 @@ pnpm stack:down
 | `pnpm verify:m6` | 编辑、版本历史、AI interrupt、PDF 预览/下载和 M5 快照兼容性验收 |
 | `pnpm verify:m7` | 真实 Postgres/checkpoint/Chromium 的模板、批次幂等、编辑保护与 ZIP 验收（自动使用 stub） |
 | `pnpm verify:m7:ui --web-url http://127.0.0.1:3107 --api-url http://127.0.0.1:8107` | 已启动服务上的真实浏览器验收；需可选 Playwright 驱动、本机 Edge 与 stub API |
+| `pnpm verify:m8` | 真实 Postgres 的 trace、provider 调用用量、幂等恢复、观测汇总与 prompt/dataset 回滚验收（模型使用明确 stub） |
+| `pnpm eval:m8 -- --stub --no-persist` | 同一 20 条 golden set 对比两版 prompt；真实评测需非 stub 生成模型、独立 judge 与 key |
 | `pnpm eval:m4 --samples 100 --concurrency 4` | 使用真实文本模型评测改写 schema 与事实规则，输出 `docs/M4-eval.json` |
 
 M7 浏览器验收可选安装：`npm install --prefix scripts/.tools/browser playwright`，脚本使用本机 Edge，无需下载 Chromium。
@@ -245,4 +257,5 @@ resume-optimizer/
 | [`docs/M5-summary.md`](docs/M5-summary.md) | **M5 交付总结**：评分循环、历史快照、异构 judge 边界与代码审核 |
 | [`docs/M6-summary.md`](docs/M6-summary.md) | **M6 交付总结**：结构化编辑、版本历史、AI 人工确认、PDF 一致性与验收边界 |
 | [`docs/M7-summary.md`](docs/M7-summary.md) | **M7 交付总结**：模板抽象、批量生成恢复、筛选、PDF / ZIP 与真实浏览器验收 |
+| [`docs/M8-summary.md`](docs/M8-summary.md) | **M8 交付总结**：trace 回放、用量与费用、golden set、prompt 回归与版本回滚 |
 | [`docs/M1-pdf-export-comparison.md`](docs/M1-pdf-export-comparison.md) | PDF 导出三方案对比：四维矩阵 + 量化证据 + 复现命令 |
