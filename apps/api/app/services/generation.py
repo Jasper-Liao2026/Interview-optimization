@@ -97,7 +97,9 @@ class ResumeGenerationService:
             existing = await self._runs.get(user_id, run_id)
             body = request.model_dump(mode="json", exclude={"run_id"})
             if existing:
-                if existing["request"] != body:
+                # Runs saved before image input existed omit the optional field.
+                previous_request = {"jd_image_data_url": None, **existing["request"]}
+                if previous_request != body:
                     raise RunConflictError("run_id 已用于不同的生成请求")
                 # A repeated batch request reads completed output. In particular,
                 # it must not upsert over an editor opened since generation.
@@ -154,10 +156,18 @@ class ResumeGenerationService:
                 run["jd_id"] = request["jd_id"]
             else:
                 with usage_scope(operation="jd_parse"):
-                    parsed = await self._parser.parse(request["jd_text"])
-                profile = parsed.value
-                run["warnings"].extend(parsed.warnings)
-                run["parser_model"] = parsed.llm.model
+                    if request.get("jd_image_data_url"):
+                        parsed_image = await self._parser.parse_image(request["jd_image_data_url"])
+                        profile = parsed_image.value.profile
+                        run["jd_raw_text"] = parsed_image.value.raw_text
+                        run["parser_model"] = parsed_image.llm.model
+                        run["warnings"].extend(parsed_image.warnings)
+                    else:
+                        parsed = await self._parser.parse(request["jd_text"])
+                        profile = parsed.value
+                        run["jd_raw_text"] = request["jd_text"]
+                        run["warnings"].extend(parsed.warnings)
+                        run["parser_model"] = parsed.llm.model
 
             run["profile"] = profile.model_dump(mode="json")
             await self._runs.save(user_id, run_id, run)
@@ -165,11 +175,12 @@ class ResumeGenerationService:
             profile = JobProfile.model_validate(run["profile"])
             row = await self._jds.create(
                 user_id,
-                raw_text=request["jd_text"],
+                raw_text=run.get("jd_raw_text") or request.get("jd_text") or "",
                 title=profile.title,
                 company=profile.company,
                 parsed=run["profile"],
                 parser_model=run.get("parser_model"),
+                source_type="image" if request.get("jd_image_data_url") else "text",
                 jd_id=uuid5(run_id, "parsed-jd"),
             )
             run["jd_id"] = str(row["id"])
@@ -193,13 +204,17 @@ class ResumeGenerationService:
         async def sink(call):
             await self._runs.record_usage(user_id, run_id, call)
 
+        trace_input = {
+            key: value for key, value in run["request"].items() if key != "jd_image_data_url"
+        }
+        trace_input["has_image"] = bool(run["request"].get("jd_image_data_url"))
         started = time.perf_counter()
         with (
             usage_scope(sink=sink, observability=self._obs),
             self._obs.span(
                 "resume.generate",
                 trace_id=run["trace_id"],
-                input=run["request"],
+                input=trace_input,
                 metadata={"run_id": str(run_id), "prompt_version": version, "retry_index": retry},
                 tags=["m8", "stub" if self._llm.is_stub else "real"],
             ) as span,

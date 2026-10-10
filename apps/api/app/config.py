@@ -103,6 +103,8 @@ class Settings(BaseSettings):
     vision_base_url: str | None = None
     vision_api_key: str | None = None
     vision_model: str | None = None
+    vision_input_price_per_million_usd: float | None = Field(default=None, ge=0)
+    vision_output_price_per_million_usd: float | None = Field(default=None, ge=0)
     embedding_provider: str = Field(default="stub", pattern="^(stub|openai-compatible)$")
     embedding_base_url: str = "https://api.openai.com/v1"
     embedding_api_key: str | None = None

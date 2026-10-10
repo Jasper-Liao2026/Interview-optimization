@@ -20,7 +20,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.schemas.experience import ExperienceKind
-from app.schemas.jd import JobProfile
+from app.schemas.jd import JobProfile, validate_image_data_url
 
 
 # ============================================================ 改写（M1-4）
@@ -126,9 +126,14 @@ class GenerateRequest(BaseModel):
     run_id: UUID | None = Field(default=None, description="可由客户端指定，用于幂等生成和恢复")
 
     jd_text: str | None = Field(
-        default=None, min_length=10, max_length=20000, description="JD 原文，与 jd_id 二选一"
+        default=None, min_length=10, max_length=20000, description="JD 原文，三种 JD 来源任选一种"
     )
     jd_id: UUID | None = Field(default=None, description="使用已保存的 JD，复用解析画像")
+    jd_image_data_url: str | None = Field(
+        default=None,
+        max_length=7_000_000,
+        description="直接粘贴或上传的 PNG/JPEG/WebP JD 截图 data URL",
+    )
     experience_ids: list[UUID] = Field(
         default_factory=list,
         description="要用哪些经历。留空表示用当前用户的全部经历（走 M1-2 的素材库）",
@@ -146,8 +151,17 @@ class GenerateRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_jd_source(self) -> GenerateRequest:
-        if (self.jd_text is None) == (self.jd_id is None):
-            raise ValueError("必须且只能提供 jd_text 或 jd_id 之一")
+        sources = sum(
+            value is not None for value in (self.jd_text, self.jd_id, self.jd_image_data_url)
+        )
+        if sources != 1:
+            raise ValueError("必须且只能提供 jd_text、jd_id 或 jd_image_data_url 之一")
+        return self
+
+    @model_validator(mode="after")
+    def validate_jd_image(self) -> GenerateRequest:
+        if self.jd_image_data_url is not None:
+            self.jd_image_data_url = validate_image_data_url(self.jd_image_data_url)
         return self
 
 

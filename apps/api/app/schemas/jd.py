@@ -108,33 +108,38 @@ class JdImageParseRequest(BaseModel):
     @field_validator("image_data_url")
     @classmethod
     def validate_image(cls, value: str) -> str:
-        try:
-            header, encoded = value.split(",", 1)
-            formats = {
-                "data:image/png;base64": "PNG",
-                "data:image/jpeg;base64": "JPEG",
-                "data:image/webp;base64": "WEBP",
-            }
-            if header not in formats:
-                raise ValueError("仅支持 PNG、JPEG、WebP 的 base64 data URL")
-            content = base64.b64decode(encoded, validate=True)
-            if not content or len(content) > 5 * 1024 * 1024:
-                raise ValueError("截图大小必须在 1 字节至 5 MiB 之间")
-            with Image.open(BytesIO(content)) as img:
-                if img.format != formats[header] or img.width * img.height > 20_000_000:
-                    raise ValueError("截图格式不符或超过 2000 万像素")
-                img.verify()
-            # JPEG/WebP 的 verify 可能只检查头部，完整解码才能发现截断像素数据。
-            with Image.open(BytesIO(content)) as decoded:
-                decoded.load()
-        except (
-            binascii.Error,
-            UnidentifiedImageError,
-            OSError,
-            Image.DecompressionBombError,
-        ) as exc:
-            raise ValueError("截图内容损坏或不是有效图片") from exc
-        return value
+        return validate_image_data_url(value)
+
+
+def validate_image_data_url(value: str) -> str:
+    """Validate an uploaded or pasted PNG/JPEG/WebP data URL."""
+    try:
+        header, encoded = value.split(",", 1)
+        formats = {
+            "data:image/png;base64": "PNG",
+            "data:image/jpeg;base64": "JPEG",
+            "data:image/webp;base64": "WEBP",
+        }
+        if header not in formats:
+            raise ValueError("仅支持 PNG、JPEG、WebP 的 base64 data URL")
+        content = base64.b64decode(encoded, validate=True)
+        if not content or len(content) > 5 * 1024 * 1024:
+            raise ValueError("截图大小必须在 1 字节至 5 MiB 之间")
+        with Image.open(BytesIO(content)) as img:
+            if img.format != formats[header] or img.width * img.height > 20_000_000:
+                raise ValueError("截图格式不符或超过 2000 万像素")
+            img.verify()
+        # JPEG/WebP 的 verify 可能只检查头部，完整解码才能发现截断像素数据。
+        with Image.open(BytesIO(content)) as decoded:
+            decoded.load()
+    except (
+        binascii.Error,
+        UnidentifiedImageError,
+        OSError,
+        Image.DecompressionBombError,
+    ) as exc:
+        raise ValueError("截图内容损坏或不是有效图片") from exc
+    return value
 
 
 class JdImageExtraction(BaseModel):

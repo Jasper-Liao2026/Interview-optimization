@@ -28,6 +28,14 @@ class JdParser:
 
     async def parse_image(self, image_data_url: str) -> StructuredResult[JdImageExtraction]:
         settings = self._llm.settings
+        independent_vision = any(
+            (
+                settings.vision_provider,
+                settings.vision_base_url,
+                settings.vision_api_key,
+                settings.vision_model,
+            )
+        )
         vision = LlmClient(
             settings.model_copy(
                 update={
@@ -35,6 +43,16 @@ class JdParser:
                     "llm_base_url": settings.vision_base_url or settings.llm_base_url,
                     "llm_api_key": settings.vision_api_key or settings.llm_api_key,
                     "llm_model": settings.vision_model or settings.llm_model,
+                    "llm_input_price_per_million_usd": (
+                        settings.vision_input_price_per_million_usd
+                        if independent_vision
+                        else settings.llm_input_price_per_million_usd
+                    ),
+                    "llm_output_price_per_million_usd": (
+                        settings.vision_output_price_per_million_usd
+                        if independent_vision
+                        else settings.llm_output_price_per_million_usd
+                    ),
                 }
             )
         )

@@ -1110,8 +1110,13 @@ export interface components {
              */
             jd_id?: string | null;
             /**
+             * Jd Image Data Url
+             * @description 直接粘贴或上传的 PNG/JPEG/WebP JD 截图 data URL
+             */
+            jd_image_data_url?: string | null;
+            /**
              * Jd Text
-             * @description JD 原文，与 jd_id 二选一
+             * @description JD 原文，三种 JD 来源任选一种
              */
             jd_text?: string | null;
             /**

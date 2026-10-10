@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import { useCallback, useEffect, useRef, useState, type ClipboardEvent } from "react";
 
 import { TopNav } from "@/components/top-nav";
 import { GenerationMetrics } from "@/components/generation-metrics";
@@ -76,6 +77,10 @@ export default function GeneratePage() {
   const [experiences, setExperiences] = useState<ExperienceRead[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [jdText, setJdText] = useState("");
+  const [jdInputMode, setJdInputMode] = useState<"text" | "image">("text");
+  const [jdImage, setJdImage] = useState<string | null>(null);
+  const [jdImageName, setJdImageName] = useState("");
+  const [readingImage, setReadingImage] = useState(false);
   const [jdId, setJdId] = useState<string | null>(null);
   const generationController = useRef<AbortController | null>(null);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
@@ -85,6 +90,8 @@ export default function GeneratePage() {
   const [inputError, setInputError] = useState<string | null>(null);
   const [previewVersion, setPreviewVersion] = useState(0);
   const [scoringBusy, setScoringBusy] = useState(false);
+  const imageInput = useRef<HTMLInputElement | null>(null);
+  const imageVersion = useRef(0);
 
   // URL 预填只在挂载时读取，已有岗位与经历并行加载，卸载时取消请求。
   useEffect(() => {
@@ -156,6 +163,7 @@ export default function GeneratePage() {
     return () => {
       controller.abort();
       generationController.current?.abort();
+      imageVersion.current += 1;
     };
   }, []);
 
@@ -168,8 +176,67 @@ export default function GeneratePage() {
     });
   }, []);
 
+  const readJdImage = useCallback(async (file?: File) => {
+    const version = ++imageVersion.current;
+    setJdImage(null);
+    setJdImageName("");
+    setInputError(null);
+    setReadingImage(false);
+    if (imageInput.current) imageInput.current.value = "";
+    if (!file) return;
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+      setInputError("仅支持 PNG、JPEG 或 WebP 截图。");
+      return;
+    }
+    if (file.size === 0 || file.size > 5 * 1024 * 1024) {
+      setInputError("截图必须非空，且不超过 5 MiB。");
+      return;
+    }
+    setReadingImage(true);
+    try {
+      const bitmap = await createImageBitmap(file);
+      const pixels = bitmap.width * bitmap.height;
+      bitmap.close();
+      if (pixels > 20_000_000) throw new Error("截图不能超过 2000 万像素。");
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("截图读取失败，请重新选择文件。"));
+        reader.readAsDataURL(file);
+      });
+      if (version !== imageVersion.current) return;
+      setJdImage(dataUrl);
+      setJdImageName(file.name || "剪贴板截图");
+      setJdInputMode("image");
+      setJdText("");
+      setJdId(null);
+    } catch (error) {
+      if (version === imageVersion.current) setInputError(error instanceof Error ? error.message : String(error));
+    } finally {
+      if (version === imageVersion.current) setReadingImage(false);
+    }
+  }, []);
+
+  function pasteJdImage(event: ClipboardEvent<HTMLElement>) {
+    if (status.kind === "busy" || scoringBusy || experiences === null) return;
+    const item = Array.from(event.clipboardData.items).find(entry => entry.type.startsWith("image/"));
+    const file = item?.getAsFile() ?? event.clipboardData.files[0];
+    if (!file) return;
+    event.preventDefault();
+    event.stopPropagation();
+    void readJdImage(file);
+  }
+
+  function clearJdImage() {
+    imageVersion.current += 1;
+    setJdImage(null);
+    setJdImageName("");
+    setReadingImage(false);
+    if (imageInput.current) imageInput.current.value = "";
+  }
+
   const generate = useCallback(async () => {
-    if (generationController.current || scoringBusy) return;
+    if (generationController.current || scoringBusy || readingImage) return;
     const controller = new AbortController();
     generationController.current = controller;
     const nextRunId = newRunId();
@@ -181,7 +248,8 @@ export default function GeneratePage() {
       const data = await api.generateResume(
         {
           jd_id: jdId,
-          jd_text: jdId ? null : jdText.trim(),
+          jd_text: jdInputMode === "text" && !jdId ? jdText.trim() : null,
+          jd_image_data_url: jdInputMode === "image" ? jdImage : null,
           experience_ids: [...selected],
           run_id: nextRunId,
           // `persist` 在后端有默认值 True，但类型管线对「带 default 字面量的字段」
@@ -204,7 +272,7 @@ export default function GeneratePage() {
     } finally {
       if (generationController.current === controller) generationController.current = null;
     }
-  }, [jdText, jdId, selected, scoringBusy]);
+  }, [jdText, jdId, jdImage, jdInputMode, selected, scoringBusy, readingImage]);
 
   const continueRun = useCallback(async (index?: number) => {
     if (!runId || status.kind === "busy" || generationController.current || scoringBusy) return;
@@ -228,7 +296,10 @@ export default function GeneratePage() {
     }
   }, [runId, status.kind, scoringBusy]);
 
-  const canGenerate = !!(jdId || (jdText.trim().length >= 10 && jdText.trim().length <= 20000)) && selected.size > 0 && status.kind !== "busy" && !scoringBusy && !inputError;
+  const hasJd = jdInputMode === "image"
+    ? !!jdImage
+    : !!jdId || (jdText.trim().length >= 10 && jdText.trim().length <= 20000);
+  const canGenerate = hasJd && !readingImage && selected.size > 0 && status.kind !== "busy" && !scoringBusy && !inputError;
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-8">
@@ -238,35 +309,54 @@ export default function GeneratePage() {
         <p className="font-mono text-xs tracking-widest text-[var(--muted)] uppercase">定向生成</p>
         <h1 className="mt-2 text-2xl font-semibold">选择经历，生成岗位对应的简历</h1>
         <p className="mt-2 text-sm text-[var(--muted)]">
-          使用已保存的岗位画像，或粘贴新的 JD，生成简历并导出 PDF。
+          使用已保存的岗位画像，或粘贴 JD 文本、截图，生成简历并导出 PDF。
         </p>
       </header>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {/* ------------------------------------------------ 左：输入 */}
-        <section className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-5">
+        <section onPaste={pasteJdImage} className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-5">
           {inputError ? <p role="alert" className="mb-3 text-xs text-[var(--err)]">{inputError}</p> : null}
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-mono text-sm">① JD 原文</h2>
             <button
               type="button"
               disabled={experiences === null || status.kind === "busy"}
-              onClick={() => { setJdText(SAMPLE_JD); setJdId(null); setInputError(null); }}
+              onClick={() => { setJdInputMode("text"); clearJdImage(); setJdText(SAMPLE_JD); setJdId(null); setInputError(null); }}
               className="rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-3 py-1 text-xs hover:bg-[var(--border)]"
             >
               填入示例
             </button>
           </div>
-          <textarea
-            value={jdText}
-            disabled={experiences === null || status.kind === "busy"}
-            maxLength={20000}
-            onChange={(event) => { setJdText(event.target.value); setJdId(null); setInputError(null); }}
-            rows={14}
-            placeholder="把招聘网站上的 JD 直接粘进来即可，不用整理格式。"
-            className="w-full resize-y rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 font-mono text-xs leading-relaxed outline-none focus:border-[var(--accent)]"
-          />
-          <p className="mt-2 text-[11px] text-[var(--muted)]">{jdText.trim().length} 字（10–20000 字）{jdId ? " · 使用已保存的岗位画像；编辑原文后会重新解析" : ""}</p>
+          <div className="mb-3 flex gap-2">
+            <button type="button" disabled={status.kind === "busy"} aria-pressed={jdInputMode === "text"} onClick={() => { setJdInputMode("text"); clearJdImage(); setInputError(null); }} className="rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-3 py-1.5 text-xs hover:bg-[var(--border)]">粘贴文本</button>
+            <button type="button" disabled={status.kind === "busy"} aria-pressed={jdInputMode === "image"} onClick={() => { setJdInputMode("image"); setJdId(null); setInputError(null); }} className="rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-3 py-1.5 text-xs hover:bg-[var(--border)]">截图</button>
+          </div>
+          {jdInputMode === "text" ? <>
+            <textarea
+              value={jdText}
+              disabled={experiences === null || status.kind === "busy"}
+              maxLength={20000}
+              aria-label="JD 原文"
+              onPaste={pasteJdImage}
+              onChange={(event) => { setJdText(event.target.value); setJdId(null); clearJdImage(); setInputError(null); }}
+              rows={14}
+              placeholder="把招聘网站上的 JD 直接粘进来；也可以直接粘贴截图。"
+              className="w-full resize-y rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 font-mono text-xs leading-relaxed outline-none focus:border-[var(--accent)]"
+            />
+            <p className="mt-2 text-[11px] text-[var(--muted)]">{jdText.trim().length} 字（10–20000 字）{jdId ? " · 使用已保存的岗位画像；编辑原文后会重新解析" : " · 支持在此处直接粘贴截图"}</p>
+          </> : <div
+            tabIndex={0}
+            role="group"
+            aria-label="JD 截图粘贴区"
+            onPaste={pasteJdImage}
+            className="rounded-md border border-dashed border-[var(--border)] bg-[var(--bg)] p-3 outline-none focus:border-[var(--accent)]"
+          >
+            <input ref={imageInput} aria-label="上传 JD 截图" type="file" accept="image/png,image/jpeg,image/webp" disabled={status.kind === "busy" || scoringBusy} onChange={event => void readJdImage(event.target.files?.[0])} className="block w-full text-xs" />
+            <p className="mt-2 text-[11px] text-[var(--muted)]">点击这里后按 Ctrl+V 粘贴截图。支持 PNG / JPEG / WebP，≤5 MiB、≤2000 万像素。</p>
+            {readingImage ? <p className="mt-2 text-xs text-[var(--muted)]">读取截图…</p> : null}
+            {jdImage ? <div className="mt-3 space-y-2"><div className="relative h-52 w-full"><Image src={jdImage} alt="待解析的岗位截图" fill sizes="(max-width: 1024px) 90vw, 500px" unoptimized className="rounded-md object-contain" /></div><div className="flex items-center justify-between gap-2 text-xs"><p className="min-w-0 break-all text-[var(--muted)]">{jdImageName}</p><button type="button" disabled={status.kind === "busy" || scoringBusy} onClick={() => { clearJdImage(); setInputError(null); }} className="shrink-0 rounded-md border border-[var(--border)] px-2 py-1 hover:bg-[var(--border)]">清除截图</button></div></div> : null}
+          </div>}
 
           <h2 className="mt-6 mb-2 font-mono text-sm">② 选用哪些经历</h2>
           {experiences === null ? (

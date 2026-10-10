@@ -1,9 +1,14 @@
 """M3 API contracts with real routes and services; external storage remains offline."""
 
-from uuid import uuid4
+import json
+from uuid import UUID, uuid4
 
+import httpx
 import pytest
 
+from app.agents.jd_parser import JdParser
+from app.config import Settings
+from app.llm import LlmClient
 from app.schemas.jd import JobProfile
 from tests.fakes import API, DEV_USER, experience_row
 
@@ -70,6 +75,105 @@ async def test_saved_jd_generation_reuses_profile_without_parsing(client, api_wi
     assert response.status_code == 200
     assert response.json()["profile"] == row["parsed"]
     assert response.json()["resume"]["jd_id"] == str(row["id"])
+    assert len(api_wiring["jds"].created) == 1
+
+
+async def test_generation_accepts_pasted_image_jd(client, api_wiring, monkeypatch):
+    image_data_url = (
+        "data:image/png;base64,"
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+    )
+    requests = []
+    original_client = httpx.AsyncClient
+
+    def handler(request):
+        requests.append(request)
+        payload = json.loads(request.content)
+        assert payload["model"] == "independent-vision-model"
+        assert payload["messages"][-1]["content"][1]["image_url"]["url"] == image_data_url
+        return httpx.Response(
+            200,
+            json={
+                "model": "independent-vision-model",
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "raw_text": "招聘后端工程师，熟悉 Python 与 PostgreSQL。",
+                                    "profile": profile().model_dump(),
+                                }
+                            )
+                        }
+                    }
+                ],
+                "usage": {"prompt_tokens": 10, "completion_tokens": 20},
+            },
+        )
+
+    monkeypatch.setattr(
+        httpx,
+        "AsyncClient",
+        lambda **kw: original_client(transport=httpx.MockTransport(handler), **kw),
+    )
+    configured = Settings(
+        _env_file=None,
+        llm_provider="stub",
+        vision_provider="openai-compatible",
+        vision_base_url="https://vision.invalid/v1",
+        vision_api_key="offline-vision-key",
+        vision_model="independent-vision-model",
+        llm_input_price_per_million_usd=1,
+        llm_output_price_per_million_usd=2,
+    )
+    monkeypatch.setattr(api_wiring["service"], "_parser", JdParser(LlmClient(configured)))
+    payload = {"jd_image_data_url": image_data_url, "run_id": str(uuid4())}
+    response = await client.post(
+        f"{API}/resumes/generate",
+        json=payload,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["profile"] == profile().model_dump(mode="json")
+    saved = api_wiring["jds"].created[-1]
+    assert saved["source_type"] == "image"
+    assert saved["raw_text"].startswith("招聘后端工程师")
+    assert saved["parser_model"] == "independent-vision-model"
+    assert len(requests) == 1
+    assert str(requests[0].url) == "https://vision.invalid/v1/chat/completions"
+    assert requests[0].headers["authorization"] == "Bearer offline-vision-key"
+    calls = response.json()["usage"]["calls"]
+    assert calls[0]["model"] == "independent-vision-model" and not calls[0]["is_stub"]
+    assert calls[0]["total_tokens"] == 30
+    assert calls[0]["cost_usd"] is None
+    replay = await client.post(f"{API}/resumes/generate", json=payload)
+    assert replay.status_code == 200
+    assert replay.json()["usage"] == response.json()["usage"]
+    assert len(requests) == 1 and len(api_wiring["jds"].created) == 1
+
+
+@pytest.mark.parametrize("text", [None, "招聘软件开发工程师，熟悉软件工程。"])
+async def test_generation_rejects_invalid_or_mixed_image_source(client, api_wiring, text):
+    payload = {"jd_image_data_url": "data:image/png;base64,bad"}
+    if text is not None:
+        payload["jd_text"] = text
+    response = await client.post(f"{API}/resumes/generate", json=payload)
+    assert response.status_code == 422
+    assert not api_wiring["jds"].created and not api_wiring["resumes"].created
+
+
+async def test_old_text_run_replay_accepts_new_optional_image_field(client, api_wiring):
+    run_id = uuid4()
+    payload = {"jd_text": "招聘软件开发工程师，熟悉软件工程。", "run_id": str(run_id)}
+    first = await client.post(f"{API}/resumes/generate", json=payload)
+    assert first.status_code == 200
+    store = api_wiring["service"]._runs
+    run = await store.get(DEV_USER, UUID(first.json()["run_id"]))
+    run["request"].pop("jd_image_data_url")
+    await store.save(DEV_USER, run_id, run)
+    replay = await client.post(f"{API}/resumes/generate", json=payload)
+    assert replay.status_code == 200
+    assert replay.json()["usage"] == first.json()["usage"]
     assert len(api_wiring["jds"].created) == 1
 
 
