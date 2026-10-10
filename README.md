@@ -6,6 +6,7 @@
 > M1 是第一条端到端垂直切片 —— 「一条经历 + 一个 JD → 生成 → 预览 → 导出 PDF」，
 > M2 是**素材库** —— 经历条目的完整录入、编辑、分组浏览，量化结果与多版本表述；
 > M3 是 **JD 解析与匹配** —— 文本/截图输入、岗位管理、向量粗筛、事实证据矩阵与生成衔接；
+> M5 已交付 **API + 评分循环**：四维 rubric、最多两轮定向改写、调用预算、最佳快照与历史回读；真实 judge 校准待独立厂商 key。
 > M4 是 **并行改写** —— LangGraph 批量生成、Postgres 中断恢复、单条失败重试与事实追溯校验。
 > 验收：`node scripts/verify-m1.mjs` → 13 通过 / 0 失败 / 0 跳过；
 > `node scripts/verify-m2.mjs` → 16 通过 / 0 失败 / 0 跳过；本轮 M3 API/Postgres 验收 19 通过，M4 验收 14 通过。
@@ -70,7 +71,7 @@ Windows 后端启动入口使用 Selector 事件循环以兼容 psycopg。需要
 - **`/generate`** —— 粘 JD、勾经历、并行生成、iframe 预览、导出 PDF；刷新后读取上次任务、恢复中断任务、重试失败条目。
 - **`/jobs`** —— M3 的岗位匹配页：文本/截图解析、JD 管理、匹配矩阵、事实证据与缺口；勾选经历后进入生成。
 
-### 已有数据库升级到 M4
+### 已有数据库升级到 M5
 
 初始化 SQL 只在数据库卷为空时执行。已有 M2 数据库执行下面的增量迁移，保留现有数据：
 
@@ -90,6 +91,21 @@ docker exec resume-postgres psql -U postgres -d resume_optimizer -v ON_ERROR_STO
 
 LangGraph checkpoint 表在首次生成时自动初始化；恢复任务要求保留数据库卷。升级依赖后重启 API。
 
+已有 M4 数据库继续执行 M5 迁移（保留已有数据）：
+
+```bash
+docker cp supabase/migrations/20261013000000_m5_scoring.sql resume-postgres:/tmp/m5-scoring.sql
+docker exec resume-postgres psql -U postgres -d resume_optimizer -v ON_ERROR_STOP=1 -f /tmp/m5-scoring.sql
+```
+
+M5 入口：`POST /api/v1/resumes/{resume_id}/score`，请求例如
+`{"threshold":80,"max_rounds":2,"cost_limit":100,"persist":true}`。
+返回每轮评分、扣分建议、最佳简历及预览/导出路径。
+`GET /api/v1/resumes/{resume_id}/scores/{score_run_id}` 可回读历史。
+默认 `JUDGE_PROVIDER=stub`，真实异构模型需设置 `GENERATION_VENDOR`、不同厂商的
+`JUDGE_VENDOR` 和独立 `JUDGE_*` 连接配置。调用预算单位含重试预留，不表示货币。
+详见 [`M5 总结`](docs/M5-summary.md)。
+
 ### 文本、截图和语义向量模型
 
 本地 API 配置位于 `apps/api/.env`，完整模板见 `.env.example`。三类服务可独立配置：
@@ -98,6 +114,7 @@ LangGraph checkpoint 表在首次生成时自动初始化；恢复任务要求�
 |---|---|---|
 | `LLM_*` | JD 文本解析和简历生成 | `stub` 演示 |
 | `VISION_*` | 多模态直读截图 | 未设置时复用 `LLM_*`，模型须支持视觉 |
+| `JUDGE_*` | M5 独立评分模型 | `stub` 本地规则；真实模型须与生成器不同厂商 |
 | `EMBEDDING_*` | `/embeddings` 语义向量 | `stub` 哈希演示，固定 1536 维 |
 
 真实服务使用 `*_PROVIDER=openai-compatible` 并填写 `*_BASE_URL`、`*_API_KEY`、`*_MODEL`。
@@ -123,6 +140,7 @@ pnpm stack:down
 | `pnpm db:reset` | 重建 postgres 卷并重放 migration |
 | `pnpm verify:m0` / `pnpm verify:m1` / `pnpm verify:m2` / `pnpm verify:m3` / `pnpm verify:m4` | 一键复现对应里程碑的验收结论 |
 | `pnpm eval:m3` | 真实文本模型 10 份 JD 评测；加 `--images --embeddings` 验收视觉与语义服务 |
+| `pnpm verify:m5` / `pnpm eval:m5` | 真实 Postgres 的 API/循环验收 / 独立厂商 judge 重复评分校准 |
 | `pnpm eval:m4 --samples 100 --concurrency 4` | 使用真实文本模型评测改写 schema 与事实规则，输出 `docs/M4-eval.json` |
 
 ---

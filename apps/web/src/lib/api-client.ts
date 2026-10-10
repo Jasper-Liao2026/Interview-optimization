@@ -42,6 +42,9 @@ export type JdMetadataUpdate = components["schemas"]["JdMetadataUpdate"];
 export type MatchRequest = components["schemas"]["MatchRequest"];
 export type MatchResponse = components["schemas"]["MatchResponse"];
 
+export type ScoreRequest = components["schemas"]["ScoreRequest"];
+export type ScoreResponse = components["schemas"]["ScoreResponse"];
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -177,6 +180,11 @@ export const api = {
     apiPost<GenerateResponse>({ path: `${env.apiPrefix}/resumes/runs/${runId}/resume`, ...opts }, {}),
   retryGenerationItem: (runId: string, index: number, opts?: Omit<RequestOptions, "path">) =>
     apiPost<GenerateResponse>({ path: `${env.apiPrefix}/resumes/runs/${runId}/retry/${index}`, ...opts }, {}),
+
+  scoreResume: (id: string, body: ScoreRequest, opts?: Omit<RequestOptions, "path">) =>
+    apiPost<ScoreResponse>({ path: `${env.apiPrefix}/resumes/${id}/score`, ...opts }, body),
+  getScoreRun: (id: string, runId: string, opts?: Omit<RequestOptions, "path">) =>
+    apiGet<ScoreResponse>({ path: `${env.apiPrefix}/resumes/${id}/scores/${runId}`, ...opts }),
 
   // --- M2 素材库 CRUD ---
   getExperience: (id: string, opts?: Omit<RequestOptions, "path">) =>

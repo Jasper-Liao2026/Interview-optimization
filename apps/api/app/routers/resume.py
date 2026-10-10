@@ -15,15 +15,17 @@ from app.deps import (
     ObservabilityDep,
     PdfDep,
     ResumeRepoDep,
+    ScoringServiceDep,
     SettingsDep,
 )
 from app.llm import LlmError
 from app.observability import normalize_trace_id
 from app.pdf import PdfExportError, pdf_page_count
 from app.render import UnknownTemplateError, render_resume_html
-from app.schemas import GenerateRequest, GenerateResponse, ResumeRead
+from app.schemas import GenerateRequest, GenerateResponse, ResumeRead, ScoreRequest, ScoreResponse
 from app.services import NoExperiencesError
 from app.services.generation import GenerationOutcome, InvalidJobError, RunNotFoundError
+from app.services.scoring import ScoringNotFoundError
 from app.tracing import current_trace_id
 
 router = APIRouter(prefix="/resumes", tags=["resumes"])
@@ -153,6 +155,40 @@ async def get_resume(
     resume_id: UUID, user_id: CurrentUserDep, repository: ResumeRepoDep
 ) -> ResumeRead:
     return await _load(user_id, resume_id, repository)
+
+
+@router.post("/{resume_id}/score", response_model=ScoreResponse, summary="评分并定向改进简历")
+async def score_resume(
+    resume_id: UUID,
+    payload: ScoreRequest,
+    user_id: CurrentUserDep,
+    service: ScoringServiceDep,
+) -> ScoreResponse:
+    try:
+        return await service.score(user_id, resume_id, payload)
+    except ScoringNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except LlmError as exc:
+        raise HTTPException(status_code=502, detail=f"评分或改写失败：{exc}") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get(
+    "/{resume_id}/scores/{score_run_id}",
+    response_model=ScoreResponse,
+    summary="读取评分历史与最佳版本",
+)
+async def get_score_run(
+    resume_id: UUID,
+    score_run_id: UUID,
+    user_id: CurrentUserDep,
+    service: ScoringServiceDep,
+) -> ScoreResponse:
+    try:
+        return await service.read(user_id, resume_id, score_run_id)
+    except ScoringNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get(

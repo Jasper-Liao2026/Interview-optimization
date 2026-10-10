@@ -25,6 +25,7 @@ from app.repositories import (
 from app.repositories.embedding_repo import EmbeddingRepository
 from app.services.generation import ResumeGenerationService
 from app.services.matching import MatchingService
+from app.services.scoring import ResumeScoringService
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 DatabaseDep = Annotated[Database, Depends(get_database)]
@@ -99,6 +100,19 @@ def get_generation_service(
 
 
 GenerationServiceDep = Annotated[ResumeGenerationService, Depends(get_generation_service)]
+
+
+def get_scoring_service(
+    settings: SettingsDep,
+    experiences: ExperienceRepoDep,
+    jobs: JdRepoDep,
+    resumes: ResumeRepoDep,
+    rewriter: RewriterDep,
+) -> ResumeScoringService:
+    return ResumeScoringService(settings, experiences, jobs, resumes, rewriter)
+
+
+ScoringServiceDep = Annotated[ResumeScoringService, Depends(get_scoring_service)]
 
 
 # ---------------------------------------------------------------- 当前用户

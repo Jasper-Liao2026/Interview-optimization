@@ -121,6 +121,9 @@ class ResumeGenerationService:
                 "status": "pending",
                 "warnings": [],
                 "provider": self._llm.provider,
+                "generator_vendor": "stub"
+                if self._llm.is_stub
+                else self._settings.generation_vendor,
                 "model": self._llm.model,
                 "is_stub": self._llm.is_stub,
             }
@@ -189,6 +192,11 @@ class ResumeGenerationService:
                     "selected": list(range(len(run["experiences"]))),
                     "items": {},
                 }
+            current_vendor = "stub" if self._llm.is_stub else self._settings.generation_vendor
+            if run.get("generator_vendor") != current_vendor:
+                # Resuming under another vendor can create mixed provenance.
+                run["generator_vendor"] = None
+                run["mixed_vendors"] = True
             run["status"] = "running"
             await self._runs.save(user_id, run_id, run)
             state = await graph.graph.ainvoke(input_state, config=config, durability="sync")
@@ -215,7 +223,10 @@ class ResumeGenerationService:
             "header": run["header"],
             "sections": state.get("sections", []),
             "status": "draft",
-            "generator": f"{run['provider']}:{run['model']}",
+            "generator": "unknown:mixed-origin"
+            if run.get("mixed_vendors")
+            else f"{run['provider']}:{run['model']}",
+            "generator_vendor": run.get("generator_vendor"),
             "created_at": now,
             "updated_at": now,
         }
@@ -228,6 +239,7 @@ class ResumeGenerationService:
                 header=run["header"],
                 sections=row["sections"],
                 generator=row["generator"],
+                generator_vendor=row["generator_vendor"],
                 resume_id=UUID(run["resume_id"]),
             )
         run["resume"] = json_row(row)

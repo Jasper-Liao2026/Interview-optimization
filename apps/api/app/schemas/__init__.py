@@ -55,6 +55,18 @@ from app.schemas.resume import (
     RewrittenBullet,
     RewrittenExperience,
 )
+from app.schemas.scoring import (
+    JudgeAssessment,
+    JudgeDimension,
+    JudgeOutput,
+    ScoreDeduction,
+    ScoreDimension,
+    ScoreLoopResult,
+    ScoreRequest,
+    ScoreResponse,
+    ScoreResult,
+    ScoreSnapshot,
+)
 
 __all__ = [
     "DEFAULT_SMOKE_PROMPT",
@@ -81,6 +93,9 @@ __all__ = [
     "JdRead",
     "JobProfile",
     "JobRequirement",
+    "JudgeAssessment",
+    "JudgeDimension",
+    "JudgeOutput",
     "MatchRequest",
     "MatchResponse",
     "ObservabilityStatusResponse",
@@ -92,6 +107,13 @@ __all__ = [
     "ResumeSection",
     "RewrittenBullet",
     "RewrittenExperience",
+    "ScoreDeduction",
+    "ScoreDimension",
+    "ScoreLoopResult",
+    "ScoreRequest",
+    "ScoreResponse",
+    "ScoreResult",
+    "ScoreSnapshot",
     "ServiceMetaEntry",
     "SmokeRequest",
     "SmokeResponse",

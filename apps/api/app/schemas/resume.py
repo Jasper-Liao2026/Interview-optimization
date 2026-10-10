@@ -112,6 +112,9 @@ class ResumeRead(BaseModel):
     sections: list[ResumeSection]
     status: str = Field(description="draft | exported")
     generator: str | None = Field(default=None, description="产出该简历的 provider:model")
+    generator_vendor: str | None = Field(
+        default=None, description="生成时记录的厂商；旧数据可能为空"
+    )
     created_at: datetime
     updated_at: datetime
 

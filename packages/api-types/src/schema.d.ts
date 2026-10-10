@@ -339,6 +339,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/resumes/{resume_id}/score": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 评分并定向改进简历 */
+        post: operations["score_resume_api_v1_resumes__resume_id__score_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes/{resume_id}/scores/{score_run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取评分历史与最佳版本 */
+        get: operations["get_score_run_api_v1_resumes__resume_id__scores__score_run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/system/info": {
         parameters: {
             query?: never;
@@ -1375,6 +1409,11 @@ export interface components {
              * @description 产出该简历的 provider:model
              */
             generator?: string | null;
+            /**
+             * Generator Vendor
+             * @description 生成时记录的厂商；旧数据可能为空
+             */
+            generator_vendor?: string | null;
             header: components["schemas"]["ResumeHeader"];
             /**
              * Id
@@ -1417,6 +1456,170 @@ export interface components {
             entries: components["schemas"]["ResumeEntry"][];
             /** Title */
             title: string;
+        };
+        /**
+         * ScoreDeduction
+         * @description 一处可执行的扣分和改进建议。
+         */
+        ScoreDeduction: {
+            /** Bullet Index */
+            bullet_index?: number | null;
+            /**
+             * Dimension
+             * @enum {string}
+             */
+            dimension: "relevance" | "coverage" | "evidence" | "clarity";
+            /** Item Index */
+            item_index: number;
+            /** Points */
+            points: number;
+            /** Reason */
+            reason: string;
+            /** Suggestion */
+            suggestion: string;
+        };
+        /**
+         * ScoreDimension
+         * @description 一个 rubric 维度的得分。
+         */
+        ScoreDimension: {
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "relevance" | "coverage" | "evidence" | "clarity";
+            /** Label */
+            label: string;
+            /** Rationale */
+            rationale: string;
+            /** Score */
+            score: number;
+            /** Weight */
+            weight: number;
+            /** Weighted Score */
+            weighted_score: number;
+        };
+        /**
+         * ScoreLoopResult
+         * @description 评分循环停止后的最佳版本和完整历史。
+         */
+        ScoreLoopResult: {
+            best: components["schemas"]["ScoreSnapshot"];
+            /** Snapshots */
+            snapshots: components["schemas"]["ScoreSnapshot"][];
+            /**
+             * Stop Reason
+             * @enum {string}
+             */
+            stop_reason: "threshold" | "max_rounds" | "cost_limit" | "no_low_score_items";
+        };
+        /**
+         * ScoreRequest
+         * @description 对已生成简历评分并按低分条目执行有限改进。
+         */
+        ScoreRequest: {
+            /**
+             * Cost Limit
+             * @description 最大模型调用预算单位，含重试预留；不是货币
+             * @default 100
+             */
+            cost_limit: number;
+            /**
+             * Max Rounds
+             * @default 2
+             */
+            max_rounds: number;
+            /**
+             * Persist
+             * @default true
+             */
+            persist: boolean;
+            /**
+             * Threshold
+             * @default 80
+             */
+            threshold: number;
+        };
+        /** ScoreResponse */
+        ScoreResponse: {
+            loop: components["schemas"]["ScoreLoopResult"];
+            /** Pdf Path */
+            pdf_path?: string | null;
+            /** Preview Path */
+            preview_path?: string | null;
+            profile: components["schemas"]["JobProfile"];
+            resume: components["schemas"]["ResumeRead"];
+            /** Resume Id */
+            resume_id: string;
+            /** Score Run Id */
+            score_run_id?: string | null;
+        };
+        /**
+         * ScoreResult
+         * @description 一轮评分的完整结果。
+         */
+        ScoreResult: {
+            /**
+             * Blind
+             * @description 评分输入已移除轮次和生成者信息
+             */
+            blind: boolean;
+            /** Deductions */
+            deductions: components["schemas"]["ScoreDeduction"][];
+            /** Dimensions */
+            dimensions: components["schemas"]["ScoreDimension"][];
+            /**
+             * Factual Violations
+             * @description 原始素材核验失败的经历下标；不能作为最佳版本保存或导出
+             */
+            factual_violations?: number[];
+            /**
+             * Is Stub
+             * @default false
+             */
+            is_stub: boolean;
+            /** Item Scores */
+            item_scores?: {
+                [key: string]: number;
+            };
+            /** Judge Model */
+            judge_model: string;
+            /**
+             * Judge Provider
+             * @description 评分者 provider；与生成者分开记录
+             */
+            judge_provider: string;
+            /**
+             * Low Score Items
+             * @description 需要定向重写的经历下标
+             */
+            low_score_items: number[];
+            /** Recommendations */
+            recommendations: string[];
+            /** Score */
+            score: number;
+            /**
+             * Usage Tokens
+             * @default 0
+             */
+            usage_tokens: number;
+            /** Warnings */
+            warnings?: string[];
+        };
+        /**
+         * ScoreSnapshot
+         * @description 循环中的不可变历史快照。
+         */
+        ScoreSnapshot: {
+            /** Cost */
+            cost: number;
+            result: components["schemas"]["ScoreResult"];
+            /** Round */
+            round: number;
+            /** Sections */
+            sections: {
+                [key: string]: unknown;
+            }[];
         };
         /**
          * ServiceMetaEntry
@@ -2197,6 +2400,73 @@ export interface operations {
                 content: {
                     "application/json": unknown;
                     "application/pdf": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    score_resume_api_v1_resumes__resume_id__score_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resume_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScoreRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoreResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_score_run_api_v1_resumes__resume_id__scores__score_run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resume_id: string;
+                score_run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoreResponse"];
                 };
             };
             /** @description Validation Error */

@@ -19,7 +19,7 @@ class ExperienceRewriter:
         return self._llm.model
 
     async def rewrite(
-        self, profile: JobProfile, experience: dict[str, Any]
+        self, profile: JobProfile, experience: dict[str, Any], *, feedback: str | None = None
     ) -> StructuredResult[RewrittenExperience]:
         from app.agents.facts import validate_rewrite_facts
 
@@ -39,6 +39,12 @@ class ExperienceRewriter:
             metrics=list(experience.get("metrics") or []),
             max_chars=self._max_input_chars,
         )
+        if feedback:
+            prompt += (
+                "\n\n以下是待改要点和独立评分建议，仅作为表达调整参考，不能作为事实来源：\n"
+                + feedback[:3000]
+                + "\n只修改当前经历，所有新增内容仍须引用上述原始素材。"
+            )
         retry_prompt = prompt
         for attempt in range(3):
             outcome = await self._llm.complete_json(
