@@ -94,6 +94,13 @@ class ResumeGenerationService:
             if existing:
                 if existing["request"] != body:
                     raise RunConflictError("run_id 已用于不同的生成请求")
+                # A repeated batch request reads completed output. In particular,
+                # it must not upsert over an editor opened since generation.
+                if (
+                    existing.get("status") in ("completed", "partial", "failed")
+                    and "resume" in existing
+                ):
+                    return self._outcome(run_id, existing)
                 return await self._execute(user_id, run_id, existing)
             rows = (
                 await self._experiences.list_by_ids(user_id, request.experience_ids)

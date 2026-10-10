@@ -1,0 +1,38 @@
+{% extends "resume_classic.html.j2" %}
+{% block template_id %}modern{% endblock %}
+{% block template_styles %}
+{{ super() }}
+  :root {
+    --ink: #162b38;
+    --muted: #526875;
+    --accent: #176b75;
+    --rule: #d6e6e8;
+  }
+  header.resume-head {
+    border-bottom: 3px solid var(--accent);
+    padding-bottom: 10px;
+  }
+  .name { color: var(--accent); font-size: 24pt; }
+  /* 每个分区各自形成标题侧栏和正文栏，保留原有分区与经历顺序。
+     不把整份简历包进一个固定高度的双栏容器，正文可自然延续到下一页。 */
+  section.block {
+    margin-top: 18px;
+  }
+  section.block::after { content: ""; display: block; clear: both; }
+  section.block > h2 {
+    float: left;
+    width: 30mm;
+    font-size: 11pt;
+    padding: 5px 7px;
+    background: #edf5f6;
+    border-left: 3px solid var(--accent);
+  }
+  section.block > .entry {
+    margin-left: 36mm;
+    min-width: 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .entry-head { display: block; }
+  .entry-period { display: block; margin-top: 2px; }
+{% endblock %}

@@ -2,12 +2,13 @@
 
 批量生产**岗位适配版简历**的工具。解决 BOSS 直聘海投时「一份简历打天下、逐份手改不可行」的问题。
 
-> 当前进度：**M0 / M1 / M2 / M4 / M6 已完成，M3 功能已交付并完成代码审核**。M0 是脚手架（含 M0-8 Langfuse 观测），
+> 当前进度：**M0 / M1 / M2 / M4 / M6 / M7 已完成，M3 功能已交付并完成代码审核**。M0 是脚手架（含 M0-8 Langfuse 观测），
 > M1 是第一条端到端垂直切片 —— 「一条经历 + 一个 JD → 生成 → 预览 → 导出 PDF」，
 > M2 是**素材库** —— 经历条目的完整录入、编辑、分组浏览，量化结果与多版本表述；
 > M3 是 **JD 解析与匹配** —— 文本/截图输入、岗位管理、向量粗筛、事实证据矩阵与生成衔接；
 > M5 已交付 **评分循环与网页交互**：四维 rubric、最多两轮定向改写、调用预算、每轮分数与改写对比、最佳快照与历史回读；真实 judge 校准待独立厂商 key。
 > M6 已交付 **精调编辑页**：结构化编辑、真实 PDF 分页预览、不可变版本回退、持久化 AI 提案与人工确认；真实模型质量仍待配置后评估。
+> M7 已交付 **模板与批量导出**：经典单栏、现代双栏、多岗位生成、批次恢复、快速筛选与 PDF / ZIP 下载；21 项后端集成与 9 项浏览器验收通过。
 > M4 是 **并行改写** —— LangGraph 批量生成、Postgres 中断恢复、单条失败重试与事实追溯校验。
 > 验收：`node scripts/verify-m1.mjs` → 13 通过 / 0 失败 / 0 跳过；
 > `node scripts/verify-m2.mjs` → 16 通过 / 0 失败 / 0 跳过；本轮 M3 API/Postgres 验收 19 通过，M4 验收 14 通过。
@@ -73,8 +74,9 @@ Windows 后端启动入口使用 Selector 事件循环以兼容 psycopg。需要
   生成完成后可在同页「评分并优化」：查看初稿与每轮分数、扣分建议、改写前后对比，并打开或下载最佳版本。
 - **`/jobs`** —— M3 的岗位匹配页：文本/截图解析、JD 管理、匹配矩阵、事实证据与缺口；勾选经历后进入生成。
 - **`/edit`** —— M6 的精调编辑页：结构化编辑、PDF 分页预览与下载、历史恢复、AI 提案确认。
+- **`/export`** —— M7 的批量生成与导出页：勾选多个岗位与共用素材，按关键词、岗位或要点筛选简历，选模板后预览、下载 PDF 或打包 ZIP。
 
-### 已有数据库升级到 M5 / M6
+### 已有数据库升级到 M5 / M6 / M7
 
 初始化 SQL 只在数据库卷为空时执行。已有 M2 数据库执行下面的增量迁移，保留现有数据：
 
@@ -118,6 +120,9 @@ docker exec resume-postgres psql -U postgres -d resume_optimizer -v ON_ERROR_STO
 
 编辑入口：`/edit`，也可从生成结果的“编辑”链接进入。完整行为和验收边界见 [`M6 总结`](docs/M6-summary.md)。
 
+M7 无新增数据库迁移。在 M6 数据库上更新代码、依赖与类型后重启服务即可。
+模板选择只影响此次预览和导出，不修改简历版本。批量生成最多选择 20 个岗位、60 条素材；ZIP 每批最多 20 份，空要点简历不能打包。
+
 ### 文本、截图和语义向量模型
 
 本地 API 配置位于 `apps/api/.env`，完整模板见 [`apps/api/.env.example`](apps/api/.env.example)。各类服务可独立配置：
@@ -155,7 +160,23 @@ pnpm stack:down
 | `pnpm verify:m5` / `pnpm eval:m5` | 真实 Postgres 的 API/循环验收 / 独立厂商 judge 重复评分校准 |
 | `pnpm verify:m5:ui --web-url http://127.0.0.1:3000` | 前端已启动时运行浏览器交互验收及 Postgres 并发快照回归；需可选 Playwright 驱动和本机 Chrome/Edge |
 | `pnpm verify:m6` | 编辑、版本历史、AI interrupt、PDF 预览/下载和 M5 快照兼容性验收 |
+| `pnpm verify:m7` | 真实 Postgres/checkpoint/Chromium 的模板、批次幂等、编辑保护与 ZIP 验收（自动使用 stub） |
+| `pnpm verify:m7:ui --web-url http://127.0.0.1:3107 --api-url http://127.0.0.1:8107` | 已启动服务上的真实浏览器验收；需可选 Playwright 驱动、本机 Edge 与 stub API |
 | `pnpm eval:m4 --samples 100 --concurrency 4` | 使用真实文本模型评测改写 schema 与事实规则，输出 `docs/M4-eval.json` |
+
+M7 浏览器验收可选安装：`npm install --prefix scripts/.tools/browser playwright`，脚本使用本机 Edge，无需下载 Chromium。
+在独立 PowerShell 窗口启动测试 API（先执行上述数据库迁移）：
+
+```powershell
+$env:LLM_PROVIDER="stub"
+$env:JUDGE_PROVIDER="stub"
+Set-Location apps/api
+.venv/Scripts/python.exe -m app.server --host 127.0.0.1 --port 8107
+```
+
+另一窗口执行 `pnpm --filter @resume/web dev --port 3107`，再运行 `pnpm verify:m7:ui`。
+脚本将浏览器 API 请求定向到 `--api-url`，无需修改前端配置，并在结束后清理自建验收数据。
+两项 M7 验收均使用 stub，仅证明功能流程与导出排版；真实模型质量见对应里程碑评测。
 
 ---
 
@@ -191,7 +212,7 @@ resume-optimizer/
 │   ├── migrations/              # 表结构变更的唯一来源
 │   └── seed.sql
 ├── scripts/                     # 根级工程脚本（Node，跨平台）
-├── docs/                        # tech-stack / M0–M6 总结 / 模型评测 / PDF 方案对比
+├── docs/                        # tech-stack / M0–M7 总结 / 模型评测 / PDF 方案对比
 └── docker-compose.yml
 ```
 
@@ -223,4 +244,5 @@ resume-optimizer/
 | [`docs/M4-summary.md`](docs/M4-summary.md) | **M4 交付总结**：并行编排、Postgres 恢复、单条重试、事实规则与真实模型评测 |
 | [`docs/M5-summary.md`](docs/M5-summary.md) | **M5 交付总结**：评分循环、历史快照、异构 judge 边界与代码审核 |
 | [`docs/M6-summary.md`](docs/M6-summary.md) | **M6 交付总结**：结构化编辑、版本历史、AI 人工确认、PDF 一致性与验收边界 |
+| [`docs/M7-summary.md`](docs/M7-summary.md) | **M7 交付总结**：模板抽象、批量生成恢复、筛选、PDF / ZIP 与真实浏览器验收 |
 | [`docs/M1-pdf-export-comparison.md`](docs/M1-pdf-export-comparison.md) | PDF 导出三方案对比：四维矩阵 + 量化证据 + 复现命令 |

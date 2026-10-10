@@ -208,6 +208,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/resumes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Resumes */
+        get: operations["list_resumes_api_v1_resumes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes/batch-generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Batch Generate */
+        post: operations["batch_generate_api_v1_resumes_batch_generate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Batch Export */
+        post: operations["batch_export_api_v1_resumes_export_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/resumes/generate": {
         parameters: {
             query?: never;
@@ -273,6 +324,23 @@ export interface paths {
         put?: never;
         /** 重试失败条目 */
         post: operations["retry_generation_item_api_v1_resumes_runs__run_id__retry__index__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Templates */
+        get: operations["list_templates_api_v1_resumes_templates_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -574,6 +642,61 @@ export interface components {
             status: "pending" | "applied" | "rejected";
             /** Warnings */
             warnings: string[];
+        };
+        /** BatchExportRequest */
+        BatchExportRequest: {
+            /** Resume Ids */
+            resume_ids: string[];
+            /**
+             * Template
+             * @default classic
+             */
+            template: string;
+        };
+        /** BatchGenerateItem */
+        BatchGenerateItem: {
+            /** Error */
+            error?: string | null;
+            /**
+             * Jd Id
+             * Format: uuid
+             */
+            jd_id: string;
+            resume?: components["schemas"]["ResumeRead"] | null;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "completed" | "partial" | "failed";
+            /** Warnings */
+            warnings?: string[];
+        };
+        /** BatchGenerateRequest */
+        BatchGenerateRequest: {
+            /**
+             * Batch Id
+             * Format: uuid
+             */
+            batch_id?: string;
+            /** Experience Ids */
+            experience_ids?: string[];
+            /** Jd Ids */
+            jd_ids: string[];
+        };
+        /** BatchGenerateResponse */
+        BatchGenerateResponse: {
+            /**
+             * Batch Id
+             * Format: uuid
+             */
+            batch_id: string;
+            /** Items */
+            items: components["schemas"]["BatchGenerateItem"][];
         };
         /**
          * DatabaseStatus
@@ -1558,6 +1681,11 @@ export interface components {
             /** Name */
             name: string;
         };
+        /** ResumeListResponse */
+        ResumeListResponse: {
+            /** Items */
+            items: components["schemas"]["ResumeRead"][];
+        };
         /**
          * ResumeRead
          * @description 一份生成的简历快照。
@@ -1933,6 +2061,25 @@ export interface components {
             trace_id: string;
             /** Version */
             version: string;
+        };
+        /** TemplateListResponse */
+        TemplateListResponse: {
+            /** Items */
+            items: components["schemas"]["TemplateRead"][];
+        };
+        /** TemplateRead */
+        TemplateRead: {
+            /** Description */
+            description: string;
+            /** Id */
+            id: string;
+            /**
+             * Layout
+             * @enum {string}
+             */
+            layout: "single-column" | "two-column";
+            /** Name */
+            name: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -2393,6 +2540,93 @@ export interface operations {
             };
         };
     };
+    list_resumes_api_v1_resumes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeListResponse"];
+                };
+            };
+        };
+    };
+    batch_generate_api_v1_resumes_batch_generate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchGenerateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchGenerateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    batch_export_api_v1_resumes_export_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchExportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    "application/zip": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     generate_resume_api_v1_resumes_generate_post: {
         parameters: {
             query?: never;
@@ -2516,6 +2750,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_templates_api_v1_resumes_templates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateListResponse"];
                 };
             };
         };
@@ -2759,6 +3013,8 @@ export interface operations {
             query?: {
                 /** @description true 时强制下载而非内联预览 */
                 download?: boolean;
+                /** @description 覆盖导出模板，不修改简历内容 */
+                template?: string | null;
             };
             header?: never;
             path: {
@@ -2791,7 +3047,10 @@ export interface operations {
     };
     preview_draft_api_v1_resumes__resume_id__preview_post: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 预览模板，不保存到编辑版本 */
+                template?: string | null;
+            };
             header?: never;
             path: {
                 resume_id: string;

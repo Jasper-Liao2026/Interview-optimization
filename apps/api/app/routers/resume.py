@@ -230,11 +230,12 @@ async def export_resume_pdf(
     repository: ResumeRepoDep,
     exporter: PdfDep,
     download: bool = Query(default=False, description="true 时强制下载而非内联预览"),
+    template: str | None = Query(default=None, description="覆盖导出模板，不修改简历内容"),
 ) -> Response:
     resume = await _load(user_id, resume_id, repository)
 
     try:
-        html = render_resume_html(resume, template=resume.template)
+        html = render_resume_html(resume, template=template or resume.template)
     except UnknownTemplateError as exc:  # 简历存的模板名不在注册表里（改过注册表才会出现）
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 

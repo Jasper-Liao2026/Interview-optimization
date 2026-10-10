@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-template="{% block template_id %}classic{% endblock %}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ resume.header.name }} · {{ resume.title }}</title>
 <style>
+  {% block template_styles %}
   /*
     这份模板是**预览与 PDF 的唯一来源**：
     屏幕上看的是它，服务端无头浏览器打印出来的也是它。
@@ -34,6 +35,7 @@
     /* 打印时保留强调色（默认会被浏览器为了省墨改成黑白） */
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    overflow-wrap: anywhere;
   }
 
   /* 屏幕上模拟一张 A4 纸；打印时由 @page 接管，纸张外壳全部撤掉 */
@@ -76,13 +78,14 @@
     justify-content: space-between;
     align-items: baseline;
     gap: 8px;
+    flex-wrap: wrap;
   }
+  .entry-head > div { min-width: 0; flex: 1 1 60%; }
   .entry-org { font-weight: 600; }
   .entry-role { color: var(--muted); font-weight: 400; }
   .entry-period {
     color: var(--muted);
     font-size: 9.5pt;
-    white-space: nowrap;
     font-variant-numeric: tabular-nums;
   }
 
@@ -102,6 +105,7 @@
       box-shadow: none;
     }
   }
+  {% endblock %}
 </style>
 </head>
 <body>

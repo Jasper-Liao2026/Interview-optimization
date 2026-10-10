@@ -6,15 +6,21 @@
 from app.render.resume_html import (
     DEFAULT_TEMPLATE,
     TEMPLATE_FILES,
+    ResumeDocument,
+    TemplateDefinition,
     UnknownTemplateError,
     available_templates,
     render_resume_html,
+    template_definitions,
 )
 
 __all__ = [
     "DEFAULT_TEMPLATE",
     "TEMPLATE_FILES",
+    "ResumeDocument",
+    "TemplateDefinition",
     "UnknownTemplateError",
     "available_templates",
     "render_resume_html",
+    "template_definitions",
 ]

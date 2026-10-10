@@ -93,7 +93,10 @@ export default function GeneratePage() {
     const requestedExperiences = params.has("experiences")
       ? new Set((params.get("experiences") ?? "").split(",").filter(Boolean))
       : null;
-    const savedRunId = rememberedRun(requestedJd, requestedExperiences);
+    const requestedRun = params.get("run");
+    const savedRunId = requestedRun && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestedRun)
+      ? requestedRun
+      : rememberedRun(requestedJd, requestedExperiences);
     if (savedRunId) {
       setRunId(savedRunId);
       setStatus({ kind: "busy" });
@@ -334,6 +337,7 @@ export default function GeneratePage() {
           ) : null}
           {result ? <ResultView result={result} onRetry={index => void continueRun(index)} onResume={() => void continueRun()} busy={status.kind === "busy" || scoringBusy} activeAction={activeAction} /> : null}
           {result?.preview_path ? <Link href={`/edit/${result.resume.id}`} className="mt-4 inline-block rounded-md border border-[var(--accent)] bg-[var(--accent)]/10 px-3 py-2 text-xs hover:bg-[var(--accent)]/20">编辑简历</Link> : null}
+          {result?.preview_path ? <Link href={`/export?resume=${result.resume.id}`} className="mt-4 ml-2 inline-block rounded-md border border-[var(--border)] px-3 py-2 text-xs">选择模板并导出</Link> : null}
         </section>
       </div>
 

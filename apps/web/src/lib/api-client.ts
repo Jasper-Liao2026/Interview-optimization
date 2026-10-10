@@ -51,6 +51,11 @@ export type RestoreRevisionRequest = components["schemas"]["RestoreRevisionReque
 export type AiEditRequest = components["schemas"]["AiEditRequest"];
 export type AiEditResponse = components["schemas"]["AiEditResponse"];
 export type AiDecisionRequest = components["schemas"]["AiDecisionRequest"];
+export type TemplateListResponse = components["schemas"]["TemplateListResponse"];
+export type ResumeListResponse = components["schemas"]["ResumeListResponse"];
+export type BatchGenerateRequest = components["schemas"]["BatchGenerateRequest"];
+export type BatchGenerateResponse = components["schemas"]["BatchGenerateResponse"];
+export type BatchExportRequest = components["schemas"]["BatchExportRequest"];
 
 export class ApiError extends Error {
   constructor(
@@ -171,6 +176,34 @@ export async function fetchResumeHtml(resumeId: string, signal?: AbortSignal): P
 }
 
 export const api = {
+  listTemplates: (opts?: Omit<RequestOptions, "path">) =>
+    apiGet<TemplateListResponse>({ path: `${env.apiPrefix}/resumes/templates`, ...opts }),
+  listResumes: (opts?: Omit<RequestOptions, "path">) =>
+    apiGet<ResumeListResponse>({ path: `${env.apiPrefix}/resumes`, ...opts }),
+  batchGenerate: (body: BatchGenerateRequest, opts?: Omit<RequestOptions, "path">) =>
+    apiPost<BatchGenerateResponse>({ path: `${env.apiPrefix}/resumes/batch-generate`, ...opts }, body),
+  batchExport: async (body: BatchExportRequest, opts?: Omit<RequestOptions, "path">): Promise<Blob> => {
+    const path = `${env.apiPrefix}/resumes/export`;
+    const response = await fetch(`${env.apiBaseUrl}${path}`, {
+      method: "POST",
+      headers: { Accept: "application/zip", "Content-Type": "application/json", ...(opts?.requestId ? { "X-Request-Id": opts.requestId } : {}) },
+      body: JSON.stringify(body),
+      cache: "no-store",
+      signal: opts?.signal,
+    });
+    if (!response.ok) throw new ApiError(response.status, path, await response.text());
+    return response.blob();
+  },
+  fetchResumePdf: async (id: string, template: string, opts?: Omit<RequestOptions, "path">): Promise<Blob> => {
+    const path = `${env.apiPrefix}/resumes/${id}/pdf?template=${encodeURIComponent(template)}`;
+    const response = await fetch(`${env.apiBaseUrl}${path}`, {
+      headers: { Accept: "application/pdf", ...(opts?.requestId ? { "X-Request-Id": opts.requestId } : {}) },
+      cache: "no-store",
+      signal: opts?.signal,
+    });
+    if (!response.ok) throw new ApiError(response.status, path, await response.text());
+    return response.blob();
+  },
   getEditor: (id: string, opts?: Omit<RequestOptions, "path">) =>
     apiGet<EditorResponse>({ path: `${env.apiPrefix}/resumes/${id}/editor`, ...opts }),
   saveEditor: (id: string, body: SaveRevisionRequest, opts?: Omit<RequestOptions, "path">) =>
@@ -183,8 +216,8 @@ export const api = {
     apiGet<AiEditResponse>({ path: `${env.apiPrefix}/resumes/${id}/ai-edits/${runId}`, ...opts }),
   decideAiEdit: (id: string, runId: string, body: AiDecisionRequest, opts?: Omit<RequestOptions, "path">) =>
     apiPost<AiEditResponse>({ path: `${env.apiPrefix}/resumes/${id}/ai-edits/${runId}/decision`, ...opts }, body),
-  previewDraft: async (id: string, body: ResumeDraft, opts?: Omit<RequestOptions, "path">): Promise<Blob> => {
-    const path = `${env.apiPrefix}/resumes/${id}/preview`;
+  previewDraft: async (id: string, body: ResumeDraft, opts?: Omit<RequestOptions, "path"> & { template?: string }): Promise<Blob> => {
+    const path = `${env.apiPrefix}/resumes/${id}/preview${opts?.template ? `?template=${encodeURIComponent(opts.template)}` : ""}`;
     const response = await fetch(`${env.apiBaseUrl}${path}`, {
       method: "POST",
       headers: { Accept: "application/pdf", "Content-Type": "application/json", ...(opts?.requestId ? { "X-Request-Id": opts.requestId } : {}) },

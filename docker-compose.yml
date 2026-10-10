@@ -53,7 +53,7 @@ services:
     restart: unless-stopped
     environment:
       ENVIRONMENT: docker
-      MILESTONE: M6
+      MILESTONE: M7
       LOG_LEVEL: INFO
       # 容器内走服务名，不走宿主机的 54322
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/resume_optimizer

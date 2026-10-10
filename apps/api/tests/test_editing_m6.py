@@ -217,8 +217,12 @@ async def test_long_bullets_preserve_full_instruction_in_actual_prompt(
     instruction = "强调后端工程能力" + "细" * 1980 + "保留此结尾"
     response = await client.post(
         f"{w['url']}/ai-edits",
-        json={"expected_revision": 0, "section_index": 0, "entry_index": 0,
-              "instruction": instruction},
+        json={
+            "expected_revision": 0,
+            "section_index": 0,
+            "entry_index": 0,
+            "instruction": instruction,
+        },
     )
     assert response.status_code == 200, response.text
     assert response.json()["status"] == "pending"

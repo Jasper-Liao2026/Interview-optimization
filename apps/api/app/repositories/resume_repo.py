@@ -80,6 +80,15 @@ class ResumeRepository:
             )
         return dict(row) if row else None
 
+    async def list_for_user(self, user_id: UUID) -> list[dict[str, Any]]:
+        async with self._db.connection() as conn:
+            rows = await conn.fetch(
+                f"select {_COLUMNS} from public.resumes "
+                "where user_id=$1 order by updated_at desc,id",
+                user_id,
+            )
+        return [dict(row) for row in rows]
+
     async def mark_exported(self, user_id: UUID, resume_id: UUID) -> None:
         """导出成功后打标记。
 

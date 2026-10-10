@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Query, Response
 
 from app.agents.checkpoint import RunConflictError
 from app.deps import CurrentUserDep, EditingServiceDep, PdfDep
@@ -69,13 +69,14 @@ async def preview_draft(
     user_id: CurrentUserDep,
     service: EditingServiceDep,
     exporter: PdfDep,
+    template: str | None = Query(default=None, description="预览模板，不保存到编辑版本"),
 ):
     editor = await _call(service.read(user_id, resume_id))
     resume = type(editor.resume).model_validate(
         {**editor.resume.model_dump(), **payload.model_dump()}
     )
     try:
-        html = render_resume_html(resume, template=resume.template)
+        html = render_resume_html(resume, template=template or resume.template)
         data = await exporter.render(html)
     except UnknownTemplateError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
