@@ -199,6 +199,33 @@ async def test_manual_save_preserves_history_and_rejects_stale_revision(client, 
     assert w["repository"].saves == 1
 
 
+async def test_long_bullets_preserve_full_instruction_in_actual_prompt(
+    client, editing_wiring, monkeypatch
+):
+    w = editing_wiring
+    entry = w["repository"].row["sections"][0]["entries"][0]
+    entry["bullets"] = [{"text": "长" * 350, "evidence": ["证" * 350]} for _ in range(40)]
+    llm = w["rewriter"]._llm
+    original = llm.complete_json
+    prompts = []
+
+    async def capture(prompt, *args, **kwargs):
+        prompts.append(prompt)
+        return await original(prompt, *args, **kwargs)
+
+    monkeypatch.setattr(llm, "complete_json", capture)
+    instruction = "强调后端工程能力" + "细" * 1980 + "保留此结尾"
+    response = await client.post(
+        f"{w['url']}/ai-edits",
+        json={"expected_revision": 0, "section_index": 0, "entry_index": 0,
+              "instruction": instruction},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["status"] == "pending"
+    assert prompts and all(instruction in prompt for prompt in prompts)
+    assert all("证" * 350 not in prompt for prompt in prompts)
+
+
 async def test_competing_saves_only_commit_once(client, editing_wiring):
     w = editing_wiring
     results = await asyncio.gather(

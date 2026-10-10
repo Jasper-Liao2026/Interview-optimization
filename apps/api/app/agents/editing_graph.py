@@ -25,9 +25,17 @@ def editing_graph(rewriter: ExperienceRewriter, checkpointer: Any):
         outcome = await rewriter.rewrite(
             JobProfile.model_validate(state["profile"]),
             state["source"],
-            feedback=json.dumps(
-                {"current_bullets": state["original_bullets"], "instruction": state["instruction"]},
-                ensure_ascii=False,
+            # The rewriter bounds feedback to 3000 characters. Keep the full
+            # (at most 2000 character) user instruction before optional context;
+            # evidence is already supplied through the authoritative source.
+            feedback=(
+                "用户微调指令：\n"
+                + state["instruction"]
+                + "\n当前要点（仅供表达参考）：\n"
+                + json.dumps(
+                    [bullet["text"] for bullet in state["original_bullets"]],
+                    ensure_ascii=False,
+                )
             ),
         )
         return {
