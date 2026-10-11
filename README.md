@@ -145,7 +145,7 @@ Get-Content -Raw supabase/migrations/20261015000000_m8_evaluation.sql | docker c
 | `EMBEDDING_*` | `/embeddings` 语义向量 | `stub` 哈希演示，固定 1536 维 |
 
 真实服务使用 `*_PROVIDER=openai-compatible` 并填写 `*_BASE_URL`、`*_API_KEY`、`*_MODEL`。
-生成页 `/generate` 支持在 JD 输入框直接按 Ctrl+V 粘贴截图，也可选择「截图」上传文件；预览确认后点击「生成简历」，截图会先解析并保存为岗位，再按选中的经历生成。
+生成页 `/generate` 使用统一输入框：可输入 JD 文本、点击「添加截图」上传文件，或直接按 Ctrl+V 粘贴截图。图片作为附件显示，添加或移除图片都能继续编辑文字；截图和补充说明会一起解析并保存为岗位，再按选中的经历生成。
 截图解析可独立使用其他厂商的视觉模型，例如 `VISION_BASE_URL=https://api.openai.com/v1`、`VISION_MODEL=gpt-4.1-mini`，同时用 DeepSeek 的 `LLM_*` 生成简历。需为视觉服务填写独立的 `VISION_API_KEY`；其他支持图片消息的 OpenAI-compatible 服务也可使用。
 stub 不识别截图；哈希向量不代表真实语义质量。配置示例与验收命令见 [`M3 总结`](docs/M3-summary.md)。
 

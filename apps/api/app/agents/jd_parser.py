@@ -26,7 +26,9 @@ class JdParser:
                 system=self.prompt.jd_system,
             )
 
-    async def parse_image(self, image_data_url: str) -> StructuredResult[JdImageExtraction]:
+    async def parse_image(
+        self, image_data_url: str, *, supplementary_text: str | None = None
+    ) -> StructuredResult[JdImageExtraction]:
         settings = self._llm.settings
         independent_vision = any(
             (
@@ -56,9 +58,15 @@ class JdParser:
                 }
             )
         )
+        prompt = self.prompt.jd_image
+        if supplementary_text:
+            prompt += (
+                "\n\n用户补充的岗位信息（与截图一起用于解析岗位画像）：\n"
+                + supplementary_text
+            )
         with prompt_context(self.prompt):
             return await vision.complete_json(
-                self.prompt.jd_image,
+                prompt,
                 JdImageExtraction,
                 system=self.prompt.jd_system,
                 image_data_url=image_data_url,

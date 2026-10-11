@@ -126,7 +126,7 @@ class GenerateRequest(BaseModel):
     run_id: UUID | None = Field(default=None, description="可由客户端指定，用于幂等生成和恢复")
 
     jd_text: str | None = Field(
-        default=None, min_length=10, max_length=20000, description="JD 原文，三种 JD 来源任选一种"
+        default=None, min_length=1, max_length=20000, description="JD 原文；有截图时可填写补充说明"
     )
     jd_id: UUID | None = Field(default=None, description="使用已保存的 JD，复用解析画像")
     jd_image_data_url: str | None = Field(
@@ -151,11 +151,13 @@ class GenerateRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_jd_source(self) -> GenerateRequest:
-        sources = sum(
-            value is not None for value in (self.jd_text, self.jd_id, self.jd_image_data_url)
-        )
-        if sources != 1:
-            raise ValueError("必须且只能提供 jd_text、jd_id 或 jd_image_data_url 之一")
+        if self.jd_id is not None:
+            if self.jd_text is not None or self.jd_image_data_url is not None:
+                raise ValueError("jd_id 不能与文本或截图同时提供")
+        elif self.jd_image_data_url is None and (
+            self.jd_text is None or len(self.jd_text.strip()) < 10
+        ):
+            raise ValueError("请提供至少 10 字的 JD 原文或 JD 截图")
         return self
 
     @model_validator(mode="after")

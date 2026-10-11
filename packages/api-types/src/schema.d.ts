@@ -1116,7 +1116,7 @@ export interface components {
             jd_image_data_url?: string | null;
             /**
              * Jd Text
-             * @description JD 原文，三种 JD 来源任选一种
+             * @description JD 原文；有截图时可填写补充说明
              */
             jd_text?: string | null;
             /**

@@ -157,9 +157,13 @@ class ResumeGenerationService:
             else:
                 with usage_scope(operation="jd_parse"):
                     if request.get("jd_image_data_url"):
-                        parsed_image = await self._parser.parse_image(request["jd_image_data_url"])
+                        parsed_image = await self._parser.parse_image(
+                            request["jd_image_data_url"], supplementary_text=request.get("jd_text")
+                        )
                         profile = parsed_image.value.profile
                         run["jd_raw_text"] = parsed_image.value.raw_text
+                        if request.get("jd_text"):
+                            run["jd_raw_text"] += "\n\n补充说明：\n" + request["jd_text"]
                         run["parser_model"] = parsed_image.llm.model
                         run["warnings"].extend(parsed_image.warnings)
                     else:

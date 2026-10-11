@@ -78,7 +78,8 @@ async def test_saved_jd_generation_reuses_profile_without_parsing(client, api_wi
     assert len(api_wiring["jds"].created) == 1
 
 
-async def test_generation_accepts_pasted_image_jd(client, api_wiring, monkeypatch):
+@pytest.mark.parametrize("supplement", [None, "关注后端"])
+async def test_generation_accepts_pasted_image_jd(client, api_wiring, monkeypatch, supplement):
     image_data_url = (
         "data:image/png;base64,"
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
@@ -91,6 +92,8 @@ async def test_generation_accepts_pasted_image_jd(client, api_wiring, monkeypatc
         payload = json.loads(request.content)
         assert payload["model"] == "independent-vision-model"
         assert payload["messages"][-1]["content"][1]["image_url"]["url"] == image_data_url
+        if supplement:
+            assert supplement in payload["messages"][-1]["content"][0]["text"]
         return httpx.Response(
             200,
             json={
@@ -128,6 +131,8 @@ async def test_generation_accepts_pasted_image_jd(client, api_wiring, monkeypatc
     )
     monkeypatch.setattr(api_wiring["service"], "_parser", JdParser(LlmClient(configured)))
     payload = {"jd_image_data_url": image_data_url, "run_id": str(uuid4())}
+    if supplement:
+        payload["jd_text"] = supplement
     response = await client.post(
         f"{API}/resumes/generate",
         json=payload,
@@ -138,6 +143,8 @@ async def test_generation_accepts_pasted_image_jd(client, api_wiring, monkeypatc
     saved = api_wiring["jds"].created[-1]
     assert saved["source_type"] == "image"
     assert saved["raw_text"].startswith("招聘后端工程师")
+    if supplement:
+        assert saved["raw_text"].endswith(supplement)
     assert saved["parser_model"] == "independent-vision-model"
     assert len(requests) == 1
     assert str(requests[0].url) == "https://vision.invalid/v1/chat/completions"
@@ -150,10 +157,15 @@ async def test_generation_accepts_pasted_image_jd(client, api_wiring, monkeypatc
     assert replay.status_code == 200
     assert replay.json()["usage"] == response.json()["usage"]
     assert len(requests) == 1 and len(api_wiring["jds"].created) == 1
+    if supplement:
+        changed = await client.post(
+            f"{API}/resumes/generate", json={**payload, "jd_text": "关注前端"}
+        )
+        assert changed.status_code == 409
 
 
 @pytest.mark.parametrize("text", [None, "招聘软件开发工程师，熟悉软件工程。"])
-async def test_generation_rejects_invalid_or_mixed_image_source(client, api_wiring, text):
+async def test_generation_rejects_invalid_image_with_optional_text(client, api_wiring, text):
     payload = {"jd_image_data_url": "data:image/png;base64,bad"}
     if text is not None:
         payload["jd_text"] = text

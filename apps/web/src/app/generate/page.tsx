@@ -77,7 +77,6 @@ export default function GeneratePage() {
   const [experiences, setExperiences] = useState<ExperienceRead[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [jdText, setJdText] = useState("");
-  const [jdInputMode, setJdInputMode] = useState<"text" | "image">("text");
   const [jdImage, setJdImage] = useState<string | null>(null);
   const [jdImageName, setJdImageName] = useState("");
   const [readingImage, setReadingImage] = useState(false);
@@ -92,6 +91,7 @@ export default function GeneratePage() {
   const [scoringBusy, setScoringBusy] = useState(false);
   const imageInput = useRef<HTMLInputElement | null>(null);
   const imageVersion = useRef(0);
+  const jdInput = useRef<HTMLTextAreaElement | null>(null);
 
   // URL 预填只在挂载时读取，已有岗位与经历并行加载，卸载时取消请求。
   useEffect(() => {
@@ -207,9 +207,8 @@ export default function GeneratePage() {
       if (version !== imageVersion.current) return;
       setJdImage(dataUrl);
       setJdImageName(file.name || "剪贴板截图");
-      setJdInputMode("image");
-      setJdText("");
       setJdId(null);
+      jdInput.current?.focus();
     } catch (error) {
       if (version === imageVersion.current) setInputError(error instanceof Error ? error.message : String(error));
     } finally {
@@ -233,6 +232,7 @@ export default function GeneratePage() {
     setJdImageName("");
     setReadingImage(false);
     if (imageInput.current) imageInput.current.value = "";
+    jdInput.current?.focus();
   }
 
   const generate = useCallback(async () => {
@@ -248,8 +248,8 @@ export default function GeneratePage() {
       const data = await api.generateResume(
         {
           jd_id: jdId,
-          jd_text: jdInputMode === "text" && !jdId ? jdText.trim() : null,
-          jd_image_data_url: jdInputMode === "image" ? jdImage : null,
+          jd_text: !jdId ? jdText.trim() || null : null,
+          jd_image_data_url: jdImage,
           experience_ids: [...selected],
           run_id: nextRunId,
           // `persist` 在后端有默认值 True，但类型管线对「带 default 字面量的字段」
@@ -272,7 +272,7 @@ export default function GeneratePage() {
     } finally {
       if (generationController.current === controller) generationController.current = null;
     }
-  }, [jdText, jdId, jdImage, jdInputMode, selected, scoringBusy, readingImage]);
+  }, [jdText, jdId, jdImage, selected, scoringBusy, readingImage]);
 
   const continueRun = useCallback(async (index?: number) => {
     if (!runId || status.kind === "busy" || generationController.current || scoringBusy) return;
@@ -296,9 +296,7 @@ export default function GeneratePage() {
     }
   }, [runId, status.kind, scoringBusy]);
 
-  const hasJd = jdInputMode === "image"
-    ? !!jdImage
-    : !!jdId || (jdText.trim().length >= 10 && jdText.trim().length <= 20000);
+  const hasJd = !!jdImage || !!jdId || (jdText.trim().length >= 10 && jdText.trim().length <= 20000);
   const canGenerate = hasJd && !readingImage && selected.size > 0 && status.kind !== "busy" && !scoringBusy && !inputError;
 
   return (
@@ -322,46 +320,38 @@ export default function GeneratePage() {
             <button
               type="button"
               disabled={experiences === null || status.kind === "busy"}
-              onClick={() => { setJdInputMode("text"); clearJdImage(); setJdText(SAMPLE_JD); setJdId(null); setInputError(null); }}
+              onClick={() => { clearJdImage(); setJdText(SAMPLE_JD); setJdId(null); setInputError(null); }}
               className="rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-3 py-1 text-xs hover:bg-[var(--border)]"
             >
               填入示例
             </button>
           </div>
-          <div className="mb-3 grid grid-cols-2 gap-2" role="tablist" aria-label="JD 输入方式">
-            <button type="button" disabled={status.kind === "busy"} aria-pressed={jdInputMode === "text"} onClick={() => { setJdInputMode("text"); clearJdImage(); setInputError(null); }} className="rounded-md border px-3 py-2 text-xs font-medium transition-colors" style={{ borderColor: jdInputMode === "text" ? "var(--accent)" : "var(--border)", background: jdInputMode === "text" ? "color-mix(in srgb, var(--accent) 14%, var(--panel-2))" : "var(--panel-2)" }}>文本 JD</button>
-            <button type="button" disabled={status.kind === "busy"} aria-pressed={jdInputMode === "image"} onClick={() => { setJdInputMode("image"); setJdId(null); setInputError(null); }} className="rounded-md border px-3 py-2 text-xs font-medium transition-colors" style={{ borderColor: jdInputMode === "image" ? "var(--accent)" : "var(--border)", background: jdInputMode === "image" ? "color-mix(in srgb, var(--accent) 14%, var(--panel-2))" : "var(--panel-2)" }}>截图 JD · 上传 / Ctrl+V</button>
-          </div>
-          {jdInputMode === "text" ? <>
+          <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3 focus-within:border-[var(--accent)]">
+            {jdImage ? <div className="mb-3 flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--panel-2)] p-2">
+              <div className="relative h-20 w-24 shrink-0"><Image src={jdImage} alt="待解析的岗位截图" fill sizes="96px" unoptimized className="rounded-md object-contain" /></div>
+              <div className="min-w-0 flex-1"><p className="truncate text-xs">{jdImageName}</p><p role="status" className="mt-1 text-[11px] text-[var(--ok)]">已添加截图，可继续输入补充说明</p></div>
+              <button type="button" aria-label="移除截图" disabled={status.kind === "busy" || scoringBusy} onClick={() => { clearJdImage(); setInputError(null); }} className="shrink-0 rounded-md px-2 py-1 text-xs text-[var(--muted)] hover:bg-[var(--border)]">移除</button>
+            </div> : null}
+            {readingImage ? <p role="status" className="mb-2 text-xs text-[var(--muted)]">正在添加截图…</p> : null}
             <textarea
+              ref={jdInput}
               value={jdText}
               disabled={experiences === null || status.kind === "busy"}
               maxLength={20000}
               aria-label="JD 原文"
               onPaste={pasteJdImage}
-              onChange={(event) => { setJdText(event.target.value); setJdId(null); clearJdImage(); setInputError(null); }}
-              rows={14}
-              placeholder="把招聘网站上的 JD 直接粘进来；也可以直接粘贴截图。"
-              className="w-full resize-y rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 font-mono text-xs leading-relaxed outline-none focus:border-[var(--accent)]"
+              onChange={(event) => { setJdText(event.target.value); setJdId(null); }}
+              rows={8}
+              placeholder={jdImage ? "补充岗位信息，例如：重点关注后端开发要求（可选）" : "粘贴 JD 文本，或按 Ctrl+V 添加岗位截图；添加图片后也能继续打字。"}
+              className="w-full resize-y bg-transparent px-1 py-2 text-sm leading-relaxed outline-none"
             />
-            <div className="mt-3 flex items-center justify-between gap-3 rounded-md border border-dashed border-[var(--accent)]/50 bg-[var(--accent)]/5 px-3 py-2 text-[11px]">
-              <span className="min-w-0 text-[var(--muted)]">{jdText.trim().length} 字（10–20000 字）{jdId ? " · 使用已保存岗位画像" : ""}</span>
-              <button type="button" disabled={status.kind === "busy"} onClick={() => { setJdInputMode("image"); setJdId(null); setInputError(null); }} className="shrink-0 font-medium text-[var(--accent)] hover:underline">粘贴截图 →</button>
+            <input ref={imageInput} aria-label="上传 JD 截图" type="file" accept="image/png,image/jpeg,image/webp" disabled={status.kind === "busy" || scoringBusy} onChange={event => void readJdImage(event.target.files?.[0])} className="sr-only" tabIndex={-1} />
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border)] pt-3">
+              <button type="button" disabled={status.kind === "busy" || scoringBusy || readingImage} onClick={() => imageInput.current?.click()} className="rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-3 py-1.5 text-xs hover:bg-[var(--border)]">＋ {jdImage ? "更换截图" : "添加截图"}</button>
+              <span className="text-[11px] text-[var(--muted)]">Ctrl+V 粘贴截图 · {jdText.trim().length} / 20000 字</span>
             </div>
-          </> : <div
-            tabIndex={0}
-            role="group"
-            aria-label="JD 截图粘贴区"
-            onPaste={pasteJdImage}
-            className="min-h-56 rounded-md border border-dashed border-[var(--accent)]/70 bg-[var(--accent)]/5 p-4 outline-none focus:border-[var(--accent)]"
-          >
-            <p className="text-sm font-medium">把岗位截图粘贴到这里</p>
-            <p className="mt-1 text-xs text-[var(--muted)]">点击下方区域后按 Ctrl+V，或选择文件上传</p>
-            <input ref={imageInput} aria-label="上传 JD 截图" type="file" accept="image/png,image/jpeg,image/webp" disabled={status.kind === "busy" || scoringBusy} onChange={event => void readJdImage(event.target.files?.[0])} className="mt-4 block w-full text-xs" />
-            <p className="mt-2 text-[11px] text-[var(--muted)]">支持 PNG / JPEG / WebP，≤5 MiB、≤2000 万像素。</p>
-            {readingImage ? <p className="mt-2 text-xs text-[var(--muted)]">读取截图…</p> : null}
-            {jdImage ? <div className="mt-3 space-y-2"><div className="relative h-52 w-full"><Image src={jdImage} alt="待解析的岗位截图" fill sizes="(max-width: 1024px) 90vw, 500px" unoptimized className="rounded-md object-contain" /></div><div className="flex items-center justify-between gap-2 text-xs"><p className="min-w-0 break-all text-[var(--muted)]">{jdImageName}</p><button type="button" disabled={status.kind === "busy" || scoringBusy} onClick={() => { clearJdImage(); setInputError(null); }} className="shrink-0 rounded-md border border-[var(--border)] px-2 py-1 hover:bg-[var(--border)]">清除截图</button></div></div> : null}
-          </div>}
+          </div>
+          <p className="mt-2 text-[11px] text-[var(--muted)]">{jdId ? "使用已保存岗位画像；编辑文字或添加截图后会重新解析。" : jdImage ? "截图与文字将一起解析；移除截图会保留文字。" : "纯文本至少 10 字。截图支持 PNG / JPEG / WebP，≤5 MiB、≤2000 万像素。"}</p>
 
           <h2 className="mt-6 mb-2 font-mono text-sm">② 选用哪些经历</h2>
           {experiences === null ? (
