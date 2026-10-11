@@ -561,6 +561,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/system/data/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 清空本地数据 */
+        post: operations["clear_local_data_api_v1_system_data_clear_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/data/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 导出全部本地数据为 JSON */
+        get: operations["export_local_data_api_v1_system_data_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/system/demo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import Demo */
+        post: operations["import_demo_api_v1_system_demo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/system/info": {
         parameters: {
             query?: never;
@@ -744,6 +795,27 @@ export interface components {
              * @description Postgres 版本
              */
             server_version?: string | null;
+        };
+        /** DemoImportResponse */
+        DemoImportResponse: {
+            /** Experience Ids */
+            experience_ids: string[];
+            /** Inserted Experiences */
+            inserted_experiences: number;
+            /** Inserted Jobs */
+            inserted_jobs: number;
+            /**
+             * Jd Id
+             * Format: uuid
+             */
+            jd_id: string;
+            /** Message */
+            message: string;
+            /**
+             * Synthetic
+             * @default true
+             */
+            synthetic: boolean;
         };
         /** EditorResponse */
         EditorResponse: {
@@ -1596,6 +1668,59 @@ export interface components {
             text: string;
             /** Weight */
             weight: number;
+        };
+        /** LocalDataClearRequest */
+        LocalDataClearRequest: {
+            /**
+             * Confirmation
+             * @constant
+             */
+            confirmation: "清空本地数据";
+        };
+        /** LocalDataClearResponse */
+        LocalDataClearResponse: {
+            /**
+             * Cleared At
+             * Format: date-time
+             */
+            cleared_at: string;
+            /** Deleted Rows */
+            deleted_rows?: {
+                [key: string]: number;
+            };
+            /** External Stores */
+            external_stores: string[];
+            /** Preserved Tables */
+            preserved_tables: string[];
+        };
+        /** LocalDataExport */
+        LocalDataExport: {
+            /**
+             * Exported At
+             * Format: date-time
+             */
+            exported_at: string;
+            /** External Stores */
+            external_stores: string[];
+            /**
+             * Format Version
+             * @default 1
+             * @constant
+             */
+            format_version: 1;
+            /** Preserved Tables */
+            preserved_tables: string[];
+            /** Tables */
+            tables: {
+                [key: string]: {
+                    [key: string]: unknown;
+                }[];
+            };
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
         };
         /** MatchRequest */
         MatchRequest: {
@@ -3362,6 +3487,79 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_local_data_api_v1_system_data_clear_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LocalDataClearRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalDataClearResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_local_data_api_v1_system_data_export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalDataExport"];
+                };
+            };
+        };
+    };
+    import_demo_api_v1_system_demo_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoImportResponse"];
                 };
             };
         };

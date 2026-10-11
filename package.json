@@ -2,6 +2,7 @@
   "name": "resume-optimizer",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "简历优化器 — 批量生产岗位适配版简历",
   "packageManager": "pnpm@11.5.0",
   "engines": {
@@ -40,6 +41,8 @@
     "verify:generate:input": "node scripts/verify-generation-input-ui.mjs",
     "verify:m8": "node scripts/verify-m8.mjs",
     "eval:m8": "node scripts/eval-m8.mjs",
+    "prompt:m8": "node scripts/prompt-m8.mjs",
+    "verify:m9:config": "node scripts/verify-m9-config.mjs",
     "db:up": "docker compose up -d postgres",
     "db:reset": "docker compose down -v postgres",
     "stack:up": "docker compose up -d --build",

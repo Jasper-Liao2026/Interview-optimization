@@ -2,6 +2,7 @@
   "name": "@resume/api-types",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "OpenAPI → TypeScript 类型生成产物。前端接口类型的唯一来源，禁止手写。",
   "type": "module",
   "exports": {

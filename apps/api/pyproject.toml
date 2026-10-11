@@ -2,6 +2,7 @@
 name = "resume-optimizer-api"
 version = "0.1.0"
 description = "简历优化器后端 —— 业务逻辑与 agent 编排"
+license = { text = "MIT" }
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115.0",

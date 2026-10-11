@@ -1,8 +1,5 @@
-# 本地一键拉起 web + api + postgres（M0-4 验收）
-#
-# 日常开发建议：只起基础设施 —— `docker compose up -d postgres api`，
-#   然后把前端跑在宿主机（`pnpm web`），这样前端热更新最快。
-# 需要验证「一键全起」时再 `docker compose up --build`。
+# 本地一键拉起 web + api + postgres。根目录 .env 可选，默认无需 key。
+# 本地热更新开发：只起 postgres，宿主运行 pnpm api:dev / pnpm web。
 
 name: resume-optimizer
 
@@ -23,7 +20,7 @@ services:
     ports:
       # 宿主端口刻意选 54322 而不是 5432：避开本机可能已有的 Postgres，
       # 也让「这个库属于本项目」一眼可辨（重建卷 = down -v 后重放下面的 SQL）
-      - "54322:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-54322}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       # docker-entrypoint-initdb.d 只在数据目录为空时执行，
@@ -37,6 +34,7 @@ services:
       - ./supabase/migrations/20261013000000_m5_scoring.sql:/docker-entrypoint-initdb.d/15-m5-scoring.sql:ro
       - ./supabase/migrations/20261014000000_m6_editing.sql:/docker-entrypoint-initdb.d/16-m6-editing.sql:ro
       - ./supabase/migrations/20261015000000_m8_evaluation.sql:/docker-entrypoint-initdb.d/17-m8-evaluation.sql:ro
+      - ./supabase/migrations/20261016000000_m8_prompt_bundle.sql:/docker-entrypoint-initdb.d/18-m8-prompt-bundle.sql:ro
       - ./supabase/seed.sql:/docker-entrypoint-initdb.d/20-seed.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d resume_optimizer"]
@@ -52,31 +50,24 @@ services:
       dockerfile: Dockerfile
     container_name: resume-api
     restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
     environment:
-      ENVIRONMENT: docker
-      MILESTONE: M8
-      PROMPT_VERSION: ${PROMPT_VERSION:-m4.0}
-      LLM_INPUT_PRICE_PER_MILLION_USD: ${LLM_INPUT_PRICE_PER_MILLION_USD:-}
-      LLM_OUTPUT_PRICE_PER_MILLION_USD: ${LLM_OUTPUT_PRICE_PER_MILLION_USD:-}
-      LOG_LEVEL: INFO
+      ENVIRONMENT: ${ENVIRONMENT:-docker}
+      MILESTONE: ${MILESTONE:-M9}
+      PROMPT_VERSION: ${PROMPT_VERSION:-m4.1}
+      LLM_PROVIDER: ${LLM_PROVIDER:-stub}
+      JUDGE_PROVIDER: ${JUDGE_PROVIDER:-stub}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-stub}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
       # 容器内走服务名，不走宿主机的 54322
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/resume_optimizer
-      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/resume_optimizer}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
     ports:
-      - "8000:8000"
-    volumes:
-      # 开发热重载：只挂 app 目录，不覆盖已装好的依赖
-      - ./apps/api/app:/app/app
-    command:
-      - python
-      - -m
-      - uvicorn
-      - app.main:app
-      - --host
-      - 0.0.0.0
-      - --port
-      - "8000"
-      - --reload
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
@@ -100,14 +91,14 @@ services:
       args:
         # NEXT_PUBLIC_* 是**构建期**常量，会被内联进客户端 bundle，
         # 只能在 build 阶段传，运行时再给环境变量是无效的
-        NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://127.0.0.1:8000}
     container_name: resume-web
     restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: "3000"
     ports:
-      - "3000:3000"
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
     depends_on:
       api:
         condition: service_healthy

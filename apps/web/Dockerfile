@@ -17,6 +17,8 @@ RUN --mount=type=cache,target=/pnpm/store pnpm install --frozen-lockfile
 # ---------- 构建层 ----------
 FROM deps AS builder
 COPY . .
+ARG NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 # standalone 产物：只带运行时真正需要的文件，镜像小一半
 RUN pnpm --filter @resume/web build
 

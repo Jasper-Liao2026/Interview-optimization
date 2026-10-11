@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/edit", label: "编辑简历" },
   { href: "/export", label: "批量导出" },
   { href: "/observability", label: "观测" },
+  { href: "/settings", label: "设置" },
   { href: "/", label: "系统自检" },
 ] as const;
 

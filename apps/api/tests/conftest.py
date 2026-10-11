@@ -25,6 +25,7 @@ from httpx import ASGITransport, AsyncClient
 from app.agents.jd_parser import JdParser
 from app.agents.rewriter import ExperienceRewriter
 from app.config import Settings, get_settings
+from app.data_activity import protect_local_data
 from app.db import DatabaseProbe, get_database
 from app.deps import (
     get_embedding_repository,
@@ -146,6 +147,10 @@ SAMPLE_META: list[dict[str, Any]] = [
 @pytest.fixture
 def app() -> Iterator[FastAPI]:
     application = create_app()
+    async def no_activity_connection():
+        # API unit tests replace repositories and run without Postgres.
+        yield
+    application.dependency_overrides[protect_local_data] = no_activity_connection
     yield application
     application.dependency_overrides.clear()
 

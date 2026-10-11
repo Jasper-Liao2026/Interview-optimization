@@ -15,13 +15,16 @@ FROM base AS deps
 COPY pyproject.toml uv.lock* ./
 # --no-install-project：先只装第三方依赖，改业务代码不会让这层失效
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-project --no-dev || uv sync --no-install-project --no-dev
+    uv sync --frozen --no-install-project --no-dev
 
 # ---------- 运行层 ----------
 FROM base AS runtime
+RUN apt-get update && apt-get install -y --no-install-recommends chromium fonts-noto-cjk \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=deps /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH" \
-    VIRTUAL_ENV="/app/.venv"
+    VIRTUAL_ENV="/app/.venv" \
+    CHROMIUM_PATH=/usr/bin/chromium
 
 COPY . .
 

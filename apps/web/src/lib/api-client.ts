@@ -63,6 +63,11 @@ export type UsageRun = components["schemas"]["UsageRun"];
 export type UsageSummaryResponse = components["schemas"]["UsageSummaryResponse"];
 export type ObservabilityUsage = UsageSummaryResponse;
 
+export type LocalDataExport = components["schemas"]["LocalDataExport"];
+export type LocalDataClearRequest = components["schemas"]["LocalDataClearRequest"];
+export type LocalDataClearResponse = components["schemas"]["LocalDataClearResponse"];
+export type DemoImportResponse = components["schemas"]["DemoImportResponse"];
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -240,6 +245,12 @@ export const api = {
     apiGet<HealthResponse>({ path: `${env.apiPrefix}/health`, ...opts }),
   systemInfo: (opts?: Omit<RequestOptions, "path">) =>
     apiGet<SystemInfoResponse>({ path: `${env.apiPrefix}/system/info`, ...opts }),
+  exportLocalData: (opts?: Omit<RequestOptions, "path">) =>
+    apiGet<LocalDataExport>({ path: `${env.apiPrefix}/system/data/export`, ...opts }),
+  clearLocalData: (body: { confirmation: "清空本地数据" }, opts?: Omit<RequestOptions, "path">) =>
+    apiPost<LocalDataClearResponse>({ path: `${env.apiPrefix}/system/data/clear`, ...opts }, body),
+  importDemo: (opts?: Omit<RequestOptions, "path">) =>
+    apiPost<DemoImportResponse>({ path: `${env.apiPrefix}/system/demo`, ...opts }, {}),
 
   // --- M1 ---
   listExperiences: (opts?: Omit<RequestOptions, "path">) =>

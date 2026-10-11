@@ -12,16 +12,28 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app import __version__
 from app.config import get_settings
+from app.data_activity import protect_local_data
 from app.db import DatabaseUnavailable, get_database
 from app.evaluation.prompt_registry import PromptVersionRepository
 from app.observability import get_observability
-from app.routers import editing, experiences, exporting, health, jd, observability, resume, system
+from app.routers import (
+    demo,
+    editing,
+    experiences,
+    exporting,
+    health,
+    jd,
+    local_data,
+    observability,
+    resume,
+    system,
+)
 from app.tracing import TraceIdMiddleware, configure_logging, current_trace_id
 
 logger = logging.getLogger(__name__)
@@ -104,13 +116,26 @@ def create_app() -> FastAPI:
     # 业务接口统一走 /api/v1
     app.include_router(health.router, prefix=settings.api_prefix)
     app.include_router(system.router, prefix=settings.api_prefix)
+    app.include_router(
+        demo.router,
+        prefix=settings.api_prefix,
+        dependencies=[Depends(protect_local_data, scope="request")],
+    )
+    app.include_router(local_data.router, prefix=settings.api_prefix)
     app.include_router(observability.router, prefix=settings.api_prefix)
     # M1：垂直切片
-    app.include_router(experiences.router, prefix=settings.api_prefix)
-    app.include_router(jd.router, prefix=settings.api_prefix)
-    app.include_router(exporting.router, prefix=settings.api_prefix)
-    app.include_router(resume.router, prefix=settings.api_prefix)
-    app.include_router(editing.router, prefix=settings.api_prefix)
+    for business_router in (
+        experiences.router,
+        jd.router,
+        exporting.router,
+        resume.router,
+        editing.router,
+    ):
+        app.include_router(
+            business_router,
+            prefix=settings.api_prefix,
+            dependencies=[Depends(protect_local_data, scope="request")],
+        )
 
     @app.exception_handler(DatabaseUnavailable)
     async def database_unavailable_handler(

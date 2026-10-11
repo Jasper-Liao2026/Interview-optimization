@@ -2,6 +2,7 @@
   "name": "@resume/web",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "dev": "node scripts/prepare-pdf-worker.mjs && next dev",
     "build": "node scripts/prepare-pdf-worker.mjs && next build",

@@ -42,20 +42,34 @@ LangGraph 在持久化编排（checkpointer、interrupt、条件边回环、time
 
 ### 前置
 
-Node ≥ 22、pnpm ≥ 11、Docker Desktop（本地编排用）。
-**Python 与 uv 无需预装** —— `pnpm api:setup` 会把 uv 装进 `scripts/.tools/uv`，不碰全局环境。
+安装 Git 与 Docker Desktop（或 Docker Engine + Compose ≥ 2.24）。Docker 路径无需在本机安装 Python、Node、pnpm，也无需模型 key。
 
-### 起步
+### Docker 一条命令启动
 
 ```bash
-pnpm install          # 前端依赖
-pnpm api:setup        # 建 uv 工具链 + 按 pyproject 装后端依赖
-pnpm gen:types        # Pydantic → OpenAPI → TS 类型
+git clone https://github.com/Jasper-Liao2026/Interview-optimization.git
+cd Interview-optimization
+docker compose up -d --build
 ```
 
-### 日常开发
+浏览器打开 [http://localhost:3000](http://localhost:3000)。默认 `LLM_PROVIDER=stub`、`JUDGE_PROVIDER=stub`、`EMBEDDING_PROVIDER=stub`，输出明确标注演示模式，不会向模型服务发送请求。首次启动会下载镜像和依赖，耗时取决于网络；已缓存时可直接 `docker compose up -d`。
+
+无 key 跑出第一份简历：打开 `/library`，录入一条项目经历，例如「使用 Python 和 FastAPI 实现订单 API，数据存储于 PostgreSQL」，将同一句填入定性要点并保存；打开 `/generate`，输入「后端工程师：必须 Python、FastAPI、PostgreSQL；负责 API 设计」，勾选该经历并生成。查看标注为 stub 的要点与预览，再下载 PDF。stub 使用素材原文演示流程；截图识别与真实改写质量需要配置模型。
+
+需要真实模型时，复制根目录 [`.env.example`](.env.example) 为 `.env`，填写 `LLM_PROVIDER=openai-compatible`、`LLM_API_KEY`、`LLM_BASE_URL`、`LLM_MODEL`，再运行 `docker compose up -d --build`。PowerShell 复制命令为 `Copy-Item .env.example .env`，macOS/Linux 为 `cp .env.example .env`。不要将 key 写入 README 或提交 `.env`。模型、视觉、judge、embedding 配置都由根 `.env` 传入 API 容器；未启用的可选变量保留注释，避免空数字造成配置错误。修改 `NEXT_PUBLIC_API_BASE_URL` 后必须重建 web，因为它是构建期配置。
+
+运行状态与日志：`docker compose ps`、`docker compose logs --tail=100 api web`；停止为 `docker compose down`，业务数据仍保留在本机 Postgres 卷中。默认仅绑定本机 `127.0.0.1`。数据存储在本机；配置真实模型后，参与解析/改写/评分的文本会发送到你选择的服务，启用 Langfuse 后 trace 会发送到所配置的观测实例。
+
+### 本地开发（可选）
+
+安装 Node ≥ 22、pnpm ≥ 11。**Python 与 uv 无需预装**：`pnpm api:setup` 会把 uv 装进 `scripts/.tools/uv`。
 
 ```bash
+pnpm install
+pnpm api:setup
+pnpm gen:types
+# 复制 apps/api/.env.example 为 apps/api/.env
+# 复制 apps/web/.env.example 为 apps/web/.env.local
 pnpm db:up            # 只起 postgres（含 migration + seed）
 pnpm api:dev          # 后端 http://localhost:8000（热重载）
 pnpm web              # 前端 http://localhost:3000（热重载）
@@ -124,10 +138,12 @@ docker exec resume-postgres psql -U postgres -d resume_optimizer -v ON_ERROR_STO
 
 M7 无新增数据库迁移。在 M6 数据库上更新代码、依赖与类型后重启服务即可。
 
-M8 需应用 `supabase/migrations/20261015000000_m8_evaluation.sql`。PowerShell 已有数据库升级：
+M8 需按顺序应用 `supabase/migrations/20261015000000_m8_evaluation.sql` 和
+`supabase/migrations/20261016000000_m8_prompt_bundle.sql`。PowerShell 已有数据库升级：
 
 ```powershell
 Get-Content -Raw supabase/migrations/20261015000000_m8_evaluation.sql | docker compose exec -T postgres psql -U postgres -d resume_optimizer -v ON_ERROR_STOP=1
+Get-Content -Raw supabase/migrations/20261016000000_m8_prompt_bundle.sql | docker compose exec -T postgres psql -U postgres -d resume_optimizer -v ON_ERROR_STOP=1
 ```
 
 观测入口为 `/observability`。本机使用代理时请设置 `$env:NO_PROXY='localhost,127.0.0.1,::1'`，再运行 API 或 `pnpm verify:m8 -- --langfuse`。费用单价与 `PROMPT_VERSION` 见 `apps/api/.env.example`。
@@ -135,7 +151,7 @@ Get-Content -Raw supabase/migrations/20261015000000_m8_evaluation.sql | docker c
 
 ### 文本、截图和语义向量模型
 
-本地 API 配置位于 `apps/api/.env`，完整模板见 [`apps/api/.env.example`](apps/api/.env.example)。各类服务可独立配置：
+Docker 使用根目录 [`.env.example`](.env.example) → `.env`；本地开发使用 [`apps/api/.env.example`](apps/api/.env.example) → `apps/api/.env`。Docker 数据库主机是 `postgres:5432`，宿主开发是 `localhost:54322`，请按运行方式选择模板。各类服务可独立配置：
 
 | 配置前缀 | 用途 | 默认行为 |
 |---|---|---|
