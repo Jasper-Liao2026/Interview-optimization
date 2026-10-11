@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 import { TopNav } from "@/components/top-nav";
 import { ApiError, api, newRequestId, type DemoImportResponse, type LocalDataClearResponse } from "@/lib/api-client";
@@ -36,6 +37,11 @@ export default function SettingsPage() {
     setBusy("clear"); setMessage("");
     try {
       const result = await api.clearLocalData({ confirmation: "清空本地数据" }, { requestId: newRequestId() });
+      try {
+        for (const key of Object.keys(localStorage)) {
+          if (key.startsWith("resume-optimizer:")) localStorage.removeItem(key);
+        }
+      } catch { /* Database erasure also works when browser storage is disabled. */ }
       setClearResult(result); setMessage("本地数据已清空。");
     } catch (error) { setMessage(error instanceof ApiError ? `清空失败（${error.status}）` : String(error)); }
     finally { setBusy(null); }
@@ -48,6 +54,7 @@ export default function SettingsPage() {
       <section className="mt-8 grid gap-5 lg:grid-cols-2">
         <Panel title="无 key 演示数据" detail="导入固定的项目、实习和校园经历与示例 JD。导入不会调用模型，生成结果会标记为 stub 演示。">
           <button className={button} disabled={busy !== null} onClick={() => void importDemo()}>{busy === "demo" ? "导入中…" : "导入演示数据"}</button>
+          <p className="mt-3 text-sm"><Link className="underline" href="/jobs">打开演示岗位并生成简历</Link></p>
         </Panel>
         <Panel title="备份本地数据" detail="下载 JSON 快照，包含当前用户数据、评测数据和 LangGraph 检查点。">
           <button className={button} disabled={busy !== null} onClick={() => void exportData()}>{busy === "export" ? "导出中…" : "导出全部数据 JSON"}</button>

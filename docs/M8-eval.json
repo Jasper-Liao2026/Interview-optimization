@@ -1,20 +1,20 @@
 {
-  "created_at": "2026-10-11T05:32:04.240612+00:00",
+  "created_at": "2026-10-11T06:31:13.553690+00:00",
   "dataset_version": "m8-golden-v1",
   "prompt_versions": [
-    "m4.0",
-    "m8.0"
+    "m4.1",
+    "m8.1"
   ],
   "mode": "stub",
   "averages": {
-    "m4.0": 63.19,
-    "m8.0": 63.19
+    "m4.1": 63.19,
+    "m8.1": 63.19
   },
   "delta": 0.0,
   "passed": true,
   "prompt_hashes": {
-    "m4.0": "79cbd3c2e73e257cc3fdc6b03e39278cf7ef9a1c3d0f682fdb43b956ba2c0ca4",
-    "m8.0": "f060df0e44e7d7913e824d629bc5af6d302cb3f7060002b3add7a0f79a8e6022"
+    "m4.1": "cac0fc1a9d2fe8a1b312d863a00e7bf51dad92493d9535771e4192928ee890f6",
+    "m8.1": "693eacadd7211aa4d0756ae8e3b26bcf1e9752e8a7d88421ee4cd4a491eed08d"
   },
   "models": {
     "generation_provider": "stub",
@@ -27,7 +27,7 @@
   "cases": [
     {
       "case_id": "syn-01",
-      "prompt_version": "m4.0",
+      "prompt_version": "m4.1",
       "score": 62.25,
       "is_stub": true,
       "profile": {
@@ -95,7 +95,7 @@
     },
     {
       "case_id": "syn-02",
-      "prompt_version": "m4.0",
+      "prompt_version": "m4.1",
       "score": 62.25,
       "is_stub": true,
       "profile": {
@@ -163,7 +163,7 @@
     },
     {
       "case_id": "syn-03",
-      "prompt_version": "m4.0",
+      "prompt_version": "m4.1",
       "score": 62.25,
       "is_stub": true,
       "profile": {
@@ -231,7 +231,7 @@
     },
     {
       "case_id": "syn-04",
-      "prompt_version": "m4.0",
+      "prompt_version": "m4.1",
       "score": 73.5,
       "is_stub": true,
       "profile": {
@@ -297,7 +297,7 @@
     },
     {
       "case_id": "syn-05",
-      "prompt_version": "m4.0",
+      "prompt_version": "m4.1",
       "score": 62.25,
       "is_stub": true,
       "profile": {
@@ -362,7 +362,7 @@
     },
     {
       "case_id": "syn-06",
-      "prompt_version": "m4.0",
+      "prompt_version": "m4.1",
       "score": 51.0,
       "is_stub": true,
       "profile": {
@@ -424,7 +424,7 @@
     },
     {
       "case_id": "syn-07",
-      "prompt_version": "m4.0",
+      "prompt_version": "m4.1",
       "score": 51.0,
       "is_stub": true,
       "profile": {
@@ -486,7 +486,7 @@
     },
     {
       "case_id": "syn-08",
-      "prompt_version": "m4.0",
+      "prompt_version": "m4.1",
       "score": 66.0,
       "is_stub": true,
       "profile": {
@@ -548,7 +548,7 @@
     },
     {
       "case_id": "syn-09",
-      "prompt_version": "m4.0",
+      "prompt_version": "m4.1",
       "score": 66.0,
       "is_stub": true,
       "profile": {
@@ -610,7 +610,7 @@
     },
     {
       "case_id": "syn-10",
-      "prompt_version": "m4.0",
+      "prompt_version": "m4.1",
       "score": 66.0,
       "is_stub": true,
       "profile": {
@@ -672,7 +672,7 @@
     },
     {
       "case_id": "syn-11",
-      "prompt_version": "m4.0",
+      "prompt_version": "m4.1",
       "score": 51.0,
       "is_stub": true,
       "profile": {
@@ -738,7 +738,7 @@
     },
     {
       "case_id": "syn-12",
-      "prompt_version": "m4.0",
+      "prompt_version": "m4.1",
       "score": 62.25,
       "is_stub": true,
       "profile": {
@@ -804,7 +804,7 @@
     },
     {
       "case_id": "syn-13",
-      "prompt_version": "m4.0",
+      "prompt_version": "m4.1",
       "score": 66.0,
       "is_stub": true,
       "profile": {
@@ -866,7 +866,7 @@
     },
     {
       "case_id": "syn-14",
-      "prompt_version": "m4.0",
+      "prompt_version": "m4.1",
       "score": 66.0,
       "is_stub": true,
       "profile": {
@@ -928,7 +928,7 @@
     },
     {
       "case_id": "syn-15",
-      "prompt_version": "m4.0",
+      "prompt_version": "m4.1",
       "score": 66.0,
       "is_stub": true,
       "profile": {
@@ -990,7 +990,7 @@
     },
     {
       "case_id": "syn-16",
-      "prompt_version": "m4.0",
+      "prompt_version": "m4.1",
       "score": 66.0,
       "is_stub": true,
       "profile": {
@@ -1052,7 +1052,7 @@
     },
     {
       "case_id": "syn-17",
-      "prompt_version": "m4.0",
+      "prompt_version": "m4.1",
       "score": 66.0,
       "is_stub": true,
       "profile": {
@@ -1114,7 +1114,7 @@
     },
     {
       "case_id": "syn-18",
-      "prompt_version": "m4.0",
+      "prompt_version": "m4.1",
       "score": 66.0,
       "is_stub": true,
       "profile": {
@@ -1176,7 +1176,7 @@
     },
     {
       "case_id": "syn-19",
-      "prompt_version": "m4.0",
+      "prompt_version": "m4.1",
       "score": 66.0,
       "is_stub": true,
       "profile": {
@@ -1238,7 +1238,7 @@
     },
     {
       "case_id": "syn-20",
-      "prompt_version": "m4.0",
+      "prompt_version": "m4.1",
       "score": 66.0,
       "is_stub": true,
       "profile": {
@@ -1300,7 +1300,7 @@
     },
     {
       "case_id": "syn-01",
-      "prompt_version": "m8.0",
+      "prompt_version": "m8.1",
       "score": 62.25,
       "is_stub": true,
       "profile": {
@@ -1368,7 +1368,7 @@
     },
     {
       "case_id": "syn-02",
-      "prompt_version": "m8.0",
+      "prompt_version": "m8.1",
       "score": 62.25,
       "is_stub": true,
       "profile": {
@@ -1436,7 +1436,7 @@
     },
     {
       "case_id": "syn-03",
-      "prompt_version": "m8.0",
+      "prompt_version": "m8.1",
       "score": 62.25,
       "is_stub": true,
       "profile": {
@@ -1504,7 +1504,7 @@
     },
     {
       "case_id": "syn-04",
-      "prompt_version": "m8.0",
+      "prompt_version": "m8.1",
       "score": 73.5,
       "is_stub": true,
       "profile": {
@@ -1570,7 +1570,7 @@
     },
     {
       "case_id": "syn-05",
-      "prompt_version": "m8.0",
+      "prompt_version": "m8.1",
       "score": 62.25,
       "is_stub": true,
       "profile": {
@@ -1635,7 +1635,7 @@
     },
     {
       "case_id": "syn-06",
-      "prompt_version": "m8.0",
+      "prompt_version": "m8.1",
       "score": 51.0,
       "is_stub": true,
       "profile": {
@@ -1697,7 +1697,7 @@
     },
     {
       "case_id": "syn-07",
-      "prompt_version": "m8.0",
+      "prompt_version": "m8.1",
       "score": 51.0,
       "is_stub": true,
       "profile": {
@@ -1759,7 +1759,7 @@
     },
     {
       "case_id": "syn-08",
-      "prompt_version": "m8.0",
+      "prompt_version": "m8.1",
       "score": 66.0,
       "is_stub": true,
       "profile": {
@@ -1821,7 +1821,7 @@
     },
     {
       "case_id": "syn-09",
-      "prompt_version": "m8.0",
+      "prompt_version": "m8.1",
       "score": 66.0,
       "is_stub": true,
       "profile": {
@@ -1883,7 +1883,7 @@
     },
     {
       "case_id": "syn-10",
-      "prompt_version": "m8.0",
+      "prompt_version": "m8.1",
       "score": 66.0,
       "is_stub": true,
       "profile": {
@@ -1945,7 +1945,7 @@
     },
     {
       "case_id": "syn-11",
-      "prompt_version": "m8.0",
+      "prompt_version": "m8.1",
       "score": 51.0,
       "is_stub": true,
       "profile": {
@@ -2011,7 +2011,7 @@
     },
     {
       "case_id": "syn-12",
-      "prompt_version": "m8.0",
+      "prompt_version": "m8.1",
       "score": 62.25,
       "is_stub": true,
       "profile": {
@@ -2077,7 +2077,7 @@
     },
     {
       "case_id": "syn-13",
-      "prompt_version": "m8.0",
+      "prompt_version": "m8.1",
       "score": 66.0,
       "is_stub": true,
       "profile": {
@@ -2139,7 +2139,7 @@
     },
     {
       "case_id": "syn-14",
-      "prompt_version": "m8.0",
+      "prompt_version": "m8.1",
       "score": 66.0,
       "is_stub": true,
       "profile": {
@@ -2201,7 +2201,7 @@
     },
     {
       "case_id": "syn-15",
-      "prompt_version": "m8.0",
+      "prompt_version": "m8.1",
       "score": 66.0,
       "is_stub": true,
       "profile": {
@@ -2263,7 +2263,7 @@
     },
     {
       "case_id": "syn-16",
-      "prompt_version": "m8.0",
+      "prompt_version": "m8.1",
       "score": 66.0,
       "is_stub": true,
       "profile": {
@@ -2325,7 +2325,7 @@
     },
     {
       "case_id": "syn-17",
-      "prompt_version": "m8.0",
+      "prompt_version": "m8.1",
       "score": 66.0,
       "is_stub": true,
       "profile": {
@@ -2387,7 +2387,7 @@
     },
     {
       "case_id": "syn-18",
-      "prompt_version": "m8.0",
+      "prompt_version": "m8.1",
       "score": 66.0,
       "is_stub": true,
       "profile": {
@@ -2449,7 +2449,7 @@
     },
     {
       "case_id": "syn-19",
-      "prompt_version": "m8.0",
+      "prompt_version": "m8.1",
       "score": 66.0,
       "is_stub": true,
       "profile": {
@@ -2511,7 +2511,7 @@
     },
     {
       "case_id": "syn-20",
-      "prompt_version": "m8.0",
+      "prompt_version": "m8.1",
       "score": 66.0,
       "is_stub": true,
       "profile": {

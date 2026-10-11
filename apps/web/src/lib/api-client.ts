@@ -247,7 +247,7 @@ export const api = {
     apiGet<SystemInfoResponse>({ path: `${env.apiPrefix}/system/info`, ...opts }),
   exportLocalData: (opts?: Omit<RequestOptions, "path">) =>
     apiGet<LocalDataExport>({ path: `${env.apiPrefix}/system/data/export`, ...opts }),
-  clearLocalData: (body: { confirmation: "清空本地数据" }, opts?: Omit<RequestOptions, "path">) =>
+  clearLocalData: (body: LocalDataClearRequest, opts?: Omit<RequestOptions, "path">) =>
     apiPost<LocalDataClearResponse>({ path: `${env.apiPrefix}/system/data/clear`, ...opts }, body),
   importDemo: (opts?: Omit<RequestOptions, "path">) =>
     apiPost<DemoImportResponse>({ path: `${env.apiPrefix}/system/demo`, ...opts }, {}),

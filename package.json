@@ -40,6 +40,7 @@
     "verify:m7:ui": "node scripts/verify-m7-ui.mjs",
     "verify:generate:input": "node scripts/verify-generation-input-ui.mjs",
     "verify:m8": "node scripts/verify-m8.mjs",
+    "verify:m9": "node scripts/verify-m9.mjs",
     "eval:m8": "node scripts/eval-m8.mjs",
     "prompt:m8": "node scripts/prompt-m8.mjs",
     "verify:m9:config": "node scripts/verify-m9-config.mjs",

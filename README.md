@@ -2,6 +2,18 @@
 
 批量生产**岗位适配版简历**的工具。解决 BOSS 直聘海投时「一份简历打天下、逐份手改不可行」的问题。
 
+本地自托管，单机单用户；没有模型 key 也能体验素材导入、生成、评分、编辑与 PDF 导出。
+
+![设置页：演示导入、JSON 备份与确认清空](docs/images/settings-demo.png)
+
+## 第一次使用
+
+1. 安装 Git 和 Docker Desktop（Compose ≥ 2.24），克隆仓库。
+2. 在仓库目录运行 `docker compose up -d --build`，打开 [http://localhost:3000/settings](http://localhost:3000/settings)。
+3. 点击「导入演示数据」，进入「岗位匹配」，选择 `【演示岗位】后端工程师` 和演示经历，生成后下载 PDF。也可以继续评分、编辑或更换模板。
+
+默认全部模型为 stub，输出带演示标记，不能用于正式投递。镜像和依赖已缓存时，以上操作约 5 分钟；首次下载时间取决于网络。详细命令和真实模型配置见下方快速开始。
+
 > 当前进度：**M0 / M1 / M2 / M4 / M6 / M7 / M8 已完成，M3 功能已交付并完成代码审核**。M0 是脚手架（含 M0-8 Langfuse 观测），
 > M1 是第一条端到端垂直切片 —— 「一条经历 + 一个 JD → 生成 → 预览 → 导出 PDF」，
 > M2 是**素材库** —— 经历条目的完整录入、编辑、分组浏览，量化结果与多版本表述；
@@ -18,7 +30,7 @@
 > M4 真实改写评测 100/100 通过结构与事实规则，范围与边界见 [`M4 总结`](docs/M4-summary.md)。
 > 任务全貌见 [`tasks.md`](tasks.md)，选型依据见 [`docs/tech-stack.md`](docs/tech-stack.md)。
 >
-> **定位**：本地自托管的开源工具 —— 不提供线上服务，**不上线**；单机单用户，数据只存在你自己机器上。
+> **定位**：本地自托管的开源工具，单机单用户；业务数据保存在本机。配置真实模型或外部观测服务时会发送相应输入，范围见「数据与隐私」。
 
 ---
 
@@ -35,6 +47,17 @@
 
 **架构决策**：前端只做壳，业务逻辑与 agent 编排全在 Python 侧。
 LangGraph 在持久化编排（checkpointer、interrupt、条件边回环、time-travel 调试）上的成熟度是选择它的主要原因，不是「因为更熟悉 Python」的妥协。
+
+```mermaid
+flowchart LR
+  browser[浏览器 · Next.js 15] -->|HTTP / SSE| api[FastAPI]
+  api --> graph[LangGraph · 改写 / 评分 / 人工确认]
+  api --> pg[(本地 Postgres + pgvector)]
+  graph -->|任务与检查点| pg
+  graph --> model[stub 或配置的模型服务]
+  api --> pdf[Chromium · HTML / PDF]
+  api -. 可选 trace .-> lf[Langfuse]
+```
 
 ---
 
@@ -55,6 +78,8 @@ docker compose up -d --build
 浏览器打开 [http://localhost:3000](http://localhost:3000)。默认 `LLM_PROVIDER=stub`、`JUDGE_PROVIDER=stub`、`EMBEDDING_PROVIDER=stub`，输出明确标注演示模式，不会向模型服务发送请求。首次启动会下载镜像和依赖，耗时取决于网络；已缓存时可直接 `docker compose up -d`。
 
 无 key 跑出第一份简历：打开 `/library`，录入一条项目经历，例如「使用 Python 和 FastAPI 实现订单 API，数据存储于 PostgreSQL」，将同一句填入定性要点并保存；打开 `/generate`，输入「后端工程师：必须 Python、FastAPI、PostgreSQL；负责 API 设计」，勾选该经历并生成。查看标注为 stub 的要点与预览，再下载 PDF。stub 使用素材原文演示流程；截图识别与真实改写质量需要配置模型。
+
+更快的演示入口是 `/settings` →「导入演示数据」，再从 `/jobs` 打开演示岗位生成。重复导入不会覆盖已编辑的素材；演示数据的组织和岗位名称带 `【演示】` 标记。
 
 需要真实模型时，复制根目录 [`.env.example`](.env.example) 为 `.env`，填写 `LLM_PROVIDER=openai-compatible`、`LLM_API_KEY`、`LLM_BASE_URL`、`LLM_MODEL`，再运行 `docker compose up -d --build`。PowerShell 复制命令为 `Copy-Item .env.example .env`，macOS/Linux 为 `cp .env.example .env`。不要将 key 写入 README 或提交 `.env`。模型、视觉、judge、embedding 配置都由根 `.env` 传入 API 容器；未启用的可选变量保留注释，避免空数字造成配置错误。修改 `NEXT_PUBLIC_API_BASE_URL` 后必须重建 web，因为它是构建期配置。
 
@@ -91,6 +116,22 @@ Windows 后端启动入口使用 Selector 事件循环以兼容 psycopg。需要
 - **`/jobs`** —— M3 的岗位匹配页：文本/截图解析、JD 管理、匹配矩阵、事实证据与缺口；勾选经历后进入生成。
 - **`/edit`** —— M6 的精调编辑页：结构化编辑、PDF 分页预览与下载、历史恢复、AI 提案确认。
 - **`/export`** —— M7 的批量生成与导出页：勾选多个岗位与共用素材，按关键词、岗位或要点筛选简历，选模板后预览、下载 PDF 或打包 ZIP。
+- **`/settings`** —— 演示导入、全部本地数据 JSON 导出，以及确认后清空数据。
+
+### 数据与隐私
+
+默认 stub 不调用模型服务，工具本身没有遥测上传或训练数据收集功能。经历、岗位、简历、版本历史、用量和 LangGraph 检查点保存到本机 Postgres 卷；浏览器只保留近期任务 ID 等恢复入口。
+
+启用真实服务后，`LLM_*` 收到参与解析和改写的 JD/素材，`VISION_*` 收到截图及补充文字，`JUDGE_*` 收到岗位与待评分简历，`EMBEDDING_*` 收到用于检索的素材文本。启用 Langfuse 后 prompt、输出及 trace 会发往 `LANGFUSE_HOST` 指定的实例。供应商是否留存或用于训练取决于你所选服务及其账户设置，本项目不承诺替第三方删除日志。
+
+`/settings` 的 JSON 导出包含业务数据、embedding、评测数据、全部检查点和服务/prompt 元数据，二进制 checkpoint 以 base64 保存。该文件可能包含个人信息，请自行保管；当前提供导出，尚未提供一键恢复导入。清空操作要求确认，事务删除当前用户业务数据、全实例评测和检查点，保留数据库结构、服务元数据和 prompt 目录；活动请求期间返回 409。设置页同时移除当前浏览器的近期任务入口。它不会删除其他浏览器缓存、已下载文件、Langfuse 或模型供应商日志。
+
+### 已知限制与后续工作
+
+- 固定单用户，无登录和多人隔离；默认 Compose 只绑定本机。适合个人电脑上的自托管使用。
+- stub 用于体验流程，不能证明改写、截图识别、语义检索或评分质量。
+- 真实视觉/embedding 验收见 [M3 milestone](https://github.com/Jasper-Liao2026/Interview-optimization/milestone/4)，独立 judge 校准见 [M5 milestone](https://github.com/Jasper-Liao2026/Interview-optimization/milestone/6)。
+- 后续 OSS 验收与状态见 [OSS milestone](https://github.com/Jasper-Liao2026/Interview-optimization/milestone/10)，任务与实现边界见 [tasks.md](tasks.md)。
 
 ### 已有数据库升级到 M5 / M6 / M7
 
