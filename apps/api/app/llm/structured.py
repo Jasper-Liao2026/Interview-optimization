@@ -55,6 +55,15 @@ def extract_json(text: str) -> Any:
 
 
 def json_instructions(schema: type[BaseModel]) -> str:
+    """Use the frozen instruction belonging to the active agent snapshot."""
+    from app.agents.prompts import current_prompt_snapshot
+
+    snapshot = current_prompt_snapshot()
+    instruction = snapshot.schema_instruction(schema) if snapshot else None
+    return instruction if instruction is not None else render_json_instructions(schema)
+
+
+def render_json_instructions(schema: type[BaseModel]) -> str:
     """拼给模型的输出约束说明。
 
     刻意**内联完整 JSON Schema**，而不是只说「按这个结构返回」：

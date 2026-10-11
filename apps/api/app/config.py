@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     service_id: str = "resume-optimizer-api"
     version: str = "0.1.0"
     milestone: str = Field(default="M8", description="当前里程碑，便于在自检页对照进度")
-    prompt_version: str = "m4.0"
+    prompt_version: str = "m4.1"
     environment: str = Field(default="local", description="local | staging | production")
 
     # --- HTTP ---

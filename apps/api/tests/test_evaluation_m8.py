@@ -40,7 +40,7 @@ async def test_stub_comparison_is_explicit_and_has_both_versions():
     settings = Settings(_env_file=None, llm_provider="stub", judge_provider="stub")
     report = await compare_prompts(settings, cases=golden_set()[:1], allow_stub=True)
     assert report.mode == "stub"
-    assert report.prompt_versions == ("m4.0", "m8.0")
+    assert report.prompt_versions == ("m4.1", "m8.1")
     assert len(report.cases) == 2
     assert all(case.is_stub for case in report.cases)
 
@@ -87,7 +87,7 @@ async def test_zero_tolerance_regression_fails(monkeypatch):
     from app.evaluation import pipeline
 
     async def output(settings, case, version):
-        return CaseResult(case.id, version, 90 if version == "m4.0" else 89, True)
+        return CaseResult(case.id, version, 90 if version == "m4.1" else 89, True)
 
     monkeypatch.setattr(pipeline, "_run_case", output)
     settings = Settings(_env_file=None, llm_provider="stub", judge_provider="stub")

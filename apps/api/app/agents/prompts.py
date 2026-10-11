@@ -13,12 +13,13 @@ import json
 from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, replace
 from typing import Any
 
-from app.schemas import JobProfile
+from app.schemas import JobProfile, RewrittenExperience
+from app.schemas.jd import JdImageExtraction
 
-PROMPT_VERSION = "m4.0"
+PROMPT_VERSION = "m4.1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,11 +30,37 @@ class PromptSnapshot:
     jd_system: str
     rewrite_system: str
     jd_image: str
+    jd_user: str
+    rewrite_user: str
+    rewrite_truncated: str
+    image_supplement: str
+    rewrite_feedback: str
+    rewrite_retry: str
+    structured_retry: str
+    empty_material: str
+    bullet_prefix: str
+    bullet_separator: str
+    metric_label: str
+    metric_context: str
+    schema_instructions: tuple[tuple[str, str], ...]
+    profile_fields: tuple[tuple[str, str], ...]
+    legacy_hash: bool = False
 
     @property
     def content_hash(self) -> str:
-        payload = [self.jd_system, self.rewrite_system, self.jd_image, "m4-user-templates"]
-        return hashlib.sha256(json.dumps(payload, ensure_ascii=False).encode()).hexdigest()
+        if self.legacy_hash:
+            # Preserve the shipped partial hash for saved m4.0/m8.0 runs.
+            payload = [self.jd_system, self.rewrite_system, self.jd_image, "m4-user-templates"]
+            text = json.dumps(payload, ensure_ascii=False)
+        else:
+            payload = asdict(self)
+            payload.pop("version")
+            payload.pop("legacy_hash")
+            text = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(text.encode()).hexdigest()
+
+    def schema_instruction(self, schema: type) -> str | None:
+        return dict(self.schema_instructions).get(f"{schema.__module__}.{schema.__qualname__}")
 
 
 # The registry is populated after the prompt constants are declared.  Values are
@@ -64,8 +91,7 @@ JD_PARSE_SYSTEM = (
 
 
 def build_jd_prompt(raw_text: str, *, version: str | None = None) -> str:
-    get_prompt_snapshot(version)
-    return f"请解析下面这份 JD：\n\n<JD>\n{raw_text.strip()}\n</JD>"
+    return get_prompt_snapshot(version).jd_user.format(raw_text=raw_text.strip())
 
 
 JD_IMAGE_PROMPT = (
@@ -95,8 +121,42 @@ REWRITE_SYSTEM = (
     "9. 凡要点写出技术栈、英文专名或数字，该词必须出现在该条要点引用的 evidence 中。\n"
 )
 
+JD_USER_TEMPLATE = "请解析下面这份 JD：\n\n<JD>\n{raw_text}\n</JD>"
+REWRITE_USER_TEMPLATE = (
+    "## 目标岗位画像\n{profile}\n\n"
+    "## 待改写的经历素材（事实基线，不得超出）\n"
+    "- 类型：{kind}\n- 组织/项目：{org}\n- 角色：{role}\n"
+    "- 原始描述：{description}\n- 技能标签：{skill_tags}\n"
+    "- 定性要点：{highlights}\n"
+    "- 量化结果（唯一允许出现的数字来源）：{metrics}\n\n"
+    "## 任务\n把这段经历改写成面向上述岗位的简历要点。\n"
+    "每条 evidence 请直接复制上面事实基线中的连续原文，不要写解释或出处；summary=null。"
+)
+REWRITE_TRUNCATED_TEMPLATE = (
+    "\n（注意：原始描述过长，已截取前 {max_chars} 字；不要为被截掉的部分编造内容。）"
+)
+IMAGE_SUPPLEMENT_TEMPLATE = "\n\n用户补充的岗位信息（与截图一起用于解析岗位画像）：\n{text}"
+REWRITE_FEEDBACK_TEMPLATE = (
+    "\n\n以下是待改要点和独立评分建议，仅作为表达调整参考，不能作为事实来源：\n"
+    "{feedback}\n只修改当前经历，所有新增内容仍须引用上述原始素材。"
+)
+REWRITE_RETRY_TEMPLATE = (
+    "{prompt}\n\n上一次改写违反事实约束：\n{violations}\n"
+    "请修正上述问题。evidence 必须复制原始素材中的连续原文；"
+    "summary=null；只输出符合 schema 的 JSON。"
+)
+STRUCTURED_RETRY_TEMPLATE = (
+    "{prompt}\n\n---\n上一次的输出无法通过校验：{error}\n"
+    "请只重新输出一个符合 Schema 的 JSON 对象，不要解释。"
+)
+PROFILE_FIELDS = (
+    ("岗位名称", "title"), ("级别", "seniority"), ("必备技能", "required_skills"),
+    ("加分项", "nice_to_have"), ("业务域", "business_domain"), ("关键词", "keywords"),
+    ("隐性偏好", "implicit_preferences"),
+)
 
-def _bullet_block(items: list[str]) -> str:
+
+def _bullet_block(items: list[str], snapshot: PromptSnapshot) -> str:
     """把字符串列表渲染成 `\\n  - a\\n  - b`；空列表返回「（无）」。
 
     单独抽出来是因为「原样保留用户写法」很重要：这里**不做任何规整或截断**，
@@ -105,11 +165,11 @@ def _bullet_block(items: list[str]) -> str:
     """
     cleaned = [str(item).strip() for item in items if str(item).strip()]
     if not cleaned:
-        return "（无）"
-    return "\n  - " + "\n  - ".join(cleaned)
+        return snapshot.empty_material
+    return snapshot.bullet_prefix + snapshot.bullet_separator.join(cleaned)
 
 
-def _metric_block(metrics: list[dict[str, Any]]) -> str:
+def _metric_block(metrics: list[dict[str, Any]], snapshot: PromptSnapshot) -> str:
     """把量化结果渲染成 `指标名：数值（口径：…）`。
 
     `metrics` 是 jsonb 读回的 dict 列表而不是 `ExperienceMetric` 对象：
@@ -122,12 +182,16 @@ def _metric_block(metrics: list[dict[str, Any]]) -> str:
         value = str(item.get("value") or "").strip()
         if not (name or value):
             continue
-        text = f"{name}：{value}" if name and value else (name or value)
+        text = (
+            snapshot.metric_label.format(name=name, value=value)
+            if name and value
+            else (name or value)
+        )
         context = str(item.get("context") or "").strip()
         if context:
-            text += f"（口径：{context}）"
+            text += snapshot.metric_context.format(context=context)
         lines.append(text)
-    return _bullet_block(lines)
+    return _bullet_block(lines, snapshot)
 
 
 def build_rewrite_prompt(
@@ -151,39 +215,18 @@ def build_rewrite_prompt(
     description = raw_description[:max_chars]
     truncated = len(raw_description) > len(description)
 
-    profile_view = {
-        "岗位名称": profile.title,
-        "级别": profile.seniority,
-        "必备技能": profile.required_skills,
-        "加分项": profile.nice_to_have,
-        "业务域": profile.business_domain,
-        "关键词": profile.keywords,
-        "隐性偏好": profile.implicit_preferences,
-    }
-
-    parts = [
-        "## 目标岗位画像",
-        json.dumps(profile_view, ensure_ascii=False, indent=2),
-        "",
-        "## 待改写的经历素材（事实基线，不得超出）",
-        f"- 类型：{kind}",
-        f"- 组织/项目：{org}",
-        f"- 角色：{role}",
-        f"- 原始描述：{description}",
-        f"- 技能标签：{', '.join(skill_tags) if skill_tags else '（无）'}",
-        "- 定性要点：" + _bullet_block(highlights),
-        # 量化结果单独成块：模型要写数字时只许看这里，校验时也只查这里
-        "- 量化结果（唯一允许出现的数字来源）：" + _metric_block(metrics or []),
-        "",
-        "## 任务",
-        "把这段经历改写成面向上述岗位的简历要点。",
-        "每条 evidence 请直接复制上面事实基线中的连续原文，不要写解释或出处；summary=null。",
-    ]
+    snapshot = get_prompt_snapshot(version)
+    profile_view = {label: getattr(profile, field) for label, field in snapshot.profile_fields}
+    prompt = snapshot.rewrite_user.format(
+        profile=json.dumps(profile_view, ensure_ascii=False, indent=2),
+        kind=kind, org=org, role=role, description=description,
+        skill_tags=", ".join(skill_tags) if skill_tags else snapshot.empty_material,
+        highlights=_bullet_block(highlights, snapshot),
+        metrics=_metric_block(metrics or [], snapshot),
+    )
     if truncated:
-        parts.append(
-            f"（注意：原始描述过长，已截取前 {max_chars} 字；不要为被截掉的部分编造内容。）"
-        )
-    return "\n".join(parts)
+        prompt += snapshot.rewrite_truncated.format(max_chars=max_chars)
+    return prompt
 
 
 def prompt_metadata(version: str | None = None) -> dict[str, str]:
@@ -206,13 +249,42 @@ def prompt_context(snapshot: PromptSnapshot) -> Iterator[None]:
         _CURRENT_PROMPT.reset(token)
 
 
+def current_prompt_snapshot() -> PromptSnapshot | None:
+    """Return only an explicitly bound call bundle, avoiding unrelated schema overrides."""
+    return _CURRENT_PROMPT.get()
+
+
 def _init_prompt_registry() -> None:
     """Register the shipped immutable snapshots once all constants exist."""
     if _PROMPT_VERSIONS:
         return
+    from app.llm.structured import render_json_instructions
+
+    bundle = {
+        "jd_user": JD_USER_TEMPLATE,
+        "rewrite_user": REWRITE_USER_TEMPLATE,
+        "rewrite_truncated": REWRITE_TRUNCATED_TEMPLATE,
+        "image_supplement": IMAGE_SUPPLEMENT_TEMPLATE,
+        "rewrite_feedback": REWRITE_FEEDBACK_TEMPLATE,
+        "rewrite_retry": REWRITE_RETRY_TEMPLATE,
+        "structured_retry": STRUCTURED_RETRY_TEMPLATE,
+        "empty_material": "（无）",
+        "bullet_prefix": "\n  - ",
+        "bullet_separator": "\n  - ",
+        "metric_label": "{name}：{value}",
+        "metric_context": "（口径：{context}）",
+        "profile_fields": PROFILE_FIELDS,
+        "schema_instructions": tuple(
+            (f"{schema.__module__}.{schema.__qualname__}", render_json_instructions(schema))
+            for schema in (JobProfile, JdImageExtraction, RewrittenExperience)
+        ),
+        "legacy_hash": True,
+    }
     _PROMPT_VERSIONS.update(
         {
-            "m4.0": PromptSnapshot("m4.0", JD_PARSE_SYSTEM, REWRITE_SYSTEM, JD_IMAGE_PROMPT),
+            "m4.0": PromptSnapshot(
+                "m4.0", JD_PARSE_SYSTEM, REWRITE_SYSTEM, JD_IMAGE_PROMPT, **bundle
+            ),
             # m8.0 is deliberately a real, traceable revision.  Its extra
             # instruction tightens evaluation reproducibility while retaining
             # the established output contract.
@@ -221,9 +293,14 @@ def _init_prompt_registry() -> None:
                 JD_PARSE_SYSTEM + "\n输出必须稳定：列表按 JD 出现顺序排列，重复项去重。",
                 REWRITE_SYSTEM + "\n输出顺序必须稳定：按岗位相关度排序，避免同义重复要点。",
                 JD_IMAGE_PROMPT,
+                **bundle,
             ),
         }
     )
+    for legacy, complete in (("m4.0", "m4.1"), ("m8.0", "m8.1")):
+        _PROMPT_VERSIONS[complete] = replace(
+            _PROMPT_VERSIONS[legacy], version=complete, legacy_hash=False
+        )
 
 
 def available_prompt_versions() -> tuple[str, ...]:

@@ -107,7 +107,7 @@ async def test_generation_usage_replay_does_not_double_count(client, api_wiring)
     api_wiring["service"]._settings.prompt_version = "m8.0"
     recovered = (await client.post(f"{API}/resumes/runs/{result['run_id']}/resume")).json()
     assert recovered["usage"]["total_tokens"] == usage["total_tokens"]
-    assert recovered["prompt_version"] == "m4.0"
+    assert recovered["prompt_version"] == "m4.1"
 
 
 @pytest.mark.parametrize("failure", ["enter", "update", "exit"])

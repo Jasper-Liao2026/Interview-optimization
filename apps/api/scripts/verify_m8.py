@@ -69,17 +69,17 @@ async def main(langfuse=False):
             check(len(usage["calls"]) == 3, "JD parse and both parallel rewrites recorded")
             check(usage["total_tokens"] == usage["input_tokens"] + usage["output_tokens"] > 0,
                 "per-resume token totals match provider-attempt ledger")
-            check(all(c["prompt_version"] == "m4.0" and len(c["prompt_hash"]) == 64
+            check(all(c["prompt_version"] == "m4.1" and len(c["prompt_hash"]) == 64
                 for c in usage["calls"]), "every call carries immutable prompt hash")
             replay = (await client.post("/resumes/generate", json=payload)).json()
             check(replay["usage"] == usage, "idempotent replay does not count calls twice")
             # A new service/store instance reads the same history after a restart.
             recovered = (await client.get(f"/resumes/runs/{run_id}")).json()
             check(recovered["usage"] == usage, "usage survives service reconstruction")
-            settings.prompt_version = "m8.0"
+            settings.prompt_version = "m8.1"
             resumed = (await client.post(f"/resumes/runs/{run_id}/resume")).json()
             check(resumed["usage"]["total_tokens"] == usage["total_tokens"]
-                and resumed["trace_id"] == request_id.hex and resumed["prompt_version"] == "m4.0",
+                and resumed["trace_id"] == request_id.hex and resumed["prompt_version"] == "m4.1",
                 "recovery retains original trace and prompt without re-calling model")
             monitor = await client.get("/observability/usage")
             assert monitor.status_code == 200, monitor.text

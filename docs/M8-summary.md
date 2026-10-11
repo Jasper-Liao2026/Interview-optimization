@@ -25,7 +25,7 @@
 
 已有 M6/M7 数据库需应用 `supabase/migrations/20261015000000_m8_evaluation.sql`；新库由 Compose 自动加载。迁移已应用到本次开发库，不删已有数据。
 
-`PROMPT_VERSION=m4.0` 为兼容默认，`m8.0` 加入稳定排序规则；部署时改该环境变量并重启即可选版本或回滚。新任务记录该版本，恢复旧任务仍使用原快照。`PromptVersionRepository` 保存版本选择与前一版本；评测 CLI 明确传入 `--prompt-a` / `--prompt-b`。
+新安装默认使用完整 bundle `m4.1`；`m8.1` 加入稳定排序规则。`m4.0` / `m8.0` 保留为历史兼容快照。启动时选择优先级为 **数据库中已保存的选择 > `PROMPT_VERSION` 环境变量**；新数据库没有选择记录时会采用环境变量。需要持久化切换时运行 `pnpm prompt:m8 select m8.1`，回滚运行 `pnpm prompt:m8 rollback`，查看选择与 hash 运行 `pnpm prompt:m8 list`，然后重启 API。新任务记录该版本，恢复旧任务仍使用原快照。评测 CLI 明确传入 `--prompt-a` / `--prompt-b`。
 
 费用由 `LLM_INPUT_PRICE_PER_MILLION_USD` / `LLM_OUTPUT_PRICE_PER_MILLION_USD` 计算。未配置单价或 provider 未报告用量时费用为 null；失败调用计入 unknown usage，而非伪装成免费。stub 的 token 是估算、费用为零，不代表真实账单。
 

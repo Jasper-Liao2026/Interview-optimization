@@ -2,7 +2,7 @@
 
 Examples:
   python scripts/eval_m8.py --stub --out ../../docs/M8-eval.json
-  python scripts/eval_m8.py --prompt-a m4.0 --prompt-b m8.0
+  python scripts/eval_m8.py --prompt-a m4.1 --prompt-b m8.1
 """
 
 from __future__ import annotations
@@ -76,8 +76,8 @@ async def main(args: argparse.Namespace) -> int:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--prompt-a", default="m4.0")
-    parser.add_argument("--prompt-b", default="m8.0")
+    parser.add_argument("--prompt-a", default="m4.1")
+    parser.add_argument("--prompt-b", default="m8.1")
     parser.add_argument("--concurrency", type=int, default=2)
     parser.add_argument("--stub", action="store_true", help="仅运行显式标记的 stub 冒烟评测")
     parser.add_argument("--persist-dataset", action="store_true")

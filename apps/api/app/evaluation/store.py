@@ -7,6 +7,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from app.db import Database
+from app.evaluation.prompt_registry import persist_prompt_snapshot
 
 
 class EvaluationStore:
@@ -42,27 +43,7 @@ class EvaluationStore:
     async def save_prompt_snapshots(self, versions: list[dict[str, Any]]) -> None:
         async with self._db.connection() as conn, conn.transaction():
             for item in versions:
-                await conn.execute(
-                    "select pg_advisory_xact_lock(hashtextextended($1,0))",
-                    "prompt:" + item["version"],
-                )
-                snapshot = item["snapshot"]
-                existing = await conn.fetchval(
-                    "select content_hash from public.prompt_versions where version=$1",
-                    item["version"],
-                )
-                if existing is not None and str(existing) != item["content_hash"]:
-                    raise ValueError(f"prompt 版本已存在但内容冲突: {item['version']}")
-                await conn.execute(
-                    "insert into public.prompt_versions("
-                    "version,jd_system,rewrite_system,jd_image,content_hash) "
-                    "values($1,$2,$3,$4,$5) on conflict(version) do nothing",
-                    item["version"],
-                    snapshot["jd_system"],
-                    snapshot["rewrite_system"],
-                    snapshot["jd_image"],
-                    item["content_hash"],
-                )
+                await persist_prompt_snapshot(conn, item)
 
     async def save_run(self, dataset_id: UUID, report: dict[str, Any]) -> UUID:
         run_id = uuid4()

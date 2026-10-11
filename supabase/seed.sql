@@ -17,8 +17,8 @@
 insert into public.service_meta (key, value)
 values
   ('service_name',   'resume-optimizer-api'),
-  ('milestone',      'M3'),
-  ('schema_version', 'm3_0001'),
+  ('milestone',      'M8'),
+  ('schema_version', 'm8_0002'),
   ('stack',          'Next.js 15 + FastAPI + LangGraph + Postgres')
 on conflict (key) do update
   set value      = excluded.value,

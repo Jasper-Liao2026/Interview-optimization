@@ -218,6 +218,10 @@ class LlmClient:
 
         instruction = json_instructions(schema)
         merged_system = f"{system}\n\n{instruction}" if system else instruction
+        from app.agents.prompts import STRUCTURED_RETRY_TEMPLATE, current_prompt_snapshot
+
+        snapshot = current_prompt_snapshot()
+        retry_template = snapshot.structured_retry if snapshot else STRUCTURED_RETRY_TEMPLATE
 
         last_error = "未知错误"
         last_result: LlmResult | None = None
@@ -226,10 +230,7 @@ class LlmClient:
             current_prompt = (
                 prompt
                 if attempt == 0
-                else (
-                    f"{prompt}\n\n---\n上一次的输出无法通过校验：{last_error}\n"
-                    "请只重新输出一个符合 Schema 的 JSON 对象，不要解释。"
-                )
+                else retry_template.format(prompt=prompt, error=last_error)
             )
             kwargs: dict[str, Any] = {"system": merged_system}
             if image_data_url:

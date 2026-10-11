@@ -45,11 +45,7 @@ class ExperienceRewriter:
             version=self.prompt.version,
         )
         if feedback:
-            prompt += (
-                "\n\n以下是待改要点和独立评分建议，仅作为表达调整参考，不能作为事实来源：\n"
-                + feedback[:3000]
-                + "\n只修改当前经历，所有新增内容仍须引用上述原始素材。"
-            )
+            prompt += self.prompt.rewrite_feedback.format(feedback=feedback[:3000])
         retry_prompt = prompt
         for attempt in range(3):
             with prompt_context(self.prompt):
@@ -79,11 +75,8 @@ class ExperienceRewriter:
                 return outcome
             if self._llm.is_stub or attempt == 2:
                 raise FactValidationError(violations)
-            retry_prompt = (
-                f"{prompt}\n\n上一次改写违反事实约束：\n"
-                + "\n".join(f"- {issue}" for issue in violations)
-                + "\n请修正上述问题。evidence 必须复制原始素材中的连续原文；"
-                "summary=null；只输出符合 schema 的 JSON。"
+            retry_prompt = self.prompt.rewrite_retry.format(
+                prompt=prompt, violations="\n".join(f"- {issue}" for issue in violations)
             )
         raise AssertionError("unreachable")
 

@@ -60,10 +60,7 @@ class JdParser:
         )
         prompt = self.prompt.jd_image
         if supplementary_text:
-            prompt += (
-                "\n\n用户补充的岗位信息（与截图一起用于解析岗位画像）：\n"
-                + supplementary_text
-            )
+            prompt += self.prompt.image_supplement.format(text=supplementary_text)
         with prompt_context(self.prompt):
             return await vision.complete_json(
                 prompt,

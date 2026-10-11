@@ -171,8 +171,8 @@ async def _run_case(settings: Settings, case: GoldenCase, version: str) -> CaseR
 async def compare_prompts(
     settings: Settings,
     *,
-    prompt_a: str = "m4.0",
-    prompt_b: str = "m8.0",
+    prompt_a: str = "m4.1",
+    prompt_b: str = "m8.1",
     cases: tuple[GoldenCase, ...] | None = None,
     concurrency: int = 2,
     allow_stub: bool = False,

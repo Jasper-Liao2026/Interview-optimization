@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import asdict
 from typing import Any
 
@@ -39,6 +40,42 @@ def rollback_prompt_version(version: str) -> PromptSnapshot:
     return _rollback(version)
 
 
+async def persist_prompt_snapshot(conn: Any, item: dict[str, Any]) -> None:
+    """Persist a complete bundle; callers provide a transaction for the lock."""
+    await conn.execute(
+        "select pg_advisory_xact_lock(hashtextextended($1,0))", "prompt:" + item["version"]
+    )
+    snapshot = item["snapshot"]
+    existing = await conn.fetchrow(
+        "select content_hash,snapshot from public.prompt_versions where version=$1",
+        item["version"],
+    )
+    if existing is not None:
+        if str(existing["content_hash"]) != item["content_hash"]:
+            raise ValueError(f"prompt 版本已存在但内容冲突: {item['version']}")
+        stored = existing["snapshot"]
+        # JSON normalizes tuple fields to arrays. Compare canonical JSON so
+        # a read-back matches asdict(), while legacy partial hashes still
+        # cannot authorize changes to an already persisted complete bundle.
+        if stored is not None:
+            if json.dumps(stored, sort_keys=True) != json.dumps(snapshot, sort_keys=True):
+                raise ValueError(f"prompt snapshot 已存在但内容冲突: {item['version']}")
+            return
+        await conn.execute(
+            "update public.prompt_versions set snapshot=$2 "
+            "where version=$1 and snapshot is null",
+            item["version"], snapshot,
+        )
+        return
+    await conn.execute(
+        "insert into public.prompt_versions("
+        "version,jd_system,rewrite_system,jd_image,content_hash,snapshot) "
+        "values($1,$2,$3,$4,$5,$6)",
+        item["version"], snapshot["jd_system"], snapshot["rewrite_system"],
+        snapshot["jd_image"], item["content_hash"], snapshot,
+    )
+
+
 class PromptVersionRepository:
     """Persistence adapter for prompt snapshots/settings.
 
@@ -55,67 +92,49 @@ class PromptVersionRepository:
         self.settings = settings or get_settings()
 
     async def ensure_shipped(self) -> None:
-        async with self.database.connection() as conn:
+        async with self.database.connection() as conn, conn.transaction():
             for item in list_prompt_versions():
-                snapshot = item["snapshot"]
-                existing = await conn.fetchval(
-                    "select content_hash from public.prompt_versions where version=$1",
-                    item["version"],
-                )
-                if existing is not None and str(existing) != item["content_hash"]:
-                    raise ValueError(f"prompt 版本已存在但内容冲突: {item['version']}")
-                await conn.execute(
-                    "insert into public.prompt_versions("
-                    "version,jd_system,rewrite_system,jd_image,content_hash) "
-                    "values($1,$2,$3,$4,$5) "
-                    "on conflict(version) do nothing",
-                    item["version"],
-                    snapshot["jd_system"],
-                    snapshot["rewrite_system"],
-                    snapshot["jd_image"],
-                    _get_snapshot(item["version"]).content_hash,
-                )
+                await persist_prompt_snapshot(conn, item)
 
     async def selected(self) -> str:
         async with self.database.connection() as conn:
             row = await conn.fetchrow(
                 "select selected_version from public.prompt_settings where key='default'"
             )
-        version = str(row["selected_version"]) if row else available_prompt_versions()[0]
+        # A persisted choice wins; a fresh database must honor PROMPT_VERSION.
+        version = str(row["selected_version"]) if row else self.settings.prompt_version
         snapshot = _select(version)
         self.settings.prompt_version = snapshot.version
         return snapshot.version
 
     async def select(self, version: str, *, actor: str = "system") -> dict[str, Any]:
         snapshot = _get_snapshot(version)
+        await self.ensure_shipped()
         async with self.database.connection() as conn, conn.transaction():
-            existing = await conn.fetchval(
-                "select content_hash from public.prompt_versions where version=$1", version
-            )
-            if existing is not None and str(existing) != snapshot.content_hash:
-                raise ValueError(f"prompt 版本已存在但内容冲突: {version}")
             await conn.execute(
-                "insert into public.prompt_versions("
-                "version,jd_system,rewrite_system,jd_image,content_hash) "
-                "values($1,$2,$3,$4,$5) "
-                "on conflict(version) do nothing",
-                version,
-                snapshot.jd_system,
-                snapshot.rewrite_system,
-                snapshot.jd_image,
-                snapshot.content_hash,
+                "select pg_advisory_xact_lock(hashtextextended($1,0))", "prompt:default"
             )
+            current = await conn.fetchrow(
+                "select selected_version,previous_version from public.prompt_settings "
+                "where key='default' for update"
+            )
+            selected = str(current["selected_version"]) if current else self.settings.prompt_version
+            # Preserve rollback on an idempotent selection. The first persisted
+            # change can roll back to the configured version that preceded it.
+            previous = (
+                current["previous_version"] if current else None
+            ) if selected == version else selected
             row = await conn.fetchrow(
                 "insert into public.prompt_settings("
                 "key,selected_version,previous_version,changed_by) "
-                "values('default',$1,(select selected_version from "
-                "public.prompt_settings where key='default'),$2) "
+                "values('default',$1,$2,$3) "
                 "on conflict(key) do update set "
-                "previous_version=prompt_settings.selected_version,"
+                "previous_version=excluded.previous_version,"
                 "selected_version=excluded.selected_version,"
                 "changed_by=excluded.changed_by,changed_at=now() "
                 "returning key,selected_version,previous_version,changed_at",
                 version,
+                previous,
                 actor,
             )
         _select(snapshot.version)
