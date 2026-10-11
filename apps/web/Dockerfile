@@ -2,7 +2,8 @@
 
 FROM node:22-alpine AS base
 ENV PNPM_HOME=/pnpm \
-    PATH=/pnpm:$PATH
+    PATH=/pnpm:$PATH \
+    NEXT_TELEMETRY_DISABLED=1
 RUN corepack enable && corepack prepare pnpm@11.5.0 --activate
 WORKDIR /repo
 
@@ -26,7 +27,8 @@ RUN pnpm --filter @resume/web build
 FROM node:22-alpine AS runtime
 ENV NODE_ENV=production \
     PORT=3000 \
-    HOSTNAME=0.0.0.0
+    HOSTNAME=0.0.0.0 \
+    NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 

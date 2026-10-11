@@ -73,8 +73,8 @@ const details = {
   67: "根 `LICENSE` 为 MIT；根 package.json、apps/web/package.json、packages/api-types/package.json、scripts/pdfproto/package.json 和 apps/api/pyproject.toml 标注 MIT。本地已核对许可证与元数据一致；GitHub license 识别还需以推送后远程页面为准。",
   68: "`apps/api/Dockerfile` 使用 uv frozen lock，安装 Chromium/CJK 字体并设 CHROMIUM_PATH；`apps/web/Dockerfile` 使用 pnpm frozen lock、Next standalone 与构建期 NEXT_PUBLIC_API_BASE_URL。`docker-compose.yml` 默认运行镜像内容且无宿主 app 挂载，`scripts/verify-m9-config.mjs` 校验。实际 clean build/clone-to-first-PDF 尚被 Docker Desktop 的 `docker.m.daocloud.io -> 127.0.0.1:12334` 失效代理阻断，静态通过不能作为容器运行通过，保持开放。",
   69: "根 `.env.example` 为 Docker 首次配置，`apps/api/.env.example` 为宿主开发；`scripts/verify-m9-config.mjs` 从 `apps/api/app/config.py` 提取字段并逐个核对（当前 52 项），检查 Compose env_file 传入、LLM/JUDGE/EMBEDDING 默认 stub 无 key、postgres 容器地址与本机绑定。`pnpm verify:m9:config`/Compose config 通过；VISION 未配置复用生成模型，真实截图需视觉模型，空可选数字应保留注释。",
-  70: "README 已包含 Git/Docker 前置、clone/compose 命令、无 key 手工素材→JD→生成→PDF、根 .env 与宿主模板区别、端口/日志/停止和增量迁移；真实模型会外发参与处理的文本，启用 Langfuse 会外发 trace。待补完整快速开始：`/settings` 演示导入与导出/清空操作步骤、备份文件范围、Langfuse/模型日志不受本地清空影响。当前 production build/类型/配置检查通过；受 #68 构建阻断，陌生人 clean clone 首份 PDF 与 5 分钟目标尚未实测，不能写已审核完成。",
-  71: "`apps/api/app/routers/demo.py` 的 `POST /api/v1/system/demo` 调用 `repositories/demo_repo.py` 的 DemoRepository.import_demo；uuid5(user_id, resume-demo-v1-*) 固定 3 个经历 ID 与岗位 ID，事务内 ON CONFLICT(id) DO NOTHING，设计上保留已有编辑。素材与岗位以【演示】命名、parser_model=stub:synthetic-demo-v1，响应包含 inserted_experiences/inserted_jobs；`apps/web/src/app/settings/page.tsx` 提供导入按钮。当前实现尚无专门 demo 测试；真实 Postgres 重复/并发导入、人工编辑不覆盖、清空后再导入及 import→generate→PDF 全链路未完成验收，保持开放。",
+  70: "README 已包含 Git/Docker 前置、clone/compose 命令、`/settings` 一键演示导入→`/jobs`→生成→PDF、根 `.env`、端口/日志/停止、迁移、Mermaid 架构图、截图、数据导出/清空范围和真实模型/Langfuse 外发边界；`pnpm --filter @resume/web build`、类型、配置检查和 Edge settings UI 6 项（含 390px）通过。完整 Docker clean-clone 仍受 #68 的镜像构建环境限制。",
+  71: "`POST /api/v1/system/demo` 由 `DemoRepository.import_demo` 以 uuid5 固定 3 条经历和 1 个 JD，事务内 `ON CONFLICT(id) DO NOTHING`，不覆盖人工编辑；`/settings` 一键入口带合成/stub 标记。`pnpm verify:m9` 在隔离 Postgres 通过 30 项：重复导入、人工编辑保护、生成→评分→编辑→Chromium PDF、清空后恢复导入；API 契约测试另有 6 项。",
   72: "`apps/api/app/routers/local_data.py` 提供 `GET /api/v1/system/data/export` 与 `POST .../clear`；`LocalDataRepository.export` 用 repeatable_read 只读事务导出当前用户业务/embedding、实例评测、已存在 checkpoint 及元数据，bytes 转 base64。clear 用共享活动锁的独占 advisory lock 与 share row exclusive 表锁拒绝运行中请求，清业务/评测/checkpoint 并保留 service_meta/prompt_versions/prompt_settings/checkpoint_migrations；单机单用户范围内 checkpoint/评测为全实例清除。`/settings` 确认后提交精确 confirmation，`tests/test_local_data_m9.py` 验证用户不能覆盖、422/409/no-store 与外部存储声明。临时数据库实测清除 934 行需由本轮审核记录佐证；Langfuse trace 和模型服务日志不能由本地清空删除。",
 };
 
@@ -92,8 +92,8 @@ for (const issue of issues) {
   gh(["api", "--method", "PATCH", `repos/${repo}/issues/${issue.number}`, "-f", `body=${next}`]);
 }
 
-// README/demo still need the acceptance described above before being closed.
-for (const number of [67, 69, 72]) {
+// These issues have the acceptance evidence required for closure.
+for (const number of [67, 69, 70, 71, 72]) {
   gh(["api", "--method", "PATCH", `repos/${repo}/issues/${number}`, "-f", "state=closed", "-f", "state_reason=completed"]);
 }
-console.log(`enriched ${issues.length} issues; closed OSS issues 67,69,72`);
+console.log(`enriched ${issues.length} issues; closed OSS issues 67,69,70,71,72`);

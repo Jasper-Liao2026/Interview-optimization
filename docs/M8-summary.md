@@ -7,12 +7,12 @@
 - 每次 JD 解析、改写、结构化重试和失败调用都记录 provider、model、prompt 版本 hash、token、延迟、费用和状态；Postgres 保存 `generation_llm_calls`，生成运行保存汇总。
 - `/api/v1/observability/usage` 和前端 `/observability` 展示任务级用量、总量、未知用量和 trace 链接。
 - `app/evaluation/golden_dataset.json` 含 20 条明确 `synthetic=true` 的 JD、期望画像、经历与期望要点；`eval_m8.py` 固定对同一数据集运行两版 prompt。
-- `m4.0` / `m8.0` 是不可变 prompt snapshot，记录 SHA-256；Postgres 保存版本、选择历史和前一版本，支持回滚。
+- 新 `m4.1` / `m8.1` 完整 bundle 的 SHA-256 覆盖实际 system/user 模板、截图补充、反馈、重试与冻结 JSON Schema；`m4.0` / `m8.0` 保留历史部分 hash。Postgres 保存完整 JSONB snapshot、选择历史和前一版本，支持回滚。
 - 真实评测拒绝 stub、同厂商 judge、缺少 key 和质量回归；stub 只用于工程冒烟，并在报告中明确标记。
 
 ## 验收
 
-- `pnpm api:test`：376 项通过。
+- 本轮审核后 `pnpm api:test`：410 项通过（含 M9 数据接口）。
 - `pnpm verify:m8`：10 项 telemetry + 5 项 Postgres prompt/dataset 验收通过。
 - `pnpm verify:m8 -- --langfuse`：16 项真实 Postgres / Langfuse 检查 + 5 项 prompt/dataset 检查通过，验证并行父子 span、实际 prompt/输出回放及 usage。
 - `pnpm eval:m8 -- --stub`：40 个样本结果（两版各 20），报告含逐样本输出、期望值、失败、prompt hash 和模型信息。
@@ -23,12 +23,14 @@
 
 ## 使用与升级
 
-已有 M6/M7 数据库需应用 `supabase/migrations/20261015000000_m8_evaluation.sql`；新库由 Compose 自动加载。迁移已应用到本次开发库，不删已有数据。
+已有 M6/M7 数据库需按顺序应用 `supabase/migrations/20261015000000_m8_evaluation.sql` 和 `supabase/migrations/20261016000000_m8_prompt_bundle.sql`；新库由 Compose 自动加载。第二条为已有版本补充 nullable snapshot 列，代码仅回填缺失快照，拒绝同版本内容冲突，不改历史 hash。
 
 新安装默认使用完整 bundle `m4.1`；`m8.1` 加入稳定排序规则。`m4.0` / `m8.0` 保留为历史兼容快照。启动时选择优先级为 **数据库中已保存的选择 > `PROMPT_VERSION` 环境变量**；新数据库没有选择记录时会采用环境变量。需要持久化切换时运行 `pnpm prompt:m8 select m8.1`，回滚运行 `pnpm prompt:m8 rollback`，查看选择与 hash 运行 `pnpm prompt:m8 list`，然后重启 API。新任务记录该版本，恢复旧任务仍使用原快照。评测 CLI 明确传入 `--prompt-a` / `--prompt-b`。
 
 费用由 `LLM_INPUT_PRICE_PER_MILLION_USD` / `LLM_OUTPUT_PRICE_PER_MILLION_USD` 计算。未配置单价或 provider 未报告用量时费用为 null；失败调用计入 unknown usage，而非伪装成免费。stub 的 token 是估算、费用为零，不代表真实账单。
 
-本机未配置真实独立 judge，本次 51 / 51 分报告仅证明工程流水线，不证明 prompt 质量。配置 `JUDGE_PROVIDER=openai-compatible`、独立厂商和 key 后运行 `pnpm eval:m8 -- --min-score 70 --max-regression 0`；任何样本失败或回归超阈值会退出非零。
+本机未配置真实独立 judge，本次 `m4.1` / `m8.1` 均为 63.19 分、delta=0 的 stub 报告仅证明工程流水线，不证明 prompt 质量。配置 `JUDGE_PROVIDER=openai-compatible`、独立厂商和 key 后运行 `pnpm eval:m8 -- --min-score 70 --max-regression 0`；任何样本失败或回归超阈值会退出非零。
+
+本轮独立审核修复两个阻断：新库默认忽略环境变量选择，以及 hash 遗漏真实 user/schema/retry 指令。新增完整版本并保持旧 hash，版本选择以数据库保存值优先、无保存值时使用配置。修复后重新运行真实 Langfuse 回放 16 项、Postgres prompt/dataset 5 项与 40 样本 stub 比较，均通过。代理绕过使用 `NO_PROXY=localhost,127.0.0.1,::1`。
 
 生成任务记录墙钟耗时（含并行改写和持久化）；调用明细记录各 provider 的独立耗时。模型返回 usage 后、持久化之前若进程突然退出，不能保证恢复出供应商未写入本地的 token，未知账单需以供应商账单核对。

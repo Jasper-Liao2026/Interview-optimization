@@ -12,9 +12,10 @@
 **/.ruff_cache/
 **/*.pyc
 **/.env
-**/.env.local
+**/.env.*
+!**/.env.example
 apps/api/tests/
 apps/api/scripts/
 docs/
-scripts/
+/scripts/
 *.md
